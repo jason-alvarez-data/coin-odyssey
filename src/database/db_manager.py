@@ -32,3 +32,22 @@ class DatabaseManager:
             return session.query(Coin).filter(Coin.id == coin_id).first()
         finally:
             session.close()
+
+    def add_coin_image(self, image_data):
+        """
+        Add a coin image to the database
+
+        Args:
+            image_data (dict): Dictionary containing:
+                - coin_id: ID of the coin
+                - image_path: Path to the image file
+                - image_type: Type of image('obverse' or 'reverse')
+        """
+        session = self.Session()
+        try:
+            image = CoinImage(**image_data)
+            session.add(image)
+            session.commit()
+            return image.id
+        finally:
+            session.close()

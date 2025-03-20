@@ -30,6 +30,6 @@ class CoinImage(Base):
     id = Column(Integer, primary_key=True)
     coin_id = Column(Integer, ForeignKey('coins.id'))
     image_path = Column(String, nullable=False)
-    image_type = Column(String)  # 'obverse', 'reverse', 'detail'
+    image_type = Column(String)  # 'obverse', 'reverse'
     
     coin = relationship("Coin", back_populates="images")
