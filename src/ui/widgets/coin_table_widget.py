@@ -7,16 +7,18 @@ class CoinTableModel(QAbstractTableModel):
         super().__init__()
         self.db_manager = db_manager
         self.coins = []
+        self.filtered_coins = []
         self.headers = ['Title', 'Year', 'Country', 'Denomination', 
                        'Mint Mark', 'Condition', 'Purchase Price', 'Current Value']
         self.refresh_data()
     
     def refresh_data(self):
         self.coins = self.db_manager.get_all_coins()
+        self.filtered_coins = self.coins.copy()
         self.layoutChanged.emit()
     
     def rowCount(self, parent=QModelIndex()):
-        return len(self.coins)
+        return len(self.filtered_coins)
     
     def columnCount(self, parent=QModelIndex()):
         return len(self.headers)
@@ -26,7 +28,7 @@ class CoinTableModel(QAbstractTableModel):
             return None
             
         if role == Qt.DisplayRole:
-            coin = self.coins[index.row()]
+            coin = self.filtered_coins[index.row()]
             col = index.column()
             
             if col == 0: return coin.title
@@ -44,6 +46,55 @@ class CoinTableModel(QAbstractTableModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.headers[section]
         return None
+    
+    def apply_filters(self, search_text, search_field, condition, value_range):
+        """Apply filters to the coin data"""
+        self.filtered_coins = self.coins.copy()
+
+        # Apply search filter
+        if search_text:
+            search_text = search_text.lower()
+            if search_field == 'All Fields':
+                self.filtered_coins = [
+                    coin for coin in self.filtered_coins
+                    if (search_text in str(coin.title).lower() or
+                        search_text in str(coin.country).lower() or
+                        search_text in str(coin.year).lower() or
+                        search_text in str(coin.denomination).lower())
+                ]
+            else:
+                field = search_field.lower()
+                self.filtered_coins = [
+                    coin for coin in self.filtered_coins
+                    if search_text in str(getattr(coin, field)).lower()
+                ]
+        
+        # Apply condition filter
+        if condition:
+            self.filtered_coins = [
+                coin for coin in self.filtered_coins
+                if coin.condition == condition
+            ]
+
+        # Apply value range filter
+        if value_range:
+            value_ranges = {
+                'Under $10': (0, 10),
+                '$10 - $50': (10, 50),
+                '$50 - $100': (50, 100),
+                '$100 - $500': (100, 500),
+                'Over $500': (500, float('inf'))
+            }
+
+            if value_range in value_ranges:
+                min_val, max_val = value_ranges[value_range]
+                self.filtered_coins = [
+                    coin for coin in self.filtered_coins
+                    if min_val <= (coin.current_value or 0) <= max_val
+                ]
+        
+        # Notify the view that the data has changed
+        self.layoutChanged.emit()
 
 class CoinTableWidget(QTableView):
     def __init__(self, db_manager):
@@ -69,3 +120,7 @@ class CoinTableWidget(QTableView):
     
     def refresh_data(self):
         self.model.refresh_data()
+
+    def apply_filters(self, search_text, search_field, condition, value_range):
+        """Pass filter parameters to the model"""
+        self.model.apply_filters(search_text, search_field, condition, value_range)

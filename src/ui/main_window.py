@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
-                               QHBoxLayout, QPushButton, QTableView, QLabel)
+                               QHBoxLayout, QPushButton, QTableView, QLabel,
+                               QLineEdit, QComboBox, QFrame)
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QFont, QIcon
 from .dialogs.add_coin_dialog import AddCoinDialog
@@ -33,6 +34,21 @@ class MainWindow(QMainWindow):
             QPushButton:hover {
                 background-color: #1976D2;
             }
+            QFrame#SearchFrame {
+                background-color: white;
+                border: 1px solid #e0e0e0;
+                border-radius: 4px;
+                margin: 8px;
+            }
+            QLineEdit, QComboBox {
+                padding: 6px;
+                border: 1px solid #e0e0e0;
+                border-radius: 4px;
+                background-color: white;
+            }
+            QComboBox:hover, QLineEdit:focus {
+                border: 1px solid @2196F3;
+            }
         """)
 
         # Create central widget
@@ -44,11 +60,78 @@ class MainWindow(QMainWindow):
         sidebar = self.create_sidebar()
 
         # Create main content
+        main_content = QWidget()
+        main_layout = QVBoxLayout(main_content)
+
+        # Create and add search frame
+        search_frame = self.create_search_frame()
+        main_layout.addWidget(search_frame)
+
+        # Create and add coin table
         self.coin_table = CoinTableWidget(self.db_manager)
+        main_layout.addWidget(self.coin_table)
 
         # Add widgets to layout
         layout.addWidget(sidebar)
-        layout.addWidget(self.coin_table, stretch=1)
+        layout.addWidget(main_content, stretch=1)
+
+    def create_search_frame(self):
+        frame = QFrame()
+        frame.setObjectName("searchFrame")
+        layout = QVBoxLayout(frame)
+
+        # Create search controls
+        search_layout = QHBoxLayout()
+
+        # Search input
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Search coins...")
+        self.search_input.textChanged.connect(self.apply_filters)
+
+        # Search field selector
+        self.search_field = QComboBox()
+        self.search_field.addItems(['All Fields', 'Title', 'Country', 'Year', 'Denomination'])
+        self.search_field.currentTextChanged.connect(self.apply_filters)
+
+        # Condition filter
+        self.condition_filter = QComboBox()
+        self.condition_filter.addItem('All Conditions')
+        self.condition_filter.addItems([
+            "Mint State (MS)",
+            "About Uncirculated (AU)",
+            "Extremely Fine (XF)",
+            "Very Fine (VF)",
+            "Fine (F)",
+            "Very Good (VG)",
+            "Good (G)",
+            "Fair"
+        ])
+        self.condition_filter.currentTextChanged.connect(self.apply_filters)
+
+        # Value range filter
+        self.value_filter = QComboBox()
+        self.value_filter.addItems([
+            'All Values',
+            'Under $10',
+            '$10 - $50',
+            '$50 - $100',
+            '$100 - $500',
+            'Over $500'
+        ])
+        self.value_filter.currentTextChanged.connect(self.apply_filters)
+
+        # Add widgets to search layout
+        search_layout.addWidget(QLabel("Search:"))
+        search_layout.addWidget(self.search_input)
+        search_layout.addWidget(self.search_field)
+        search_layout.addWidget(QLabel("Condition:"))
+        search_layout.addWidget(self.condition_filter)
+        search_layout.addWidget(QLabel("Value:"))
+        search_layout.addWidget(self.value_filter)
+        search_layout.addStretch()
+
+        layout.addLayout(search_layout)
+        return frame
 
     def create_sidebar(self):
         sidebar = QWidget()
@@ -89,6 +172,20 @@ class MainWindow(QMainWindow):
         layout.addStretch()
 
         return sidebar
+    
+    @Slot()
+    def apply_filters(self):
+        search_text = self.search_input.text()
+        search_field = self.search_field.currentText()
+        condition = self.condition_filter.currentText()
+        value_range = self.value_filter.currentText()
+
+        self.coin_table.apply_filters(
+            search_text=search_text,
+            search_field=search_field,
+            condition=condition if condition != 'All Conditions' else None,
+            value_range=value_range if value_range != 'All Values' else None
+        )
     
     @Slot()
     def show_add_dialog(self):
