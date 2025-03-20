@@ -103,5 +103,62 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def export_data(self):
-        # TODO: Implement export functionality
+        from PySide6.QtWidgets import QFileDialog
+        import csv
+        import datetime
+
+        # Open file dialog to choose save location
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Coin Data",
+            "coin_collection.csv",
+            "CSV Files (*.csv);;All Files (*)"
+        )
+
+        if file_name:
+            try:
+                with open(file_name, 'w', newline='', encoding='utf-8') as csvfile:
+                    writer = csv.writer(csvfile)
+
+                    # Write headers
+                    headers = [
+                        'Title', 'Year', 'Country', 'Denomination', 'Mint Mark',
+                        'Condition', 'Grading', 'Purchase Date', 'Purchase Price',
+                        'Current Value', 'Notes', 'Is Proof'
+                    ]
+                    writer.writerow(headers)
+
+                    # Get all coins from database
+                    coins = self.db_manager.get_all_coins()
+
+                    # Write coin data
+                    for coin in coins:
+                        row = [
+                            coin.title,
+                            coin.year,
+                            coin.country,
+                            coin.denomination,
+                            coin.mint_mark,
+                            coin.condition,
+                            coin.grading,
+                            coin.purchase_date.strftime('%Y-%m-%d') if coin.purchase_date else '',
+                            f"{coin.purchase_price:.2f}" if coin.purchase_price else '',
+                            f"{coin.current_value:.2d}" if coin.current_value else '',
+                            coin.notes,
+                            'Yes' if coin.is_proof else 'No'
+                        ]
+                        writer.writerow(row)
+
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.information(
+                    self,
+                    "Export Successful",
+                    f"Collection data has been exported to {file_name}"
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    "Export Failed",
+                    f"An error occurred while exporting: {str(e)}"
+                )
         pass
