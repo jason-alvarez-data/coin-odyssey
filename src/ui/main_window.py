@@ -21,34 +21,105 @@ class MainWindow(QMainWindow):
         # Apply modern styling
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #f5f5f5;
+                background-color: #f8f9fc;
             }
-            QPushButton {
-                background-color: #2196F3;
+            
+            /* Sidebar Styling */
+            QWidget#sidebar {
+                background-color: #4157DC;
+                min-width: 225px;
+                max-width: 225px;
+                padding: 0;
+            }
+            
+            QWidget#sidebar QLabel {
                 color: white;
+                font-size: 16px;
+                font-weight: bold;
+                padding: 24px 20px;
+            }
+            
+            QWidget#sidebar QPushButton {
+                background-color: transparent;
                 border: none;
-                padding: 10px;
-                border-radius: 4px;
-                font-size: 14px;
-                min-width: 120px;
+                color: rgba(255, 255, 255, 0.7);
+                text-align: left;
+                padding: 12px 24px;
+                font-size: 13px
+                font-weight: 500;
+                margin: 4px 12px;
+                border-radius: 6px;
             }
-            QPushButton:hover {
-                background-color: #1976D2;
+                           
+            QWidget#sidebar QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: white;
             }
-            QFrame#SearchFrame {
+                           
+            QWidget#sidebar QPushButton:checked {
+                background-color: rgba(255, 255, 255, 0.15);
+                color: white;
+            }
+                           
+            /* Main Content Styling */
+            QFrame {
                 background-color: white;
-                border: 1px solid #e0e0e0;
-                border-radius: 4px;
-                margin: 8px;
+                border-radius: 8px;
+                border: 1px solid #e3e6f0;
             }
-            QLineEdit, QComboBox {
-                padding: 6px;
-                border: 1px solid #e0e0e0;
-                border-radius: 4px;
+                           
+            QWindow {
+                background-color: #F7F8FC;
+            }
+                           
+            /* Search Bar Styling and Filters */
+            QFrame#searchFrame {
                 background-color: white;
+                padding: 16px 24px;
+                margin: 24px;
+                border-radius: 8px;
             }
-            QComboBox:hover, QLineEdit:focus {
-                border: 1px solid @2196F3;
+                           
+            QLineEdit {
+                padding: 10px 15px;
+                border: 1px solid #e3e6f0;
+                border-radius: 4px;
+                background-color: #f8f9fc;
+                font-size: 13px;
+                min-width: 300px;
+            }
+                           
+            QComboBox {
+                padding: 10px 15px;
+                border: 1px solid #e3e6f0;
+                border-radius: 4px;
+                background-color: #f8f9fc;
+                font-size: 13px;
+                min-width: 150px;
+            }
+                           
+            /* Table Styling */
+            QTableView {
+                border: none;
+                background-color: white;
+                margin: 0 24px;
+                border-radius: 8px;
+                gridline-color: #F0F2F8;
+            }
+                           
+            QTableView:item {
+                padding: 12px;
+                border-bottom: 1px solid #F0F2F8;
+            }
+                           
+            QHeaderView:section {
+                background-color: #f8f9fc;
+                padding: 16px 12px;
+                border: none;
+                border-bottom: 1px solid #E2E8F0;
+                font-weight: 600;
+                color: #4e73df;
+                font-size: 12px;
             }
         """)
 
@@ -94,20 +165,28 @@ class MainWindow(QMainWindow):
         frame.setObjectName("searchFrame")
         layout = QVBoxLayout(frame)
 
-        # Create search controls
+        # Header
+        header_layout = QHBoxLayout()
+        header = QLabel("Collection")
+        header.setStyleSheet("""
+            QLabel {
+                font-size: 20px;
+                font-weight: bold;
+                color: #5a5c69;
+            }
+        """)
+
+        # Search section
         search_layout = QHBoxLayout()
-
-        # Search input
+        search_layout.setSpacing(15)
+        
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Search coins...")
-        self.search_input.textChanged.connect(self.apply_filters)
-
-        # Search field selector
+        self.search_input.setPlaceholderText("Search for category, name, company, etc")
+        
         self.search_field = QComboBox()
         self.search_field.addItems(['All Fields', 'Title', 'Country', 'Year', 'Denomination'])
-        self.search_field.currentTextChanged.connect(self.apply_filters)
-
-        # Condition filter
+        self.search_field.setStyleSheet("min-width: 120px;")
+        
         self.condition_filter = QComboBox()
         self.condition_filter.addItem('All Conditions')
         self.condition_filter.addItems([
@@ -120,69 +199,64 @@ class MainWindow(QMainWindow):
             "Good (G)",
             "Fair"
         ])
-        self.condition_filter.currentTextChanged.connect(self.apply_filters)
-
-        # Value range filter
-        self.value_filter = QComboBox()
-        self.value_filter.addItems([
-            'All Values',
-            'Under $10',
-            '$10 - $50',
-            '$50 - $100',
-            '$100 - $500',
-            'Over $500'
-        ])
-        self.value_filter.currentTextChanged.connect(self.apply_filters)
-
-        # Add widgets to search layout
-        search_layout.addWidget(QLabel("Search:"))
-        search_layout.addWidget(self.search_input)
+        
+        btn_search = QPushButton("Search")
+        btn_search.setStyleSheet("""
+            QPushButton {
+                background-color: #4e73df;
+                min-width: 100px;
+            }
+        """)
+        
+        search_layout.addWidget(self.search_input, stretch=2)
         search_layout.addWidget(self.search_field)
-        search_layout.addWidget(QLabel("Condition:"))
         search_layout.addWidget(self.condition_filter)
-        search_layout.addWidget(QLabel("Value:"))
-        search_layout.addWidget(self.value_filter)
-        search_layout.addStretch()
-
+        search_layout.addWidget(btn_search)
+        
+        layout.addLayout(header_layout)
         layout.addLayout(search_layout)
+        
         return frame
 
     def create_sidebar(self):
         sidebar = QWidget()
-        sidebar.setMaximumWidth(200)
+        sidebar.setObjectName("sidebar")
         layout = QVBoxLayout(sidebar)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
 
         # Add title label
         title_label = QLabel("Coin Odyssey")
-        title_label.setAlignment(Qt.AlignCenter)
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #2196F3;
-                font-size: 24px;
-                font-weight: bold;
-                padding: 20px 0;
-                border-bottom: 2px solid #e0e0e0;
-                margin-bottom: 20px;
-            }
-        """)
+        title_label.setAlignment(Qt.AlignLeft)
 
-        # Add title to layout before buttons
-        layout.addWidget(title_label)
+        # Create button with icons
+        btn_home = QPushButton(" Dashboard")
+        btn_home.setIcon(QIcon("assets/icons/home.png"))
+        
+        btn_collection = QPushButton(" Collection")
+        btn_collection.setIcon(QIcon("assets/icons/collection.png"))
 
-        # Create buttons
-        btn_home = QPushButton("Home")
-        btn_add = QPushButton("Add Coin")
-        btn_analysis = QPushButton("Analysis")
-        btn_export = QPushButton("Export")
+        btn_add = QPushButton(" Add Coin")
+        btn_add.setIcon(QIcon("assets/icons/add.png"))
+
+        btn_analysis = QPushButton(" Analysis")
+        btn_analysis.setIcon(QIcon("assets/icons/analysis.png"))
+
+        btn_export = QPushButton(" Export")
+        btn_export.setIcon(QIcon("assets/icons/export.png"))
 
         # Connect signals
         btn_home.clicked.connect(self.show_dashboard)
+        btn_collection.clicked.connect(self.show_coin_table)
         btn_add.clicked.connect(self.show_add_dialog)
         btn_analysis.clicked.connect(self.show_analysis)
         btn_export.clicked.connect(self.export_data)
 
         # Add buttons to layout
+        layout.addWidget(title_label)
+        layout.addSpacing(20)
         layout.addWidget(btn_home)
+        layout.addWidget(btn_collection)
         layout.addWidget(btn_add)
         layout.addWidget(btn_analysis)
         layout.addWidget(btn_export)
