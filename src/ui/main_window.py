@@ -1,11 +1,12 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                                QHBoxLayout, QPushButton, QTableView, QLabel,
-                               QLineEdit, QComboBox, QFrame)
+                               QLineEdit, QComboBox, QFrame, QStackedWidget)
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QFont, QIcon
 from .dialogs.add_coin_dialog import AddCoinDialog
 from .dialogs.analysis_dialog import AnalysisDialog
 from .widgets.coin_table_widget import CoinTableWidget
+from .widgets.home_dashboard import HomeDashboard
 
 class MainWindow(QMainWindow):
     def __init__(self, db_manager):
@@ -63,13 +64,26 @@ class MainWindow(QMainWindow):
         main_content = QWidget()
         main_layout = QVBoxLayout(main_content)
 
-        # Create and add search frame
-        search_frame = self.create_search_frame()
-        main_layout.addWidget(search_frame)
+        # Create stacked widget for switching between views
+        self.main_stack = QStackedWidget()
 
-        # Create and add coin table
+        # Create dashboard and coin table
+        self.dashboard = HomeDashboard(self.db_manager)
+        self.coin_table_container = QWidget()
+        coin_table_layout = QVBoxLayout(self.coin_table_container)
+
+        # Add search frame and coin table to container
+        search_frame = self.create_search_frame()
         self.coin_table = CoinTableWidget(self.db_manager)
-        main_layout.addWidget(self.coin_table)
+        coin_table_layout.addWidget(search_frame)
+        coin_table_layout.addWidget(self.coin_table)
+
+        # Add both views to stack
+        self.main_stack.addWidget(self.dashboard)
+        self.main_stack.addWidget(self.coin_table_container)
+
+        # Add Stack to main layout
+        main_layout.addWidget(self.main_stack)
 
         # Add widgets to layout
         layout.addWidget(sidebar)
@@ -156,16 +170,19 @@ class MainWindow(QMainWindow):
         layout.addWidget(title_label)
 
         # Create buttons
+        btn_home = QPushButton("Home")
         btn_add = QPushButton("Add Coin")
         btn_analysis = QPushButton("Analysis")
         btn_export = QPushButton("Export")
 
         # Connect signals
+        btn_home.clicked.connect(self.show_dashboard)
         btn_add.clicked.connect(self.show_add_dialog)
         btn_analysis.clicked.connect(self.show_analysis)
         btn_export.clicked.connect(self.export_data)
 
         # Add buttons to layout
+        layout.addWidget(btn_home)
         layout.addWidget(btn_add)
         layout.addWidget(btn_analysis)
         layout.addWidget(btn_export)
@@ -259,3 +276,11 @@ class MainWindow(QMainWindow):
                     f"An error occurred while exporting: {str(e)}"
                 )
         pass
+
+    @Slot()
+    def show_dashboard(self):
+        self.main_stack.setCurrentWidget(self.dashboard)
+
+    @Slot()
+    def show_coin_table(self):
+        self.main_stack.setCurrentWidget(self.coin_table_container)
