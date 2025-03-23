@@ -21,7 +21,7 @@ class MainWindow(QMainWindow):
         # Apply modern styling
         self.setStyleSheet("""
             QMainWindow {
-                background_color: #f5f5f5;
+                background-color: #f5f5f5;
             }
             QPushButton {
                 background-color: #2196F3;
