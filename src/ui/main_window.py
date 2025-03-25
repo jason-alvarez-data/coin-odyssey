@@ -8,131 +8,21 @@ from .dialogs.add_coin_dialog import AddCoinDialog
 from .widgets.coin_table_widget import CoinTableWidget
 from .widgets.home_dashboard import HomeDashboard
 from .widgets.analysis_widgets import AnalysisWidget
+from .theme.theme_manager import ThemeManager
 
 class MainWindow(QMainWindow):
     def __init__(self, db_manager):
         super().__init__()
         self.db_manager = db_manager
+        self.theme_manager = ThemeManager()
         self.setup_ui()
 
     def setup_ui(self):
         self.setWindowTitle("Coin Odyssey")
         self.setMinimumSize(1200, 800)
-        
-        # Apply modern styling with glass effects
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #f8f9fc;
-            }
-            
-            /* Sidebar Styling */
-            QWidget#sidebar {
-                background-color: #4157DC;
-                min-width: 225px;
-                max-width: 225px;
-                padding: 0;
-                border: none;
-            }
-            
-            /* Top Bar Styling */
-            QWidget#topBar {
-                background-color: rgba(255, 255, 255, 0.95);
-                border-bottom: 1px solid rgba(226, 232, 240, 0.3);
-                padding: 16px 24px;
-                margin: 0;
-            }
-            
-            QLabel#breadcrumb {
-                color: #4A5568;
-                font-size: 14px;
-                font-weight: 500;
-            }
-            
-            QLabel#profileName {
-                color: #2D3748;
-                font-size: 14px;
-                font-weight: 500;
-                margin-left: 8px;
-            }
-            
-            QLabel#profileImage {
-                border-radius: 16px;
-                border: 2px solid #E2E8F0;
-            }
-            
-            /* Sidebar Elements */
-            QWidget#sidebar QLabel {
-                color: white;
-                font-size: 16px;
-                font-weight: bold;
-                padding: 24px 20px;
-            }
-            
-            QWidget#sidebar QPushButton {
-                background-color: transparent;
-                border: none;
-                color: rgba(255, 255, 255, 0.7);
-                text-align: left;
-                padding: 12px 24px;
-                font-size: 13px;
-                font-weight: 500;
-                margin: 4px 12px;
-                border-radius: 6px;
-            }
-            
-            QWidget#sidebar QPushButton:hover {
-                background-color: rgba(255, 255, 255, 0.1);
-                color: white;
-            }
-            
-            QWidget#sidebar QPushButton:checked {
-                background-color: rgba(255, 255, 255, 0.15);
-                color: white;
-            }
-            
-            /* Glass Effect Content Cards */
-            QFrame#contentCard {
-                background-color: rgba(255, 255, 255, 0.95);
-                border-radius: 12px;
-                border: 1px solid rgba(226, 232, 240, 0.4);
-                padding: 24px;
-                margin: 16px;
-            }
-            
-            QFrame#searchFrame {
-                background-color: rgba(255, 255, 255, 0.95);
-                border-radius: 12px;
-                border: 1px solid rgba(226, 232, 240, 0.4);
-                padding: 24px;
-                margin: 24px;
-            }
-            
-            QLineEdit {
-                padding: 10px 15px;
-                border: 1px solid rgba(226, 232, 240, 0.6);
-                border-radius: 6px;
-                background-color: rgba(248, 249, 252, 0.95);
-                font-size: 13px;
-                min-width: 300px;
-            }
-            
-            QComboBox {
-                padding: 10px 15px;
-                border: 1px solid rgba(226, 232, 240, 0.6);
-                border-radius: 6px;
-                background-color: rgba(248, 249, 252, 0.95);
-                font-size: 13px;
-                min-width: 150px;
-            }
-            
-            QTableView {
-                background-color: rgba(255, 255, 255, 0.95);
-                border-radius: 12px;
-                border: 1px solid rgba(226, 232, 240, 0.4);
-                margin: 0 24px;
-                gridline-color: rgba(240, 242, 248, 0.6);
-            }
-        """)
+
+        # Connect theme changes to update all widgets
+        self.theme_manager.theme_changed.connect(self.update_theme)
 
         # Create main layout container
         central_widget = QWidget()
@@ -145,121 +35,70 @@ class MainWindow(QMainWindow):
         top_bar = self.create_top_bar()
         main_layout.addWidget(top_bar)
 
-        # Create content layout
+        # Create content area
         content_layout = QHBoxLayout()
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(0)
-
-        # Create and add sidebar
-        sidebar = self.create_sidebar()
         
-        # Create dock widget for sidebar
-        dock = QDockWidget()
-        dock.setWidget(sidebar)
-        dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
-        dock.setTitleBarWidget(QWidget())  # Removes the title bar
-        self.addDockWidget(Qt.LeftDockWidgetArea, dock)
+        # Create and add sidebar
+        self.sidebar = self.create_sidebar()
+        content_layout.addWidget(self.sidebar)
 
-        # Create main content area
-        main_content = QWidget()
-        main_content_layout = QVBoxLayout(main_content)
-        main_content_layout.setContentsMargins(24, 24, 24, 24)
-
-        # Create stacked widget
+        # Create main stacked widget for different views
         self.main_stack = QStackedWidget()
         
-        # Add dashboard and coin table
-        self.dashboard = HomeDashboard(self.db_manager)
-        self.coin_table_container = QWidget()
-        self.analysis_widget = AnalysisWidget(self.db_manager) # Create analysis widget
-        
-        # Setup coin table container
-        coin_table_layout = QVBoxLayout(self.coin_table_container)
-        search_frame = self.create_search_frame()
-        self.coin_table = CoinTableWidget(self.db_manager)
-        
-        coin_table_layout.addWidget(search_frame)
-        coin_table_layout.addWidget(self.coin_table)
-
-        # Add all widgets to stack
+        # Create and add dashboard
+        self.dashboard = HomeDashboard(self.db_manager, self.theme_manager)
         self.main_stack.addWidget(self.dashboard)
-        self.main_stack.addWidget(self.coin_table_container)
-        self.main_stack.addWidget(self.analysis_widget) # Add analysis widget to stack
 
-        main_content_layout.addWidget(self.main_stack)
-        content_layout.addWidget(main_content)
+        # Create and add coin table
+        self.coin_table = CoinTableWidget(self.db_manager)
+        self.main_stack.addWidget(self.coin_table)
+
+        # Create and add analysis widget
+        self.analysis_widget = AnalysisWidget(self.db_manager)
+        self.main_stack.addWidget(self.analysis_widget)
+
+        content_layout.addWidget(self.main_stack)
         main_layout.addLayout(content_layout)
 
+        # Set initial view to dashboard
+        self.show_dashboard()
+
+        # Apply initial theme
+        self.update_theme()
+
     def create_top_bar(self):
-        top_bar = QWidget()
-        top_bar.setObjectName("topBar")
-        top_layout = QHBoxLayout(top_bar)
-        top_layout.setContentsMargins(24, 0, 24, 0)
+        frame = QFrame()
+        frame.setObjectName("topBar")
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(16, 8, 16, 8)
 
         # Add breadcrumb
-        breadcrumb = QLabel("Dashboard > Collection")
-        breadcrumb.setObjectName("breadcrumb")
+        self.breadcrumb = QLabel("Dashboard")
+        self.breadcrumb.setFont(QFont("", 12))
+        layout.addWidget(self.breadcrumb)
 
-        # Add spacer
-        spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        # Add search section
+        search_frame = self.create_search_frame()
+        layout.addWidget(search_frame)
 
-        # Create profile section
-        profile_widget = QWidget()
-        profile_layout = QHBoxLayout(profile_widget)
-        profile_layout.setContentsMargins(0, 0, 0, 0)
-
-        # Add notification button
-        notif_btn = QPushButton()
-        notif_btn.setIcon(QIcon("assets/icons/notification.png"))
-        notif_btn.setObjectName("headerButton")
-        
-        # Add profile image
-        profile_img = QLabel()
-        profile_pixmap = QPixmap("assets/icons/profile.png")
-        profile_img.setPixmap(profile_pixmap.scaled(32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        profile_img.setObjectName("profileImage")
-
-        # Add profile name
-        profile_name = QLabel("John Doe")
-        profile_name.setObjectName("profileName")
-
-        profile_layout.addWidget(notif_btn)
-        profile_layout.addWidget(profile_img)
-        profile_layout.addWidget(profile_name)
-
-        top_layout.addWidget(breadcrumb)
-        top_layout.addItem(spacer)
-        top_layout.addWidget(profile_widget)
-
-        return top_bar
+        return frame
 
     def create_search_frame(self):
         frame = QFrame()
-        frame.setObjectName("searchFrame")
-        layout = QVBoxLayout(frame)
+        search_layout = QHBoxLayout(frame)
+        search_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Header
-        header_layout = QHBoxLayout()
-        header = QLabel("Collection")
-        header.setStyleSheet("""
-            QLabel {
-                font-size: 20px;
-                font-weight: bold;
-                color: #5a5c69;
-            }
-        """)
-
-        # Search section
-        search_layout = QHBoxLayout()
-        search_layout.setSpacing(15)
-        
+        # Search input
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Search for category, name, company, etc")
-        
+        self.search_input.setPlaceholderText("Search coins...")
+        self.search_input.textChanged.connect(self.apply_filters)
+
+        # Search field dropdown
         self.search_field = QComboBox()
-        self.search_field.addItems(['All Fields', 'Title', 'Country', 'Year', 'Denomination'])
-        self.search_field.setStyleSheet("min-width: 120px;")
-        
+        self.search_field.addItems(['Title', 'Year', 'Country', 'Denomination'])
+        self.search_field.currentTextChanged.connect(self.apply_filters)
+
+        # Condition filter
         self.condition_filter = QComboBox()
         self.condition_filter.addItem('All Conditions')
         self.condition_filter.addItems([
@@ -272,22 +111,24 @@ class MainWindow(QMainWindow):
             "Good (G)",
             "Fair"
         ])
-        
-        btn_search = QPushButton("Search")
-        btn_search.setStyleSheet("""
-            QPushButton {
-                background-color: #4e73df;
-                min-width: 100px;
-            }
-        """)
-        
-        search_layout.addWidget(self.search_input, stretch=2)
+        self.condition_filter.currentTextChanged.connect(self.apply_filters)
+
+        # Value range filter
+        self.value_filter = QComboBox()
+        self.value_filter.addItems([
+            'All Values',
+            'Under $10',
+            '$10 - $50',
+            '$50 - $100',
+            '$100 - $500',
+            'Over $500'
+        ])
+        self.value_filter.currentTextChanged.connect(self.apply_filters)
+
+        search_layout.addWidget(self.search_input)
         search_layout.addWidget(self.search_field)
         search_layout.addWidget(self.condition_filter)
-        search_layout.addWidget(btn_search)
-        
-        layout.addLayout(header_layout)
-        layout.addLayout(search_layout)
+        search_layout.addWidget(self.value_filter)
         
         return frame
 
@@ -301,25 +142,31 @@ class MainWindow(QMainWindow):
         # Add title label
         title_label = QLabel("Coin Odyssey")
         title_label.setAlignment(Qt.AlignLeft)
+        title_label.setFont(QFont("", 16, QFont.Bold))
 
-        # Create button with icons
+        # Create navigation buttons
         btn_home = QPushButton(" Dashboard")
-        btn_home.setIcon(QIcon("assets/icons/home.png"))
+        btn_home.setIcon(QIcon("src/assets/icons/home.png"))
         btn_home.setCheckable(True)
         
         btn_collection = QPushButton(" Collection")
-        btn_collection.setIcon(QIcon("assets/icons/collection.png"))
+        btn_collection.setIcon(QIcon("src/assets/icons/coins.png"))
         btn_collection.setCheckable(True)
 
         btn_add = QPushButton(" Add Coin")
-        btn_add.setIcon(QIcon("assets/icons/add.png"))
+        btn_add.setIcon(QIcon("src/assets/icons/add.png"))
 
         btn_analysis = QPushButton(" Analysis")
-        btn_analysis.setIcon(QIcon("assets/icons/analysis.png"))
+        btn_analysis.setIcon(QIcon("src/assets/icons/chart-histogram.png"))
         btn_analysis.setCheckable(True)
 
         btn_export = QPushButton(" Export")
-        btn_export.setIcon(QIcon("assets/icons/export.png"))
+        btn_export.setIcon(QIcon("src/assets/icons/disk.png"))
+
+        # Create theme toggle button
+        btn_theme = QPushButton(" Toggle Theme")
+        btn_theme.setIcon(QIcon("src/assets/icons/theme.png"))  # You'll need this icon
+        btn_theme.clicked.connect(self.toggle_theme)
 
         # Store buttons for reference
         self.nav_buttons = [btn_home, btn_collection, btn_analysis]
@@ -337,13 +184,6 @@ class MainWindow(QMainWindow):
         # Set initial state
         btn_home.setChecked(True)
 
-        # Connect signals
-        btn_home.clicked.connect(self.show_dashboard)
-        btn_collection.clicked.connect(self.show_coin_table)
-        btn_add.clicked.connect(self.show_add_dialog)
-        btn_analysis.clicked.connect(self.show_analysis)
-        btn_export.clicked.connect(self.export_data)
-
         # Add buttons to layout
         layout.addWidget(title_label)
         layout.addSpacing(20)
@@ -352,10 +192,81 @@ class MainWindow(QMainWindow):
         layout.addWidget(btn_add)
         layout.addWidget(btn_analysis)
         layout.addWidget(btn_export)
+
+        # Add spacer to push theme button to bottom
         layout.addStretch()
+        layout.addWidget(btn_theme)
 
         return sidebar
-    
+
+    def update_theme(self):
+        # Update sidebar
+        sidebar_bg = self.theme_manager.get_color('background')
+        sidebar_text = self.theme_manager.get_color('text')
+        self.sidebar.setStyleSheet(f"""
+            QWidget {{
+                background-color: {sidebar_bg};
+                color: {sidebar_text};
+            }}
+            QPushButton {{
+                background-color: {self.theme_manager.get_color('surface')};
+                color: {sidebar_text};
+                border: none;
+                padding: 8px;
+                border-radius: 4px;
+                text-align: left;
+            }}
+            QPushButton:checked {{
+                background-color: {self.theme_manager.get_color('accent')};
+                color: white;
+            }}
+            QPushButton:hover {{
+                background-color: {self.theme_manager.get_color('border')};
+            }}
+        """)
+
+        # Update main window background
+        self.setStyleSheet(f"""
+            QMainWindow {{
+                background-color: {self.theme_manager.get_color('background')};
+            }}
+        """)
+
+        # Update top bar
+        top_bar_bg = self.theme_manager.get_color('surface')
+        top_bar_text = self.theme_manager.get_color('text')
+        self.breadcrumb.setStyleSheet(f"color: {top_bar_text};")
+        self.breadcrumb.parent().setStyleSheet(f"background-color: {top_bar_bg};")
+
+    def toggle_theme(self):
+        self.theme_manager.toggle_theme()
+
+    @Slot()
+    def show_dashboard(self):
+        self.main_stack.setCurrentWidget(self.dashboard)
+        self.breadcrumb.setText("Dashboard")
+
+    @Slot()
+    def show_coin_table(self):
+        self.main_stack.setCurrentWidget(self.coin_table)
+        self.breadcrumb.setText("Dashboard > Collection")
+
+    @Slot()
+    def show_analysis(self):
+        self.main_stack.setCurrentWidget(self.analysis_widget)
+        self.breadcrumb.setText("Dashboard > Analysis")
+
+    @Slot()
+    def show_add_dialog(self):
+        dialog = AddCoinDialog(self.db_manager, self)
+        if dialog.exec():
+            self.coin_table.refresh_data()
+
+    @Slot()
+    def export_data(self):
+        # Implement export functionality
+        pass
+
     @Slot()
     def apply_filters(self):
         search_text = self.search_input.text()
@@ -369,91 +280,3 @@ class MainWindow(QMainWindow):
             condition=condition if condition != 'All Conditions' else None,
             value_range=value_range if value_range != 'All Values' else None
         )
-    
-    @Slot()
-    def show_add_dialog(self):
-        dialog = AddCoinDialog(self.db_manager, self)
-        if dialog.exec():
-            self.coin_table.refresh_data()
-
-    @Slot()
-    def show_analysis(self):
-        self.main_stack.setCurrentWidget(self.analysis_widget)
-
-        # Update breadcrumbs
-        if hasattr(self, 'breadcrumb_label'):
-            self.breadcrumb.setText("Dashboard > Analysis")
-
-    @Slot()
-    def export_data(self):
-        from PySide6.QtWidgets import QFileDialog
-        import csv
-        import datetime
-
-        # Open file dialog to choose save location
-        file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            "Export Coin Data",
-            "coin_collection.csv",
-            "CSV Files (*.csv);;All Files (*)"
-        )
-
-        if file_name:
-            try:
-                with open(file_name, 'w', newline='', encoding='utf-8') as csvfile:
-                    writer = csv.writer(csvfile)
-
-                    # Write headers
-                    headers = [
-                        'Title', 'Year', 'Country', 'Denomination', 'Mint Mark',
-                        'Condition', 'Grading', 'Purchase Date', 'Purchase Price',
-                        'Current Value', 'Notes', 'Is Proof'
-                    ]
-                    writer.writerow(headers)
-
-                    # Get all coins from database
-                    coins = self.db_manager.get_all_coins()
-
-                    # Write coin data
-                    for coin in coins:
-                        row = [
-                            coin.title,
-                            coin.year,
-                            coin.country,
-                            coin.denomination,
-                            coin.mint_mark,
-                            coin.condition,
-                            coin.grading,
-                            coin.purchase_date.strftime('%Y-%m-%d') if coin.purchase_date else '',
-                            f"{coin.purchase_price:.2f}" if coin.purchase_price else '',
-                            f"{coin.current_value:.2d}" if coin.current_value else '',
-                            coin.notes,
-                            'Yes' if coin.is_proof else 'No'
-                        ]
-                        writer.writerow(row)
-
-                from PySide6.QtWidgets import QMessageBox
-                QMessageBox.information(
-                    self,
-                    "Export Successful",
-                    f"Collection data has been exported to {file_name}"
-                )
-            except Exception as e:
-                QMessageBox.critical(
-                    self,
-                    "Export Failed",
-                    f"An error occurred while exporting: {str(e)}"
-                )
-        pass
-
-    @Slot()
-    def show_dashboard(self):
-        self.main_stack.setCurrentWidget(self.dashboard)
-        if hasattr(self, 'breadcrumb'):
-            self.breadcrumb.setText("Dashboard > Home")
-
-    @Slot()
-    def show_coin_table(self):
-        self.main_stack.setCurrentWidget(self.coin_table_container)
-        if hasattr(self, 'breadcrumb'):
-            self.breadcrumb.setText("Dashboard > Collection")

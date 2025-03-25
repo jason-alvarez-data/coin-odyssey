@@ -1,12 +1,15 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
-                                QLabel, QFrame, QProgressBar)
+                              QLabel, QFrame, QProgressBar)
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QPixmap
+import pandas as pd
 
 class HomeDashboard(QWidget):
-    def __init__(self, db_manager):
+    def __init__(self, db_manager, theme_manager):
         super().__init__()
         self.db_manager = db_manager
+        self.theme_manager = theme_manager
+        self.theme_manager.theme_changed.connect(self.update_theme)
         self.setup_ui()
 
     def setup_ui(self):
@@ -14,36 +17,45 @@ class HomeDashboard(QWidget):
         layout.setSpacing(20)
 
         # Collection Overview Section
-        overview_frame = self.create_overview_frame()
-        layout.addWidget(overview_frame)
+        self.overview_frame = self.create_overview_frame()
+        layout.addWidget(self.overview_frame)
 
         # Recent Activity and Map Section
         middle_section = QHBoxLayout()
 
         # Recent Activity
-        recent_frame = self.create_recent_frame()
-        middle_section.addWidget(recent_frame)
+        self.recent_frame = self.create_recent_frame()
+        middle_section.addWidget(self.recent_frame)
 
-        # World Map Placeholder (we'll implement the map later)
-        map_frame = self.create_map_placeholder()
-        middle_section.addWidget(map_frame)
+        # World Map Placeholder
+        self.map_frame = self.create_map_placeholder()
+        middle_section.addWidget(self.map_frame)
 
         layout.addLayout(middle_section)
 
         # Goals Section
-        goals_frame = self.create_goals_frame()
-        layout.addWidget(goals_frame)
+        self.goals_frame = self.create_goals_frame()
+        layout.addWidget(self.goals_frame)
+
+    def update_theme(self):
+        # Update all frames with new theme
+        self.overview_frame.setStyleSheet(f"QFrame#overviewFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
+        self.recent_frame.setStyleSheet(f"QFrame#recentFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
+        self.map_frame.setStyleSheet(f"QFrame#mapFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
+        self.goals_frame.setStyleSheet(f"QFrame#goalsFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
+        
+        # Update all labels with text color
+        for label in self.findChildren(QLabel):
+            label.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
+        
+        # Update progress bars
+        for progress_bar in self.findChildren(QProgressBar):
+            progress_bar.setStyleSheet(self.theme_manager.get_stylesheet('progress_bar'))
 
     def create_overview_frame(self):
         frame = QFrame()
         frame.setObjectName("overviewFrame")
-        frame.setStyleSheet("""
-            QFrame#overviewFrame {
-                background-color: white;
-                border-radius: 10px;
-                padding: 15px;
-            }
-        """)
+        frame.setStyleSheet(f"QFrame#overviewFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
 
         layout = QHBoxLayout(frame)
 
@@ -52,7 +64,7 @@ class HomeDashboard(QWidget):
         total_coins = self.create_stat_widget(
             "Total Coins",
             str(coins_count),
-            "fas fa-coins" # FontAwesome icon as Placeholder
+            "src/assets/icons/coins2.png"
         )
 
         # Total Value
@@ -60,7 +72,7 @@ class HomeDashboard(QWidget):
         value_widget = self.create_stat_widget(
             "Collection Value",
             f"${total_value:,.2f}",
-            "fas fa-dollar-sign" # FontAwesome icon as Placeholder
+            "src/assets/icons/usd-circle.png"
         )
 
         # Countries Count
@@ -68,7 +80,7 @@ class HomeDashboard(QWidget):
         countries_widget = self.create_stat_widget(
             "Countries",
             str(countries),
-            "fas fa-globe" # FontAwesome icon as Placeholder
+            "src/assets/icons/globe.png"
         )
 
         layout.addWidget(total_coins)
@@ -76,47 +88,49 @@ class HomeDashboard(QWidget):
         layout.addWidget(countries_widget)
 
         return frame
-    
-    def create_stat_widget(self, title, value, icon):
+
+    def create_stat_widget(self, title, value, icon_path):
         widget = QFrame()
         layout = QVBoxLayout(widget)
 
-        # Icone and Value in one row
+        # Icon and Value in one row
         top_layout = QHBoxLayout()
-        icon_label = QLabel(icon)
-        icon_label.setFont(QFont("", 24))
+
+        # Icon
+        icon_label = QLabel()
+        icon_pixmap = QPixmap(icon_path)
+        icon_label.setPixmap(icon_pixmap.scaled(32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+        # Value
         value_label = QLabel(value)
         value_label.setFont(QFont("", 24, QFont.Bold))
+        value_label.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
 
         top_layout.addWidget(icon_label)
         top_layout.addWidget(value_label)
         top_layout.addStretch()
 
-        # Title below
+        # Title
         title_label = QLabel(title)
         title_label.setFont(QFont("", 12))
+        title_label.setStyleSheet(f"color: {self.theme_manager.get_color('text_secondary')}")
 
         layout.addLayout(top_layout)
         layout.addWidget(title_label)
 
         return widget
-    
+
     def create_recent_frame(self):
         frame = QFrame()
         frame.setObjectName("recentFrame")
-        frame.setStyleSheet("""
-            QFrame#recentFrame {
-                background-color: white;
-                border-radius: 10px;
-                padding: 15px;
-            }
-        """)
+        frame.setStyleSheet(f"QFrame#recentFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
 
         layout = QVBoxLayout(frame)
 
         # Header
         header = QLabel("Recent Additions")
         header.setFont(QFont("", 14, QFont.Bold))
+        header.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
         layout.addWidget(header)
 
         # Get 5 most recent coins
@@ -128,54 +142,46 @@ class HomeDashboard(QWidget):
 
         for coin in recent_coins:
             coin_label = QLabel(f"{coin.title} - {coin.year}")
+            coin_label.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
             layout.addWidget(coin_label)
 
         return frame
-    
+
     def create_map_placeholder(self):
         frame = QFrame()
         frame.setObjectName("mapFrame")
-        frame.setStyleSheet("""
-            QFrame#mapFrame {
-                background-color: white;
-                border-radius: 10px;
-                padding: 15px;
-            }
-        """)
+        frame.setStyleSheet(f"QFrame#mapFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
 
         layout = QVBoxLayout(frame)
 
         # Header
         header = QLabel("Collection Geography")
         header.setFont(QFont("", 14, QFont.Bold))
+        header.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
         layout.addWidget(header)
 
         # Placeholder for map
         map_label = QLabel("World Map Coming Soon!")
         map_label.setAlignment(Qt.AlignCenter)
+        map_label.setStyleSheet(f"color: {self.theme_manager.get_color('text_secondary')}")
         layout.addWidget(map_label)
 
         return frame
-    
+
     def create_goals_frame(self):
         frame = QFrame()
         frame.setObjectName("goalsFrame")
-        frame.setStyleSheet("""
-            QFrame#goalsFrame {
-                background-color: white;
-                border-radius: 10px;
-                padding: 15px;
-            }
-        """)
+        frame.setStyleSheet(f"QFrame#goalsFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
 
         layout = QVBoxLayout(frame)
 
         # Header
         header = QLabel("Collection Goals")
         header.setFont(QFont("", 14, QFont.Bold))
+        header.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
         layout.addWidget(header)
 
-        # Example goals (you'll need to implement goal tracking in database)
+        # Example goals
         goals = [
             ("Complete State Quarter Collection", 45, 50),
             ("Acquire Pre-1900 Coins", 3, 10),
@@ -187,9 +193,12 @@ class HomeDashboard(QWidget):
 
             # Goal name and progress
             label = QLabel(f"{name} ({current}/{total})")
+            label.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
+            
             progress = QProgressBar()
             progress.setMaximum(total)
             progress.setValue(current)
+            progress.setStyleSheet(self.theme_manager.get_stylesheet('progress_bar'))
 
             goal_layout.addWidget(label)
             goal_layout.addWidget(progress)
