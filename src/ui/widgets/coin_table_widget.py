@@ -1,16 +1,22 @@
-from PySide6.QtWidgets import QTableView
+from PySide6.QtWidgets import QTableView, QWidget, QVBoxLayout
 from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex
 from PySide6.QtGui import QColor
 
 class CoinTableModel(QAbstractTableModel):
-    def __init__(self, db_manager):
+    def __init__(self, db_manager, theme_manager):
         super().__init__()
         self.db_manager = db_manager
-        self.coins = []
-        self.filtered_coins = []
+        self.theme_manager = theme_manager
+        self.coins = self.db_manager.get_all_coins()
+        self.filtered_coins = self.coins
         self.headers = ['Title', 'Year', 'Country', 'Denomination', 
                        'Mint Mark', 'Condition', 'Purchase Price', 'Current Value']
-        self.refresh_data()
+    
+    def data(self, index, role):
+        if role == Qt.BackgroundRole:
+            return QColor(self.theme_manager.get_color('surface'))
+        elif role == Qt.ForegroundRole:
+            return QColor(self.theme_manager.get_color('text'))
     
     def refresh_data(self):
         self.coins = self.db_manager.get_all_coins()
@@ -96,31 +102,58 @@ class CoinTableModel(QAbstractTableModel):
         # Notify the view that the data has changed
         self.layoutChanged.emit()
 
-class CoinTableWidget(QTableView):
-    def __init__(self, db_manager):
+class CoinTableWidget(QWidget):
+    def __init__(self, db_manager, theme_manager):
         super().__init__()
         self.db_manager = db_manager
+        self.theme_manager = theme_manager
         self.setup_ui()
+
+        # Connect theme changes
+        self.theme_manager.theme_changed.connect(self.update_theme)
     
     def setup_ui(self):
-        # Set up the model
-        self.model = CoinTableModel(self.db_manager)
-        self.setModel(self.model)
-        
-        # Configure the table
-        self.setAlternatingRowColors(True)
-        self.setSelectionBehavior(QTableView.SelectRows)
-        self.setSelectionMode(QTableView.SingleSelection)
-        self.setSortingEnabled(True)
-        
-        # Set column widths
-        self.horizontalHeader().setStretchLastSection(True)
-        for i in range(self.model.columnCount()):
-            self.setColumnWidth(i, 120)
+        layout = QVBoxLayout(self)
+
+        # Create table view
+        self.table_view = QTableView()
+        self.model = CoinTableModel(self.db_manager, self.theme_manager)
+        self.table_view.setModel(self.model)
+
+        # style the table
+        self.update_theme()
+
+        # Add to layout
+        layout.addWidget(self.table_view)
+
+    def update_theme(self):
+        self.table_view.setStyleSheet(f"""
+            QTableView {{
+                background-color: {self.theme_manager.get_color('surface')};
+                color: {self.theme_manager.get_color('text')};
+                border: none;
+                gridline-color: {self.theme_manager.get_color('border')};
+            }}
+            QHeaderView::section {{
+                background-color: {self.theme_manager.get_color('surface')};
+                color: {self.theme_manager.get_color('text')};
+                padding: 5pc;
+                border: none;
+                border-bottom: 1px solid {self.theme_manager.get_color('border')};
+            }}
+            QTableView::item:selected {{
+                background-color: {self.theme_manager.get_color('accent')};
+                color: white;
+            }}
+        """)
+
+        # Force refresh of the table
+        self.model.layoutChanged.emit()
     
     def refresh_data(self):
-        self.model.refresh_data()
+        self.model.coins = self.db_manager.get_all_coins()
+        self.model.filtered_coins = self.model.coins
+        self.model.layoutChanged.emit()
 
-    def apply_filters(self, search_text, search_field, condition, value_range):
-        """Pass filter parameters to the model"""
+    def apply_filters(self, search_text=None, search_field=None, condition=None, value_range=None):
         self.model.apply_filters(search_text, search_field, condition, value_range)

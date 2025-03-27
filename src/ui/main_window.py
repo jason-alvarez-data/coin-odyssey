@@ -2,9 +2,9 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QPushButton, QTableView, QLabel,
                              QLineEdit, QComboBox, QFrame, QStackedWidget,
                              QDockWidget, QSizePolicy, QSpacerItem)
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import Qt, Slot, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QFont, QIcon, QPixmap
-from .dialogs.add_coin_dialog import AddCoinDialog
+from .dialogs.add_coin_dialog import AddCoinPanel
 from .widgets.coin_table_widget import CoinTableWidget
 from .widgets.home_dashboard import HomeDashboard
 from .widgets.analysis_widgets import AnalysisWidget
@@ -38,9 +38,27 @@ class MainWindow(QMainWindow):
         # Create content area
         content_layout = QHBoxLayout()
         
-        # Create and add sidebar
+        # Create sidebar container
+        self.sidebar_container = QWidget()
+        self.sidebar_container_layout = QStackedWidget()
+        self.sidebar_container.setFixedWidth(250)  # Set fixed width
+
+        # Add main sidebar
         self.sidebar = self.create_sidebar()
-        content_layout.addWidget(self.sidebar)
+        self.sidebar_container_layout.addWidget(self.sidebar)
+
+        # Create add coin panel
+        self.add_coin_panel = AddCoinPanel(self.db_manager, self.theme_manager)
+        self.add_coin_panel.coinAdded.connect(self.on_coin_added)
+        self.add_coin_panel.closeRequested.connect(self.hide_add_coin_panel)
+        self.sidebar_container_layout.addWidget(self.add_coin_panel)
+
+        # Set layout for sidebar container
+        self.sidebar_container.setLayout(QVBoxLayout())
+        self.sidebar_container.layout().addWidget(self.sidebar_container_layout)
+        self.sidebar_container.layout().setContentsMargins(0, 0, 0, 0)
+
+        content_layout.addWidget(self.sidebar_container)
 
         # Create main stacked widget for different views
         self.main_stack = QStackedWidget()
@@ -50,21 +68,15 @@ class MainWindow(QMainWindow):
         self.main_stack.addWidget(self.dashboard)
 
         # Create and add coin table
-        self.coin_table = CoinTableWidget(self.db_manager)
+        self.coin_table = CoinTableWidget(self.db_manager, self.theme_manager)
         self.main_stack.addWidget(self.coin_table)
 
         # Create and add analysis widget
-        self.analysis_widget = AnalysisWidget(self.db_manager)
+        self.analysis_widget = AnalysisWidget(self.db_manager, self.theme_manager)
         self.main_stack.addWidget(self.analysis_widget)
 
         content_layout.addWidget(self.main_stack)
         main_layout.addLayout(content_layout)
-
-        # Set initial view to dashboard
-        self.show_dashboard()
-
-        # Apply initial theme
-        self.update_theme()
 
     def create_top_bar(self):
         frame = QFrame()
@@ -141,8 +153,8 @@ class MainWindow(QMainWindow):
 
         # Add title label
         title_label = QLabel("Coin Odyssey")
-        title_label.setAlignment(Qt.AlignLeft)
         title_label.setFont(QFont("", 16, QFont.Bold))
+        title_label.setAlignment(Qt.AlignLeft)
 
         # Create navigation buttons
         btn_home = QPushButton(" Dashboard")
@@ -165,7 +177,7 @@ class MainWindow(QMainWindow):
 
         # Create theme toggle button
         btn_theme = QPushButton(" Toggle Theme")
-        btn_theme.setIcon(QIcon("src/assets/icons/theme.png"))  # You'll need this icon
+        btn_theme.setIcon(QIcon("src/assets/icons/theme.png"))
         btn_theme.clicked.connect(self.toggle_theme)
 
         # Store buttons for reference
@@ -180,9 +192,8 @@ class MainWindow(QMainWindow):
         btn_home.clicked.connect(lambda: (self.show_dashboard(), update_button_states(btn_home)))
         btn_collection.clicked.connect(lambda: (self.show_coin_table(), update_button_states(btn_collection)))
         btn_analysis.clicked.connect(lambda: (self.show_analysis(), update_button_states(btn_analysis)))
-
-        # Set initial state
-        btn_home.setChecked(True)
+        btn_add.clicked.connect(self.show_add_panel)
+        btn_export.clicked.connect(self.export_data)
 
         # Add buttons to layout
         layout.addWidget(title_label)
@@ -225,13 +236,6 @@ class MainWindow(QMainWindow):
             }}
         """)
 
-        # Update main window background
-        self.setStyleSheet(f"""
-            QMainWindow {{
-                background-color: {self.theme_manager.get_color('background')};
-            }}
-        """)
-
         # Update top bar
         top_bar_bg = self.theme_manager.get_color('surface')
         top_bar_text = self.theme_manager.get_color('text')
@@ -257,15 +261,91 @@ class MainWindow(QMainWindow):
         self.breadcrumb.setText("Dashboard > Analysis")
 
     @Slot()
-    def show_add_dialog(self):
-        dialog = AddCoinDialog(self.db_manager, self)
-        if dialog.exec():
-            self.coin_table.refresh_data()
+    def show_add_panel(self):
+        # Animate the width change
+        self.width_animation = QPropertyAnimation(self.sidebar_container, b"minimumWidth")
+        self.width_animation.setDuration(300)
+        self.width_animation.setStartValue(250)
+        self.width_animation.setEndValue(400)
+        self.width_animation.setEasingCurve(QEasingCurve.OutCubic)
+        
+        # Create sliding animation for the stacked widget
+        self.slide_animation = QPropertyAnimation(self.sidebar_container_layout, b"currentIndex")
+        self.slide_animation.setDuration(300)
+        self.slide_animation.setStartValue(0)
+        self.slide_animation.setEndValue(1)
+        self.slide_animation.setEasingCurve(QEasingCurve.OutCubic)
+        
+        # Start both animations
+        self.width_animation.start()
+        self.slide_animation.start()
+
+    def hide_add_coin_panel(self):
+        # Animate the width change back
+        self.width_animation = QPropertyAnimation(self.sidebar_container, b"minimumWidth")
+        self.width_animation.setDuration(300)
+        self.width_animation.setStartValue(400)
+        self.width_animation.setEndValue(250)
+        self.width_animation.setEasingCurve(QEasingCurve.OutCubic)
+        
+        # Create reverse sliding animation
+        self.slide_animation = QPropertyAnimation(self.sidebar_container_layout, b"currentIndex")
+        self.slide_animation.setDuration(300)
+        self.slide_animation.setStartValue(1)
+        self.slide_animation.setEndValue(0)
+        self.slide_animation.setEasingCurve(QEasingCurve.OutCubic)
+        
+        # Start both animations
+        self.width_animation.start()
+        self.slide_animation.start()
+
+    def on_coin_added(self):
+        self.coin_table.refresh_data()
+        self.dashboard.refresh_data()  # Make sure to implement this in HomeDashboard
+        self.hide_add_coin_panel()
 
     @Slot()
     def export_data(self):
-        # Implement export functionality
-        pass
+        from PySide6.QtWidgets import QFileDialog
+        import csv
+        
+        # Open file dialog to choose save location
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Collection Data",
+            "",
+            "CSV Files (*.csv);;All Files (*)"
+        )
+        
+        if file_name:
+            # If no extension was added, append .csv
+            if not file_name.endswith('.csv'):
+                file_name += '.csv'
+                
+            # Get all coins
+            coins = self.db_manager.get_all_coins()
+            
+            # Write to CSV
+            with open(file_name, 'w', newline='') as file:
+                writer = csv.writer(file)
+                # Write headers
+                writer.writerow(['Title', 'Year', 'Country', 'Denomination', 
+                               'Mint Mark', 'Condition', 'Purchase Price', 
+                               'Current Value', 'Purchase Date'])
+                
+                # Write coin data
+                for coin in coins:
+                    writer.writerow([
+                        coin.title,
+                        coin.year,
+                        coin.country,
+                        coin.denomination,
+                        coin.mint_mark,
+                        coin.condition,
+                        f"${coin.purchase_price:.2f}",
+                        f"${coin.current_value:.2f}",
+                        coin.purchase_date.strftime('%Y-%m-%d') if coin.purchase_date else ''
+                    ])
 
     @Slot()
     def apply_filters(self):
