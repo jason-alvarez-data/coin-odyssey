@@ -9,8 +9,9 @@ class CoinTableModel(QAbstractTableModel):
         self.theme_manager = theme_manager
         self.coins = self.db_manager.get_all_coins()
         self.filtered_coins = self.coins
-        self.headers = ['Title', 'Year', 'Country', 'Denomination', 
-                       'Mint Mark', 'Condition', 'Purchase Price', 'Current Value']
+        self.headers = ['Title', 'Year', 'Country', 'Value', 'Unit', 
+                       'Mint', 'Mint Mark', 'Status', 'Type', 'Series',
+                       'Storage', 'Format', 'Region', 'Quantity']
     
     def data(self, index, role):
         if role == Qt.BackgroundRole:
@@ -40,12 +41,23 @@ class CoinTableModel(QAbstractTableModel):
             if col == 0: return coin.title
             elif col == 1: return str(coin.year)
             elif col == 2: return coin.country
-            elif col == 3: return coin.denomination
-            elif col == 4: return coin.mint_mark
-            elif col == 5: return coin.condition
-            elif col == 6: return f"${coin.purchase_price:.2f}"
-            elif col == 7: return f"${coin.current_value:.2f}"
+            elif col == 3: return str(coin.value)
+            elif col == 4: return coin.unit
+            elif col == 5: return coin.mint
+            elif col == 6: return coin.mint_mark
+            elif col == 7: return coin.status
+            elif col == 8: return coin.type
+            elif col == 9: return coin.series
+            elif col == 10: return coin.storage
+            elif col == 11: return coin.format
+            elif col == 12: return coin.region
+            elif col == 13: return str(coin.quantity)
         
+        elif role == Qt.BackgroundRole:
+            return QColor(self.theme_manager.get_color('surface'))
+        elif role == Qt.ForegroundRole:
+            return QColor(self.theme_manager.get_color('text'))
+            
         return None
     
     def headerData(self, section, orientation, role=Qt.DisplayRole):
