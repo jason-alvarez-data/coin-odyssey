@@ -22,7 +22,7 @@ class MainWindow(QMainWindow):
     def setup_ui(self):
         self.setWindowTitle("Coin Odyssey")
         self.setMinimumSize(1200, 800)
-
+        
         # Create central widget and main layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -183,32 +183,32 @@ class MainWindow(QMainWindow):
         """
 
         dashboard_btn = QPushButton("Dashboard")
-        dashboard_btn.setIcon(QIcon("src/assets/icons/dashboard.png"))
+        dashboard_btn.setIcon(QIcon("./src/assets/icons/dashboard.png"))
         dashboard_btn.clicked.connect(lambda: self.content_stack.setCurrentWidget(self.home_dashboard))
         dashboard_btn.setStyleSheet(button_style)
 
         collection_btn = QPushButton("Collection")
-        collection_btn.setIcon(QIcon("src/assets/icons/collection.png"))
+        collection_btn.setIcon(QIcon("./src/assets/icons/collection.png"))
         collection_btn.clicked.connect(lambda: self.content_stack.setCurrentWidget(self.coin_table))
         collection_btn.setStyleSheet(button_style)
 
         add_coin_btn = QPushButton("Add Coin")
-        add_coin_btn.setIcon(QIcon("src/assets/icons/add.png"))
+        add_coin_btn.setIcon(QIcon("./src/assets/icons/add.png"))
         add_coin_btn.clicked.connect(self.show_add_panel)
         add_coin_btn.setStyleSheet(button_style)
 
         analysis_btn = QPushButton("Analysis")
-        analysis_btn.setIcon(QIcon("src/assets/icons/analysis.png"))
+        analysis_btn.setIcon(QIcon("./src/assets/icons/analysis.png"))
         analysis_btn.clicked.connect(lambda: self.content_stack.setCurrentWidget(self.analysis_widget))
         analysis_btn.setStyleSheet(button_style)
 
         import_btn = QPushButton("Import")
-        import_btn.setIcon(QIcon("src/assets/icons/import.png"))
+        import_btn.setIcon(QIcon("./src/assets/icons/import.png"))
         import_btn.clicked.connect(self.show_import_panel)
         import_btn.setStyleSheet(button_style)
 
         export_btn = QPushButton("Export")
-        export_btn.setIcon(QIcon("src/assets/icons/export.png"))
+        export_btn.setIcon(QIcon("./src/assets/icons/export.png"))
         export_btn.clicked.connect(self.export_data)
         export_btn.setStyleSheet(button_style)
 
@@ -223,13 +223,13 @@ class MainWindow(QMainWindow):
 
         # Add theme toggle at bottom
         theme_toggle = QPushButton("Toggle Theme")
-        theme_toggle.setIcon(QIcon("src/assets/icons/theme.png"))
+        theme_toggle.setIcon(QIcon("./src/assets/icons/theme.png"))
         theme_toggle.clicked.connect(self.toggle_theme)
         theme_toggle.setStyleSheet(button_style)
         layout.addWidget(theme_toggle)
 
         return sidebar
-
+    
     def show_add_panel(self):
         if not hasattr(self, 'add_coin_panel'):
             self.add_coin_panel = AddCoinPanel(self.db_manager, self.theme_manager)
@@ -295,7 +295,7 @@ class MainWindow(QMainWindow):
         
         # Update filters
         self.update_filters()
-
+    
     @Slot()
     def on_import_complete(self):
         # Refresh all data views
@@ -368,7 +368,7 @@ class MainWindow(QMainWindow):
             "",
             "CSV Files (*.csv);;All Files (*)"
         )
-        
+
         if file_name:
             # If no extension was added, append .csv
             if not file_name.endswith('.csv'):
@@ -384,25 +384,25 @@ class MainWindow(QMainWindow):
                 writer.writerow(['Title', 'Year', 'Country', 'Value', 'Unit',
                                'Mint', 'Mint Mark', 'Type', 'Series', 'Status',
                                'Format', 'Region', 'Storage', 'Quantity'])
-                
-                # Write coin data
-                for coin in coins:
-                    writer.writerow([
-                        coin.title,
-                        coin.year,
-                        coin.country,
-                        coin.value,
-                        coin.unit,
-                        coin.mint,
-                        coin.mint_mark,
-                        coin.type,
-                        coin.series,
-                        coin.status,
-                        coin.format,
-                        coin.region,
-                        coin.storage,
-                        coin.quantity
-                    ])
+
+            # Write coin data
+            for coin in coins:
+                writer.writerow([
+                    coin.title,
+                    coin.year,
+                    coin.country,
+                    coin.value,
+                    coin.unit,
+                    coin.mint,
+                    coin.mint_mark,
+                    coin.type,
+                    coin.series,
+                    coin.status,
+                    coin.format,
+                    coin.region,
+                    coin.storage,
+                    coin.quantity
+            ])
 
     def toggle_theme(self):
         self.theme_manager.toggle_theme()

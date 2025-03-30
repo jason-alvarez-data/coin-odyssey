@@ -1,208 +1,236 @@
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
-                              QLabel, QFrame, QProgressBar)
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
+                              QFrame, QLabel, QSizePolicy)
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QPixmap
-import pandas as pd
+from PySide6.QtGui import QPixmap
+from .map_widget import CollectionMapWidget
 
 class HomeDashboard(QWidget):
     def __init__(self, db_manager, theme_manager):
         super().__init__()
         self.db_manager = db_manager
         self.theme_manager = theme_manager
-        self.theme_manager.theme_changed.connect(self.update_theme)
         self.setup_ui()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(20)
 
-        # Collection Overview Section
-        self.overview_frame = self.create_overview_frame()
-        layout.addWidget(self.overview_frame)
+        # Add title
+        title = QLabel("Collection Dashboard")
+        title.setStyleSheet(f"""
+            color: {self.theme_manager.get_color('text')};
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        """)
+        layout.addWidget(title)
 
-        # Recent Activity and Map Section
-        middle_section = QHBoxLayout()
+        # Add overview frame
+        layout.addWidget(self.create_overview_frame())
 
-        # Recent Activity
-        self.recent_frame = self.create_recent_frame()
-        middle_section.addWidget(self.recent_frame)
+        # Add map widget with title
+        map_title = QLabel("Collection Geography")
+        map_title.setStyleSheet(f"""
+            color: {self.theme_manager.get_color('text')};
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 10px;
+        """)
+        layout.addWidget(map_title)
 
-        # World Map Placeholder
-        self.map_frame = self.create_map_placeholder()
-        middle_section.addWidget(self.map_frame)
+        map_frame = QFrame()
+        map_frame.setObjectName("mapFrame")
+        map_frame.setStyleSheet(f"""
+            QFrame#mapFrame {{
+                background-color: {self.theme_manager.get_color('surface')};
+                border: 1px solid {self.theme_manager.get_color('border')};
+                border-radius: 8px;
+                padding: 10px;
+            }}
+        """)
+        map_layout = QVBoxLayout(map_frame)
+        self.map_widget = CollectionMapWidget(self.db_manager, self.theme_manager)
+        map_layout.addWidget(self.map_widget)
+        layout.addWidget(map_frame)
 
-        layout.addLayout(middle_section)
-
-        # Goals Section
-        self.goals_frame = self.create_goals_frame()
-        layout.addWidget(self.goals_frame)
-
-    def update_theme(self):
-        # Update all frames with new theme
-        self.overview_frame.setStyleSheet(f"QFrame#overviewFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
-        self.recent_frame.setStyleSheet(f"QFrame#recentFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
-        self.map_frame.setStyleSheet(f"QFrame#mapFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
-        self.goals_frame.setStyleSheet(f"QFrame#goalsFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
-        
-        # Update all labels with text color
-        for label in self.findChildren(QLabel):
-            label.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
-        
-        # Update progress bars
-        for progress_bar in self.findChildren(QProgressBar):
-            progress_bar.setStyleSheet(self.theme_manager.get_stylesheet('progress_bar'))
+        # Add stretch to push everything up
+        layout.addStretch()
 
     def create_overview_frame(self):
         frame = QFrame()
         frame.setObjectName("overviewFrame")
-        frame.setStyleSheet(f"QFrame#overviewFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
+        frame.setStyleSheet(f"""
+            QFrame#overviewFrame {{
+                background-color: {self.theme_manager.get_color('surface')};
+                border: 1px solid {self.theme_manager.get_color('border')};
+                border-radius: 8px;
+                padding: 15px;
+            }}
+        """)
 
         layout = QHBoxLayout(frame)
+        layout.setSpacing(20)
 
-        # Total Coins
-        coins_count = len(self.db_manager.get_all_coins())
+        # Get collection statistics
+        coins = self.db_manager.get_all_coins()
+        total_quantity = sum(coin.quantity for coin in coins)
+        unique_coins = len(coins)
+        countries = len(set(coin.country for coin in coins if coin.country))
+        types = len(set(coin.type for coin in coins if coin.type))
+
+        # Create stat widgets
         total_coins = self.create_stat_widget(
             "Total Coins",
-            str(coins_count),
-            "src/assets/icons/coins2.png"
+            str(total_quantity),
+            "src/assets/icons/coins.png"
         )
 
-        # Total Value
-        total_value = sum(coin.current_value or 0 for coin in self.db_manager.get_all_coins())
-        value_widget = self.create_stat_widget(
-            "Collection Value",
-            f"${total_value:,.2f}",
-            "src/assets/icons/usd-circle.png"
+        unique_types = self.create_stat_widget(
+            "Unique Coins",
+            str(unique_coins),
+            "src/assets/icons/stack.png"
         )
 
-        # Countries Count
-        countries = len(set(coin.country for coin in self.db_manager.get_all_coins()))
         countries_widget = self.create_stat_widget(
             "Countries",
             str(countries),
             "src/assets/icons/globe.png"
         )
 
+        types_widget = self.create_stat_widget(
+            "Types",
+            str(types),
+            "src/assets/icons/type.png"
+        )
+
         layout.addWidget(total_coins)
-        layout.addWidget(value_widget)
+        layout.addWidget(unique_types)
         layout.addWidget(countries_widget)
+        layout.addWidget(types_widget)
 
         return frame
 
     def create_stat_widget(self, title, value, icon_path):
         widget = QFrame()
-        layout = QVBoxLayout(widget)
+        widget.setObjectName("statWidget")
+        widget.setStyleSheet(f"""
+            QFrame#statWidget {{
+                background-color: {self.theme_manager.get_color('background')};
+                border: 1px solid {self.theme_manager.get_color('border')};
+                border-radius: 4px;
+                padding: 15px;
+            }}
+        """)
 
-        # Icon and Value in one row
-        top_layout = QHBoxLayout()
+        layout = QHBoxLayout(widget)
+        layout.setSpacing(15)
 
         # Icon
         icon_label = QLabel()
         icon_pixmap = QPixmap(icon_path)
         icon_label.setPixmap(icon_pixmap.scaled(32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        layout.addWidget(icon_label)
 
-        # Value
-        value_label = QLabel(value)
-        value_label.setFont(QFont("", 24, QFont.Bold))
-        value_label.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
-
-        top_layout.addWidget(icon_label)
-        top_layout.addWidget(value_label)
-        top_layout.addStretch()
+        # Text container
+        text_container = QWidget()
+        text_layout = QVBoxLayout(text_container)
+        text_layout.setSpacing(5)
 
         # Title
         title_label = QLabel(title)
-        title_label.setFont(QFont("", 12))
-        title_label.setStyleSheet(f"color: {self.theme_manager.get_color('text_secondary')}")
+        title_label.setStyleSheet(f"""
+            color: {self.theme_manager.get_color('text_secondary')};
+            font-size: 14px;
+        """)
+        text_layout.addWidget(title_label)
 
-        layout.addLayout(top_layout)
-        layout.addWidget(title_label)
+        # Value
+        value_label = QLabel(value)
+        value_label.setStyleSheet(f"""
+            color: {self.theme_manager.get_color('text')};
+            font-size: 24px;
+            font-weight: bold;
+        """)
+        text_layout.addWidget(value_label)
 
+        layout.addWidget(text_container)
+        layout.addStretch()
+
+        # Set size policy
+        widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         return widget
 
-    def create_recent_frame(self):
-        frame = QFrame()
-        frame.setObjectName("recentFrame")
-        frame.setStyleSheet(f"QFrame#recentFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
+    def refresh_data(self):
+        """Refresh all dashboard data"""
+        # Remove existing overview frame and map
+        for i in reversed(range(self.layout().count())):
+            widget = self.layout().itemAt(i).widget()
+            if widget is not None:
+                widget.deleteLater()
 
-        layout = QVBoxLayout(frame)
+        # Rebuild the UI with fresh data
+        self.setup_ui()
 
-        # Header
-        header = QLabel("Recent Additions")
-        header.setFont(QFont("", 14, QFont.Bold))
-        header.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
-        layout.addWidget(header)
+    def update_theme(self):
+        """Update theme colors for all widgets"""
+        # Update title
+        self.findChild(QLabel, "").setStyleSheet(f"""
+            color: {self.theme_manager.get_color('text')};
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        """)
 
-        # Get 5 most recent coins
-        recent_coins = sorted(
-            self.db_manager.get_all_coins(),
-            key=lambda x: x.purchase_date or pd.Timestamp.min,
-            reverse=True
-        )[:5]
+        # Update overview frame
+        overview_frame = self.findChild(QFrame, "overviewFrame")
+        if overview_frame:
+            overview_frame.setStyleSheet(f"""
+                QFrame#overviewFrame {{
+                    background-color: {self.theme_manager.get_color('surface')};
+                    border: 1px solid {self.theme_manager.get_color('border')};
+                    border-radius: 8px;
+                    padding: 15px;
+                }}
+            """)
 
-        for coin in recent_coins:
-            coin_label = QLabel(f"{coin.title} - {coin.year}")
-            coin_label.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
-            layout.addWidget(coin_label)
+        # Update stat widgets
+        for stat_widget in self.findChildren(QFrame, "statWidget"):
+            stat_widget.setStyleSheet(f"""
+                QFrame#statWidget {{
+                    background-color: {self.theme_manager.get_color('background')};
+                    border: 1px solid {self.theme_manager.get_color('border')};
+                    border-radius: 4px;
+                    padding: 15px;
+                }}
+            """)
 
-        return frame
+        # Update text colors
+        for label in self.findChildren(QLabel):
+            if "font-size: 14px" in label.styleSheet():
+                label.setStyleSheet(f"""
+                    color: {self.theme_manager.get_color('text_secondary')};
+                    font-size: 14px;
+                """)
+            elif "font-size: 24px" in label.styleSheet():
+                label.setStyleSheet(f"""
+                    color: {self.theme_manager.get_color('text')};
+                    font-size: 24px;
+                    font-weight: bold;
+                """)
 
-    def create_map_placeholder(self):
-        frame = QFrame()
-        frame.setObjectName("mapFrame")
-        frame.setStyleSheet(f"QFrame#mapFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
+        # Update map frame
+        map_frame = self.findChild(QFrame, "mapFrame")
+        if map_frame:
+            map_frame.setStyleSheet(f"""
+                QFrame#mapFrame {{
+                    background-color: {self.theme_manager.get_color('surface')};
+                    border: 1px solid {self.theme_manager.get_color('border')};
+                    border-radius: 8px;
+                    padding: 10px;
+                }}
+            """)
 
-        layout = QVBoxLayout(frame)
-
-        # Header
-        header = QLabel("Collection Geography")
-        header.setFont(QFont("", 14, QFont.Bold))
-        header.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
-        layout.addWidget(header)
-
-        # Placeholder for map
-        map_label = QLabel("World Map Coming Soon!")
-        map_label.setAlignment(Qt.AlignCenter)
-        map_label.setStyleSheet(f"color: {self.theme_manager.get_color('text_secondary')}")
-        layout.addWidget(map_label)
-
-        return frame
-
-    def create_goals_frame(self):
-        frame = QFrame()
-        frame.setObjectName("goalsFrame")
-        frame.setStyleSheet(f"QFrame#goalsFrame {{{self.theme_manager.get_stylesheet('frame')}}}")
-
-        layout = QVBoxLayout(frame)
-
-        # Header
-        header = QLabel("Collection Goals")
-        header.setFont(QFont("", 14, QFont.Bold))
-        header.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
-        layout.addWidget(header)
-
-        # Example goals
-        goals = [
-            ("Complete State Quarter Collection", 45, 50),
-            ("Acquire Pre-1900 Coins", 3, 10),
-            ("Collect World War II Era Coins", 12, 20)
-        ]
-
-        for name, current, total in goals:
-            goal_layout = QVBoxLayout()
-
-            # Goal name and progress
-            label = QLabel(f"{name} ({current}/{total})")
-            label.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
-            
-            progress = QProgressBar()
-            progress.setMaximum(total)
-            progress.setValue(current)
-            progress.setStyleSheet(self.theme_manager.get_stylesheet('progress_bar'))
-
-            goal_layout.addWidget(label)
-            goal_layout.addWidget(progress)
-            layout.addLayout(goal_layout)
-
-        return frame
-        
+        # Update map
+        if hasattr(self, 'map_widget'):
+            self.map_widget.update_theme()
