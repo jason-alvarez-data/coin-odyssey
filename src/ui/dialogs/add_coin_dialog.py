@@ -1,16 +1,14 @@
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QFormLayout, 
-                              QLineEdit, QDateEdit, QDoubleSpinBox,
-                              QPushButton, QComboBox, QSpinBox,
-                              QGroupBox, QHBoxLayout, QLabel,
-                              QFileDialog, QFrame)
-from PySide6.QtCore import Qt, QDate, Signal, QPropertyAnimation, QEasingCurve
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QFormLayout, QLineEdit,
+                              QPushButton, QComboBox, QSpinBox, QDoubleSpinBox,
+                              QGroupBox, QHBoxLayout, QLabel, QFileDialog, QFrame)
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap, QFont
 import os
 import shutil
 
 class AddCoinPanel(QWidget):
-    coinAdded = Signal()  # Signal to emit when a coin is added
-    closeRequested = Signal()  # Signal to emit when panel should close
+    coinAdded = Signal()
+    closeRequested = Signal()
 
     def __init__(self, db_manager, theme_manager, parent=None):
         super().__init__(parent)
@@ -19,7 +17,7 @@ class AddCoinPanel(QWidget):
         self.setup_ui()
         
     def setup_ui(self):
-        self.setFixedWidth(400)  # Match the sidebar width
+        self.setFixedWidth(400)
         self.setStyleSheet(f"""
             background-color: {self.theme_manager.get_color('surface')};
             border-right: 1px solid {self.theme_manager.get_color('border')};
@@ -35,7 +33,7 @@ class AddCoinPanel(QWidget):
         title_label.setFont(QFont("", 16, QFont.Bold))
         title_label.setStyleSheet(f"color: {self.theme_manager.get_color('text')}")
         
-        close_btn = QPushButton("×")  # Unicode × symbol
+        close_btn = QPushButton("×")
         close_btn.setFixedSize(30, 30)
         close_btn.clicked.connect(self.closeRequested.emit)
         close_btn.setStyleSheet(f"""
@@ -60,64 +58,89 @@ class AddCoinPanel(QWidget):
         
         # Style for input widgets
         input_style = f"""
-            QLineEdit, QSpinBox, QDoubleSpinBox, QDateEdit, QComboBox {{
+            QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
                 background-color: {self.theme_manager.get_color('background')};
                 color: {self.theme_manager.get_color('text')};
                 border: 1px solid {self.theme_manager.get_color('border')};
                 padding: 8px;
                 border-radius: 4px;
             }}
-            QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, 
-            QDateEdit:focus, QComboBox:focus {{
+            QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
                 border: 2px solid {self.theme_manager.get_color('accent')};
             }}
         """
         
-        # Create form fields
+        # Basic Information
         self.title_edit = QLineEdit()
         self.year_spin = QSpinBox()
         self.year_spin.setRange(1, 9999)
         self.year_spin.setValue(2024)
         self.country_edit = QLineEdit()
-        self.denomination_edit = QLineEdit()
+        
+        # Value and Unit
+        self.value_spin = QDoubleSpinBox()
+        self.value_spin.setRange(0, 999999.99)
+        self.value_spin.setDecimals(2)
+        
+        self.unit_combo = QComboBox()
+        self.unit_combo.addItems(["Cent", "Dollar", "Euro", "Peso", "CAD", "Other"])
+        
+        # Mint Information
+        self.mint_edit = QLineEdit()
         self.mint_mark_edit = QLineEdit()
         
-        self.condition_combo = QComboBox()
-        self.condition_combo.addItems(["Uncirculated", "AU", "XF", "VF", "F", "VG", "G", "AG", "Poor"])
+        # Type and Format
+        self.type_combo = QComboBox()
+        self.type_combo.addItems(["Regular Issue", "Commemorative", "Bullion"])
         
-        self.grading_edit = QLineEdit()
-        self.purchase_date = QDateEdit()
-        self.purchase_date.setDate(QDate.currentDate())
-        self.purchase_date.setCalendarPopup(True)
+        self.format_combo = QComboBox()
+        self.format_combo.addItems(["Single", "Proof", "Set"])
         
-        self.purchase_price = QDoubleSpinBox()
-        self.purchase_price.setRange(0, 999999.99)
-        self.purchase_price.setPrefix("$")
-        self.purchase_price.setDecimals(2)
+        # Additional Details
+        self.series_edit = QLineEdit()
+        self.region_combo = QComboBox()
+        self.region_combo.addItems(["Americas", "Europe", "Asia", "Africa", "Oceania"])
         
-        self.current_value = QDoubleSpinBox()
-        self.current_value.setRange(0, 999999.99)
-        self.current_value.setPrefix("$")
-        self.current_value.setDecimals(2)
+        self.storage_combo = QComboBox()
+        self.storage_combo.addItems([
+            "Clear Coin Bin", 
+            "State Collection Volume 1",
+            "State Collection Volume 2",
+            "American Women Album",
+            "America the Beautiful Map",
+            "Other"
+        ])
+        
+        self.status_combo = QComboBox()
+        self.status_combo.addItems(["owned", "wanted", "ordered"])
+        
+        self.quantity_spin = QSpinBox()
+        self.quantity_spin.setRange(1, 999)
+        self.quantity_spin.setValue(1)
         
         # Apply styles to all input widgets
         for widget in [self.title_edit, self.year_spin, self.country_edit,
-                      self.denomination_edit, self.mint_mark_edit, self.condition_combo,
-                      self.grading_edit, self.purchase_date, self.purchase_price,
-                      self.current_value]:
+                      self.value_spin, self.unit_combo, self.mint_edit,
+                      self.mint_mark_edit, self.type_combo, self.format_combo,
+                      self.series_edit, self.region_combo, self.storage_combo,
+                      self.status_combo, self.quantity_spin]:
             widget.setStyleSheet(input_style)
         
         # Add fields to form layout
         form_layout.addRow("Title:", self.title_edit)
         form_layout.addRow("Year:", self.year_spin)
         form_layout.addRow("Country:", self.country_edit)
-        form_layout.addRow("Denomination:", self.denomination_edit)
+        form_layout.addRow("Value:", self.value_spin)
+        form_layout.addRow("Unit:", self.unit_combo)
+        form_layout.addRow("Mint:", self.mint_edit)
         form_layout.addRow("Mint Mark:", self.mint_mark_edit)
-        form_layout.addRow("Condition:", self.condition_combo)
-        form_layout.addRow("Grading:", self.grading_edit)
-        form_layout.addRow("Purchase Date:", self.purchase_date)
-        form_layout.addRow("Purchase Price:", self.purchase_price)
-        form_layout.addRow("Current Value:", self.current_value)
+        form_layout.addRow("Type:", self.type_combo)
+        form_layout.addRow("Format:", self.format_combo)
+        form_layout.addRow("Series:", self.series_edit)
+        form_layout.addRow("Region:", self.region_combo)
+        form_layout.addRow("Storage:", self.storage_combo)
+        form_layout.addRow("Status:", self.status_combo)
+        form_layout.addRow("Quantity:", self.quantity_spin)
         
         layout.addLayout(form_layout)
 
@@ -264,7 +287,7 @@ class AddCoinPanel(QWidget):
             pixmap = QPixmap(destination)
             scaled_pixmap = pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             label.setPixmap(scaled_pixmap)
-            label.setStyleSheet("")  # Remove the "No image" styling
+            label.setStyleSheet("")
 
     def save_coin(self):
         # Collect data from form
@@ -272,13 +295,17 @@ class AddCoinPanel(QWidget):
             'title': self.title_edit.text(),
             'year': self.year_spin.value(),
             'country': self.country_edit.text(),
-            'denomination': self.denomination_edit.text(),
+            'value': self.value_spin.value(),
+            'unit': self.unit_combo.currentText(),
+            'mint': self.mint_edit.text(),
             'mint_mark': self.mint_mark_edit.text(),
-            'condition': self.condition_combo.currentText(),
-            'grading': self.grading_edit.text(),
-            'purchase_date': self.purchase_date.date().toPython(),
-            'purchase_price': self.purchase_price.value(),
-            'current_value': self.current_value.value()
+            'type': self.type_combo.currentText(),
+            'format': self.format_combo.currentText(),
+            'series': self.series_edit.text(),
+            'region': self.region_combo.currentText(),
+            'storage': self.storage_combo.currentText(),
+            'status': self.status_combo.currentText(),
+            'quantity': self.quantity_spin.value()
         }
         
         # Save to database and get the coin_id
