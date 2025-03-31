@@ -1,8 +1,11 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, Column, Integer, String, Date, Float, ForeignKey
 from sqlalchemy.orm import sessionmaker
 from .models import Base, Coin, CoinImage
 from datetime import datetime
 import os
+
+# Add Goal model to the imports from models
+from .models import Goal
 
 class DatabaseManager:
     def __init__(self, db_path="coins.db"):
@@ -48,40 +51,80 @@ class DatabaseManager:
         finally:
             session.close()
 
-    def add_coin_image(self, image_data):
+    def get_all_coins(self):
+        """Get all coins from the database"""
+        session = self.Session()
+        try:
+            return session.query(Coin).all()
+        finally:
+            session.close()
+
+    # Add these new methods for goals management
+    def save_goals(self, goals_data):
         """
-        Add a coin image to the database
+        Save collection goals to the database
         
         Args:
-            image_data (dict): Dictionary containing:
-                - coin_id: ID of the coin
-                - image_path: Path to the image file
-                - image_type: Type of image ('obverse' or 'reverse')
-        Returns:
-            int: ID of the newly created image record
+            goals_data (list): List of dictionaries containing goal information
         """
         session = self.Session()
         try:
-            image = CoinImage(**image_data)
-            session.add(image)
+            # Clear existing goals
+            session.query(Goal).delete()
+            
+            # Add new goals
+            for goal_data in goals_data:
+                goal = Goal(
+                    title=goal_data['title'],
+                    description=goal_data['description'],
+                    target=goal_data['target']
+                )
+                session.add(goal)
+            
             session.commit()
-            return image.id
         except Exception as e:
             session.rollback()
             raise e
         finally:
             session.close()
 
-    def get_all_coins(self):
+    def get_goals(self):
         """
-        Retrieve all coins from the database
+        Get all collection goals from the database
         
         Returns:
-            list: List of Coin objects
+            list: List of dictionaries containing goal information
         """
         session = self.Session()
         try:
-            return session.query(Coin).all()
+            goals = session.query(Goal).all()
+            return [
+                {
+                    'title': goal.title,
+                    'description': goal.description,
+                    'target': goal.target
+                }
+                for goal in goals
+            ]
+        finally:
+            session.close()
+
+    def delete_goal(self, goal_id):
+        """
+        Delete a goal from the database
+        
+        Args:
+            goal_id (int): ID of the goal to delete
+        """
+        session = self.Session()
+        try:
+            goal = session.query(Goal).filter_by(id=goal_id).first()
+            if goal:
+                session.delete(goal)
+                session.commit()
+        except Exception as e:
+            session.rollback()
+            raise e
         finally:
             session.close()
 

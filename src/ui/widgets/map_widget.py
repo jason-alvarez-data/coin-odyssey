@@ -2,7 +2,7 @@ import os
 import json
 import tempfile
 import country_converter as coco
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtCore import QUrl, Qt
@@ -31,6 +31,7 @@ class CollectionMapWidget(QWidget):
 
         # Create web view for the map
         self.web_view = QWebEngineView()
+        self.web_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.web_view.setStyleSheet("""
             background-color: white;
         """)
@@ -85,9 +86,16 @@ class CollectionMapWidget(QWidget):
                 <script>
                     window.addEventListener('load', function() {
                         try {
-                            const map = L.map('map').setView([20, 0], 2);  // Added map initialization
+                            const map = L.map('map', {
+                                maxBounds: [[-90, -180], [90, 180]], // Restrict to one world view
+                                minZoom: 2, // Prevent zooming out too far
+                                maxBoundsViscosity: 1.0 // Make bounds solid
+                            }).setView([20, 0], 2);
+
                             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                attribution: '© OpenStreetMap contributors'
+                                attribution: '© OpenStreetMap contributors',
+                                noWrap: true,  // Prevent repeating maps
+                                bounds: [[-90, -180], [90, 180]]  // Restrict tiles to one world view
                             }).addTo(map);
 
                             const geojsonData = %s;
@@ -134,49 +142,53 @@ class CollectionMapWidget(QWidget):
                     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
                     crossorigin=""></script>
                 <style>
-                    body {{
+                    html, body {{
                         margin: 0;
-                        padding: 20px;
-                        font-family: Arial, sans-serif;
+                        padding: 0;
+                        height: 100%;
+                        overflow: hidden;
                     }}
                     .container {{
-                        max-width: 1200px;
-                        margin: 0 auto;
+                        height: 100vh;
+                        display: flex;
+                        flex-direction: column;
+                        padding: 10px;
                     }}
                     #map {{
-                        height: 500px;
+                        flex: 1;
                         width: 100%;
+                        min-height: 0;
                         border-radius: 8px;
-                        margin-bottom: 20px;
+                        margin: 10px 0;
                     }}
                     .world-map-title {{
                         color: {self.theme_manager.get_color('text')};
-                        font-size: 24px;
-                        margin-bottom: 10px;
+                        font-size: 20px;
+                        margin: 5px 0;
                         text-align: center;
                     }}
                     .subtitle {{
                         color: {self.theme_manager.get_color('text_secondary')};
+                        font-size: 14px;
                         text-align: center;
-                        margin-bottom: 20px;
+                        margin: 5px 0;
                     }}
                     .country-list {{
                         display: flex;
                         flex-wrap: wrap;
-                        gap: 10px;
+                        gap: 5px;
                         justify-content: center;
-                        margin-top: 20px;
+                        padding: 5px;
+                        max-height: 80px;
+                        overflow-y: auto;
                     }}
                     .country-badge {{
                         background-color: {self.theme_manager.get_color('accent')};
                         color: white;
-                        padding: 8px 16px;
-                        border-radius: 20px;
+                        padding: 4px 8px;
+                        border-radius: 12px;
+                        font-size: 12px;
                         font-weight: bold;
-                        transition: transform 0.2s;
-                    }}
-                    .country-badge:hover {{
-                        transform: scale(1.05);
                     }}
                 </style>
             </head>

@@ -31,12 +31,31 @@ class Coin(Base):
 
     images = relationship("CoinImage", back_populates="coin", cascade="all, delete-orphan")
 
+    def __repr__(self):
+        return f"<Coin(title='{self.title}', year={self.year}, country='{self.country}')>"
+
+
 class CoinImage(Base):
     __tablename__ = 'coin_images'
-    
+
     id = Column(Integer, primary_key=True)
     coin_id = Column(Integer, ForeignKey('coins.id'))
-    image_path = Column(String, nullable=False)
-    image_type = Column(String)  # 'obverse', 'reverse'
-    
+    image_path = Column(String)
+    is_obverse = Column(Boolean, default=True)  # True for obverse (front), False for reverse (back)
+
     coin = relationship("Coin", back_populates="images")
+
+    def __repr__(self):
+        return f"<CoinImage(coin_id={self.coin_id}, is_obverse={self.is_obverse})>"
+
+
+class Goal(Base):
+    __tablename__ = 'goals'
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String, nullable=False)
+    description = Column(String)
+    target = Column(Integer, nullable=False)
+
+    def __repr__(self):
+        return f"<Goal(title='{self.title}', target={self.target})>"
