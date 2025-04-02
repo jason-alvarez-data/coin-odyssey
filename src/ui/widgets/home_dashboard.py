@@ -43,23 +43,26 @@ class HomeDashboard(QWidget):
         # Give the map more vertical space
         map_frame = self.create_map_frame()
         map_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        layout.addWidget(map_frame)
+        layout.addWidget(map_frame) 
 
     def create_overview_frame(self):
         frame = QFrame()
-        frame.setFixedHeight(120)  # Reduced height
+        frame.setMinimumHeight(150)
         frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {self.theme_manager.get_color('surface')};
                 border: 1px solid {self.theme_manager.get_color('border')};
                 border-radius: 8px;
-                padding: 10px;
+                padding: 15px;
+            }}
+            QLabel {{
+                background-color: transparent;
             }}
         """)
 
         layout = QHBoxLayout(frame)
-        layout.setSpacing(15)
-        layout.setContentsMargins(10, 10, 10, 10)  # Reduced margins
+        layout.setSpacing(20)
+        layout.setContentsMargins(15, 15, 15, 15)
 
         # Get collection stats
         coins = self.db_manager.get_all_coins()
@@ -70,79 +73,81 @@ class HomeDashboard(QWidget):
         unique_years = len(set([coin.year for coin in coins if coin.year]))
         estimated_value = sum([coin.purchase_price for coin in coins if coin.purchase_price])
         
-        # Create stat widgets
-        layout.addWidget(self.create_stat_widget(
-            "Total Coins", 
-            f"{total_coins}",
-            "coin.png"
-        ))
-        layout.addWidget(self.create_stat_widget(
-            "Countries", 
-            f"{unique_countries}",
-            "globe.png"
-        ))
-        layout.addWidget(self.create_stat_widget(
-            "Years Span", 
-            f"{unique_years}",
-            "calendar.png"
-        ))
-        layout.addWidget(self.create_stat_widget(
-            "Estimated Value", 
-            f"${estimated_value:.2f}",
-            "money.png"
-        ))
+        # Create stat widgets with size policies
+        for label, value, icon in [
+            ("Total Coins", f"{total_coins}", "coins.png"),
+            ("Countries", f"{unique_countries}", "globe.png"),
+            ("Years Span", f"{unique_years}", "calendar.png"),
+            ("Estimated Value", f"${estimated_value:.2f}", "money.png")
+        ]:
+            stat_widget = self.create_stat_widget(label, value, icon)
+            stat_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            layout.addWidget(stat_widget)
         
         return frame
 
     def create_stat_widget(self, label, value, icon_name):
         widget = QFrame()
+        widget.setMinimumWidth(200)
+        widget.setMinimumHeight(100)
         widget.setStyleSheet(f"""
             QFrame {{
                 background-color: {self.theme_manager.get_color('background')};
                 border: 1px solid {self.theme_manager.get_color('border')};
                 border-radius: 4px;
-                padding: 8px;
+                padding: 12px;
+            }}
+            QLabel {{
+                background-color: transparent;
             }}
         """)
         
         layout = QVBoxLayout(widget)
-        layout.setSpacing(2)
-        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+        layout.setContentsMargins(12, 12, 12, 12)
         
         # Label
         label_widget = QLabel(label)
         label_widget.setStyleSheet(f"""
             color: {self.theme_manager.get_color('text_secondary')};
-            font-size: 12px;
+            font-size: 14px;
+            font-weight: bold;
         """)
         
         # Value with icon
         value_layout = QHBoxLayout()
+        value_layout.setSpacing(8)
+        value_layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        
+        # Value text (add before icon for layout stability)
+        value_widget = QLabel(str(value))
+        value_widget.setStyleSheet(f"""
+            color: {self.theme_manager.get_color('text')};
+            font-size: 20px;
+            font-weight: bold;
+        """)
         
         try:
             # Try to load icon
             icon = QLabel()
-            icon_path = f"src/assets/icons/{icon_name}"
+            icon_path = f"./src/assets/icons/{icon_name}"
             pixmap = QPixmap(icon_path)
             if not pixmap.isNull():
-                icon.setPixmap(pixmap.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                icon.setPixmap(pixmap.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation))
                 value_layout.addWidget(icon)
             else:
                 print(f"Warning: Could not load icon from {icon_path}")
         except Exception as e:
             print(f"Error loading icon {icon_name}: {e}")
         
-        value_widget = QLabel(value)
-        value_widget.setStyleSheet(f"""
-            color: {self.theme_manager.get_color('text')};
-            font-size: 16px;
-            font-weight: bold;
-        """)
         value_layout.addWidget(value_widget)
-        value_layout.addStretch()
+        
+        # Debug print to verify data
+        print(f"Creating stat widget: {label} = {value}")
         
         layout.addWidget(label_widget)
         layout.addLayout(value_layout)
+        layout.addStretch()
         
         return widget
 

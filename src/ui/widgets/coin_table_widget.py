@@ -13,12 +13,6 @@ class CoinTableModel(QAbstractTableModel):
                        'Mint', 'Mint Mark', 'Status', 'Type', 'Series',
                        'Storage', 'Format', 'Region', 'Quantity']
     
-    def data(self, index, role):
-        if role == Qt.BackgroundRole:
-            return QColor(self.theme_manager.get_color('surface'))
-        elif role == Qt.ForegroundRole:
-            return QColor(self.theme_manager.get_color('text'))
-    
     def refresh_data(self):
         self.coins = self.db_manager.get_all_coins()
         self.filtered_coins = self.coins.copy()
@@ -39,19 +33,19 @@ class CoinTableModel(QAbstractTableModel):
             col = index.column()
             
             if col == 0: return coin.title
-            elif col == 1: return str(coin.year)
-            elif col == 2: return coin.country
-            elif col == 3: return str(coin.value)
-            elif col == 4: return coin.unit
-            elif col == 5: return coin.mint
-            elif col == 6: return coin.mint_mark
-            elif col == 7: return coin.status
-            elif col == 8: return coin.type
-            elif col == 9: return coin.series
-            elif col == 10: return coin.storage
-            elif col == 11: return coin.format
-            elif col == 12: return coin.region
-            elif col == 13: return str(coin.quantity)
+            elif col == 1: return str(coin.year) if coin.year else ""
+            elif col == 2: return coin.country if coin.country else ""
+            elif col == 3: return str(coin.value) if coin.value else ""
+            elif col == 4: return coin.unit if coin.unit else ""
+            elif col == 5: return coin.mint if coin.mint else ""
+            elif col == 6: return coin.mint_mark if coin.mint_mark else ""
+            elif col == 7: return coin.status if coin.status else ""
+            elif col == 8: return coin.type if coin.type else ""
+            elif col == 9: return coin.series if coin.series else ""
+            elif col == 10: return coin.storage if coin.storage else ""
+            elif col == 11: return coin.format if coin.format else ""
+            elif col == 12: return coin.region if coin.region else ""
+            elif col == 13: return str(coin.quantity) if coin.quantity else ""
         
         elif role == Qt.BackgroundRole:
             return QColor(self.theme_manager.get_color('surface'))
@@ -60,7 +54,7 @@ class CoinTableModel(QAbstractTableModel):
             
         return None
     
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
+    def headerData(self, section, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.headers[section]
         return None

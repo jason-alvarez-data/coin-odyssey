@@ -1,10 +1,7 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-                              QPushButton, QStackedWidget, QFileDialog, QLabel,
-                              QLineEdit, QComboBox)
-from PySide6.QtCore import Qt, Slot, QPropertyAnimation, QEasingCurve
+                              QPushButton, QStackedWidget, QLabel, QLineEdit)
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
-import csv
-
 from .widgets.coin_table_widget import CoinTableWidget
 from .widgets.home_dashboard import HomeDashboard
 from .widgets.analysis_widgets import AnalysisWidget
@@ -61,13 +58,30 @@ class MainWindow(QMainWindow):
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
 
-        # Create sidebar container with stacked widget for sliding panels
+        # Create sidebar container
         self.sidebar_container = QWidget()
         self.sidebar_container.setFixedWidth(250)
-        self.sidebar_container_layout = QStackedWidget()
-        container_layout = QHBoxLayout(self.sidebar_container)
-        container_layout.setContentsMargins(0, 0, 0, 0)
-        container_layout.addWidget(self.sidebar_container_layout)
+        self.sidebar_container_layout = QVBoxLayout(self.sidebar_container)
+        self.sidebar_container_layout.setContentsMargins(0, 0, 0, 0)
+        self.sidebar_container_layout.setSpacing(0)
+
+        # Add logo placeholder at the top of the sidebar
+        logo_placeholder = QLabel("Logo")
+        logo_placeholder.setAlignment(Qt.AlignCenter)
+        logo_placeholder.setStyleSheet(f"""
+            QLabel {{
+                background-color: {self.theme_manager.get_color('surface')};
+                color: {self.theme_manager.get_color('text')};
+                padding: 20px;
+                border-bottom: 1px solid {self.theme_manager.get_color('border')};
+            }}
+        """)
+        self.sidebar_container_layout.addWidget(logo_placeholder)
+
+        # Add the sidebar container to the main layout
+        content_layout.addWidget(self.sidebar_container)
+        layout.addWidget(top_bar)
+        layout.addWidget(content_area)
 
         # Create and add sidebar
         self.sidebar = self.create_sidebar()
@@ -86,11 +100,7 @@ class MainWindow(QMainWindow):
         self.content_stack.addWidget(self.analysis_widget)
 
         # Add widgets to layouts
-        content_layout.addWidget(self.sidebar_container)
         content_layout.addWidget(self.content_stack)
-
-        layout.addWidget(top_bar)
-        layout.addWidget(content_area)
 
         # Connect theme change signal
         self.theme_manager.theme_changed.connect(self.update_theme)
@@ -136,133 +146,86 @@ class MainWindow(QMainWindow):
         add_coin_btn.clicked.connect(self.show_add_panel)
         add_coin_btn.setStyleSheet(button_style)
 
-        analysis_btn = QPushButton("Analysis")
-        analysis_btn.setIcon(QIcon("./src/assets/icons/analysis.png"))
-        analysis_btn.clicked.connect(lambda: self.content_stack.setCurrentWidget(self.analysis_widget))
-        analysis_btn.setStyleSheet(button_style)
-
         import_btn = QPushButton("Import")
         import_btn.setIcon(QIcon("./src/assets/icons/import.png"))
         import_btn.clicked.connect(self.show_import_panel)
         import_btn.setStyleSheet(button_style)
 
-        export_btn = QPushButton("Export")
-        export_btn.setIcon(QIcon("./src/assets/icons/export.png"))
-        export_btn.clicked.connect(self.export_data)
-        export_btn.setStyleSheet(button_style)
+        analysis_btn = QPushButton("Analysis")
+        analysis_btn.setIcon(QIcon("./src/assets/icons/analysis.png"))
+        analysis_btn.clicked.connect(lambda: self.content_stack.setCurrentWidget(self.analysis_widget))
+        analysis_btn.setStyleSheet(button_style)
 
-        # Add buttons to layout
+        # Add buttons to sidebar
         layout.addWidget(dashboard_btn)
         layout.addWidget(collection_btn)
         layout.addWidget(add_coin_btn)
-        layout.addWidget(analysis_btn)
         layout.addWidget(import_btn)
-        layout.addWidget(export_btn)
+        layout.addWidget(analysis_btn)
+        
+        # Add stretch to push buttons to the top
         layout.addStretch()
-
-        # Add theme toggle at bottom
-        theme_toggle = QPushButton("Toggle Theme")
-        theme_toggle.setIcon(QIcon("./src/assets/icons/theme.png"))
-        theme_toggle.clicked.connect(self.toggle_theme)
-        theme_toggle.setStyleSheet(button_style)
-        layout.addWidget(theme_toggle)
 
         return sidebar
 
     def show_add_panel(self):
-        if not hasattr(self, 'add_coin_panel'):
-            self.add_coin_panel = AddCoinPanel(self.db_manager, self.theme_manager)
-            self.add_coin_panel.coinAdded.connect(self.on_coin_added)
-            self.add_coin_panel.closeRequested.connect(self.hide_add_coin_panel)
-            self.sidebar_container_layout.addWidget(self.add_coin_panel)
-
-        # Animate the width change
-        self.width_animation = QPropertyAnimation(self.sidebar_container, b"minimumWidth")
-        self.width_animation.setDuration(300)
-        self.width_animation.setStartValue(250)
-        self.width_animation.setEndValue(400)
-        self.width_animation.setEasingCurve(QEasingCurve.OutCubic)
-        self.width_animation.start()
-
-        self.sidebar_container_layout.setCurrentWidget(self.add_coin_panel)
-
-    def hide_add_coin_panel(self):
-        # Animate the width change
-        self.width_animation = QPropertyAnimation(self.sidebar_container, b"minimumWidth")
-        self.width_animation.setDuration(300)
-        self.width_animation.setStartValue(400)
-        self.width_animation.setEndValue(250)
-        self.width_animation.setEasingCurve(QEasingCurve.OutCubic)
-        self.width_animation.finished.connect(lambda: self.sidebar_container_layout.setCurrentWidget(self.sidebar))
-        self.width_animation.start()
+        # Check if panel already exists and is visible
+        if hasattr(self, 'add_coin_panel') and self.add_coin_panel is not None:
+            if self.add_coin_panel.isVisible():
+                return
+        
+        # Create and configure the add coin panel
+        self.add_coin_panel = AddCoinPanel(self.db_manager, self.theme_manager, self)
+        self.add_coin_panel.coinAdded.connect(self.refresh_data)
+        self.add_coin_panel.closeRequested.connect(self.restore_sidebar)
+        
+        # Store sidebar widgets to restore later
+        self.sidebar_widgets = []
+        sidebar_layout = self.sidebar.layout()
+        for i in range(sidebar_layout.count()):
+            widget = sidebar_layout.itemAt(i).widget()
+            if widget:
+                self.sidebar_widgets.append(widget)
+                widget.hide()
+        
+        # Add panel to sidebar
+        sidebar_layout.addWidget(self.add_coin_panel)
+        self.add_coin_panel.show()
 
     def show_import_panel(self):
-        if not hasattr(self, 'import_panel'):
-            self.import_panel = ImportPanel(self.db_manager, self.theme_manager)
-            self.import_panel.importComplete.connect(self.on_import_complete)
-            self.import_panel.closeRequested.connect(self.hide_import_panel)
-            self.sidebar_container_layout.addWidget(self.import_panel)
-
-        # Animate the width change
-        self.width_animation = QPropertyAnimation(self.sidebar_container, b"minimumWidth")
-        self.width_animation.setDuration(300)
-        self.width_animation.setStartValue(250)
-        self.width_animation.setEndValue(400)
-        self.width_animation.setEasingCurve(QEasingCurve.OutCubic)
-        self.width_animation.start()
-
-        self.sidebar_container_layout.setCurrentWidget(self.import_panel)
-
-    def hide_import_panel(self):
-        # Animate the width change
-        self.width_animation = QPropertyAnimation(self.sidebar_container, b"minimumWidth")
-        self.width_animation.setDuration(300)
-        self.width_animation.setStartValue(400)
-        self.width_animation.setEndValue(250)
-        self.width_animation.setEasingCurve(QEasingCurve.OutCubic)
-        self.width_animation.finished.connect(lambda: self.sidebar_container_layout.setCurrentWidget(self.sidebar))
-        self.width_animation.start()
-
-    def on_coin_added(self):
-        self.coin_table.refresh_data()
-        self.home_dashboard.refresh_data()
-        self.analysis_widget.update_charts()
-        self.hide_add_coin_panel()
-
-    def on_import_complete(self):
-        self.coin_table.refresh_data()
-        self.home_dashboard.refresh_data()
-        self.analysis_widget.update_charts()
-        self.hide_import_panel()
-
-    def export_data(self):
-        file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            "Export Collection",
-            "",
-            "CSV Files (*.csv);;All Files (*)"
-        )
+        """Show the Import panel"""
+        if hasattr(self, 'import_panel'):
+            self.import_panel.close()
+            self.import_panel.deleteLater()
         
-        if file_name:
-            if not file_name.endswith('.csv'):
-                file_name += '.csv'
-            
-            coins = self.db_manager.get_all_coins()
-            
-            with open(file_name, 'w', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow(['Title', 'Year', 'Country', 'Value', 'Unit',
-                               'Mint', 'Mint Mark', 'Type', 'Series', 'Status',
-                               'Format', 'Region', 'Storage', 'Quantity'])
-                
-                for coin in coins:
-                    writer.writerow([
-                        coin.title, coin.year, coin.country,
-                        coin.value, coin.unit, coin.mint,
-                        coin.mint_mark, coin.type, coin.series,
-                        coin.status, coin.format, coin.region,
-                        coin.storage, coin.quantity
-                    ])
+        self.import_panel = ImportPanel(self.db_manager, self.theme_manager, self)
+        self.import_panel.importComplete.connect(self.refresh_data)
+        self.import_panel.closeRequested.connect(self.restore_sidebar)
+        
+        # Hide sidebar and show import panel
+        self.sidebar.setVisible(False)
+        self.sidebar_container_layout.addWidget(self.import_panel)
+
+    def restore_sidebar(self):
+        # Only proceed if we have an add coin panel
+        if hasattr(self, 'add_coin_panel') and self.add_coin_panel is not None:
+            # Remove from sidebar
+            self.sidebar.layout().removeWidget(self.add_coin_panel)
+            self.add_coin_panel.hide()  # Hide before deletion
+            self.add_coin_panel.deleteLater()  # Schedule for deletion
+            self.add_coin_panel = None  # Set to None, don't delete the attribute
+        
+        # Restore sidebar widgets
+        if hasattr(self, 'sidebar_widgets'):
+            for widget in self.sidebar_widgets:
+                widget.show()
+            self.sidebar_widgets = []
+
+    def refresh_data(self):
+        """Refresh data in all widgets that display coin data"""
+        self.home_dashboard.update_stats()
+        self.coin_table.refresh_data()
+        self.analysis_widget.update_charts()
 
     def filter_coins(self, search_text):
         """Filter coins based on search text"""
