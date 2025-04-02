@@ -4,9 +4,6 @@ from .models import Base, Coin, CoinImage
 from datetime import datetime
 import os
 
-# Add Goal model to the imports from models
-from .models import Goal
-
 class DatabaseManager:
     def __init__(self, db_path="coins.db"):
         # Create database directory if it doesn't exist
@@ -56,75 +53,6 @@ class DatabaseManager:
         session = self.Session()
         try:
             return session.query(Coin).all()
-        finally:
-            session.close()
-
-    # Add these new methods for goals management
-    def save_goals(self, goals_data):
-        """
-        Save collection goals to the database
-        
-        Args:
-            goals_data (list): List of dictionaries containing goal information
-        """
-        session = self.Session()
-        try:
-            # Clear existing goals
-            session.query(Goal).delete()
-            
-            # Add new goals
-            for goal_data in goals_data:
-                goal = Goal(
-                    title=goal_data['title'],
-                    description=goal_data['description'],
-                    target=goal_data['target']
-                )
-                session.add(goal)
-            
-            session.commit()
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.close()
-
-    def get_goals(self):
-        """
-        Get all collection goals from the database
-        
-        Returns:
-            list: List of dictionaries containing goal information
-        """
-        session = self.Session()
-        try:
-            goals = session.query(Goal).all()
-            return [
-                {
-                    'title': goal.title,
-                    'description': goal.description,
-                    'target': goal.target
-                }
-                for goal in goals
-            ]
-        finally:
-            session.close()
-
-    def delete_goal(self, goal_id):
-        """
-        Delete a goal from the database
-        
-        Args:
-            goal_id (int): ID of the goal to delete
-        """
-        session = self.Session()
-        try:
-            goal = session.query(Goal).filter_by(id=goal_id).first()
-            if goal:
-                session.delete(goal)
-                session.commit()
-        except Exception as e:
-            session.rollback()
-            raise e
         finally:
             session.close()
 

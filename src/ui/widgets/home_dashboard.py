@@ -45,18 +45,6 @@ class HomeDashboard(QWidget):
         map_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout.addWidget(map_frame)
 
-        # Add collection goals section with reduced spacing
-        goals_title = QLabel("Collection Goals")
-        goals_title.setStyleSheet(f"""
-            color: {self.theme_manager.get_color('text')};
-            font-size: 18px;
-            font-weight: bold;
-            margin-top: 10px;
-            margin-bottom: 5px;
-        """)
-        layout.addWidget(goals_title)
-        layout.addWidget(self.create_goals_frame())
-
     def create_overview_frame(self):
         frame = QFrame()
         frame.setFixedHeight(120)  # Reduced height
@@ -177,92 +165,6 @@ class HomeDashboard(QWidget):
         layout.addWidget(map_widget)
         
         return frame
-
-    def create_goals_frame(self):
-        frame = QFrame()
-        frame.setFixedHeight(130)  # Fixed height for compact display
-        frame.setStyleSheet(f"""
-            QFrame {{
-                background-color: {self.theme_manager.get_color('surface')};
-                border: 1px solid {self.theme_manager.get_color('border')};
-                border-radius: 8px;
-                padding: 10px;
-            }}
-        """)
-
-        layout = QHBoxLayout(frame)
-        layout.setSpacing(10)
-        layout.setContentsMargins(10, 10, 10, 10)
-
-        # Get current collection stats
-        coins = self.db_manager.get_all_coins()
-        total_coins = len(coins)
-        
-        # Get goals from database
-        goals = self.db_manager.get_goals()
-        
-        if not goals:
-            # Default goals if none exist
-            layout.addWidget(self.create_goal_widget(
-                "Total Coins",
-                "Build your collection",
-                f"Progress: {total_coins} coins"
-            ))
-        else:
-            # Display up to 3 goals
-            for goal in goals[:3]:
-                layout.addWidget(self.create_goal_widget(
-                    goal['title'],
-                    goal['description'],
-                    f"Progress: {total_coins}/{goal['target']} coins"
-                ))
-
-        return frame
-
-    def create_goal_widget(self, title, description, progress_text):
-        widget = QFrame()
-        widget.setStyleSheet(f"""
-            QFrame {{
-                background-color: {self.theme_manager.get_color('background')};
-                border: 1px solid {self.theme_manager.get_color('border')};
-                border-radius: 4px;
-                padding: 15px;
-            }}
-        """)
-
-        layout = QVBoxLayout(widget)
-        layout.setSpacing(5)
-        layout.setContentsMargins(8, 8, 8, 8)
-
-        # Title
-        title_label = QLabel(title)
-        title_label.setStyleSheet(f"""
-            color: {self.theme_manager.get_color('text')};
-            font-size: 16px;
-            font-weight: bold;
-        """)
-
-        # Description
-        desc_label = QLabel(description)
-        desc_label.setStyleSheet(f"""
-            color: {self.theme_manager.get_color('text_secondary')};
-            font-size: 12px;
-        """)
-        desc_label.setWordWrap(True)
-
-        # Progress
-        progress_label = QLabel(progress_text)
-        progress_label.setStyleSheet(f"""
-            color: {self.theme_manager.get_color('accent')};
-            font-size: 14px;
-            font-weight: bold;
-        """)
-
-        layout.addWidget(title_label)
-        layout.addWidget(desc_label)
-        layout.addWidget(progress_label)
-
-        return widget
 
     def refresh_data(self):
         """Refresh all dashboard data"""

@@ -8,7 +8,6 @@ import csv
 from .widgets.coin_table_widget import CoinTableWidget
 from .widgets.home_dashboard import HomeDashboard
 from .widgets.analysis_widgets import AnalysisWidget
-from .widgets.goals_widget import GoalsWidget
 from .dialogs.add_coin_dialog import AddCoinPanel
 from .dialogs.import_panel import ImportPanel
 from .theme.theme_manager import ThemeManager
@@ -81,12 +80,10 @@ class MainWindow(QMainWindow):
         self.home_dashboard = HomeDashboard(self.db_manager, self.theme_manager)
         self.coin_table = CoinTableWidget(self.db_manager, self.theme_manager)
         self.analysis_widget = AnalysisWidget(self.db_manager, self.theme_manager)
-        self.goals_widget = GoalsWidget(self.db_manager, self.theme_manager)
 
         self.content_stack.addWidget(self.home_dashboard)
         self.content_stack.addWidget(self.coin_table)
         self.content_stack.addWidget(self.analysis_widget)
-        self.content_stack.addWidget(self.goals_widget)
 
         # Add widgets to layouts
         content_layout.addWidget(self.sidebar_container)
@@ -144,11 +141,6 @@ class MainWindow(QMainWindow):
         analysis_btn.clicked.connect(lambda: self.content_stack.setCurrentWidget(self.analysis_widget))
         analysis_btn.setStyleSheet(button_style)
 
-        goals_btn = QPushButton("Goals")
-        goals_btn.setIcon(QIcon("./src/assets/icons/goals.png"))
-        goals_btn.clicked.connect(lambda: self.content_stack.setCurrentWidget(self.goals_widget))
-        goals_btn.setStyleSheet(button_style)
-
         import_btn = QPushButton("Import")
         import_btn.setIcon(QIcon("./src/assets/icons/import.png"))
         import_btn.clicked.connect(self.show_import_panel)
@@ -164,7 +156,6 @@ class MainWindow(QMainWindow):
         layout.addWidget(collection_btn)
         layout.addWidget(add_coin_btn)
         layout.addWidget(analysis_btn)
-        layout.addWidget(goals_btn)
         layout.addWidget(import_btn)
         layout.addWidget(export_btn)
         layout.addStretch()
@@ -300,7 +291,6 @@ class MainWindow(QMainWindow):
         self.home_dashboard.update_theme()
         self.coin_table.update_theme()
         self.analysis_widget.update_theme()
-        self.goals_widget.update_theme()
         
         if hasattr(self, 'add_coin_panel'):
             self.add_coin_panel.update_theme()
