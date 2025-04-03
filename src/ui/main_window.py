@@ -194,32 +194,44 @@ class MainWindow(QMainWindow):
 
     def show_import_panel(self):
         """Show the Import panel"""
-        if hasattr(self, 'import_panel'):
-            self.import_panel.close()
-            self.import_panel.deleteLater()
+        # Store sidebar widgets to restore later
+        self.sidebar_widgets = []
+        sidebar_layout = self.sidebar.layout()
+        for i in range(sidebar_layout.count()):
+            widget = sidebar_layout.itemAt(i).widget()
+            if widget:
+                self.sidebar_widgets.append(widget)
+                widget.hide()
         
+        # Create and show import panel
         self.import_panel = ImportPanel(self.db_manager, self.theme_manager, self)
         self.import_panel.importComplete.connect(self.refresh_data)
         self.import_panel.closeRequested.connect(self.restore_sidebar)
         
-        # Hide sidebar and show import panel
-        self.sidebar.setVisible(False)
-        self.sidebar_container_layout.addWidget(self.import_panel)
+        # Add panel to sidebar
+        sidebar_layout.addWidget(self.import_panel)
+        self.import_panel.show()
 
     def restore_sidebar(self):
-        # Only proceed if we have an add coin panel
-        if hasattr(self, 'add_coin_panel') and self.add_coin_panel is not None:
-            # Remove from sidebar
-            self.sidebar.layout().removeWidget(self.add_coin_panel)
-            self.add_coin_panel.hide()  # Hide before deletion
-            self.add_coin_panel.deleteLater()  # Schedule for deletion
-            self.add_coin_panel = None  # Set to None, don't delete the attribute
+        """Restore the original sidebar content"""
+        print("Restoring sidebar")  # Debug print
         
-        # Restore sidebar widgets
+        # Remove import panel if it exists
+        if hasattr(self, 'import_panel') and self.import_panel is not None:
+            self.sidebar.layout().removeWidget(self.import_panel)
+            self.import_panel = None  # Remove the reference
+        
+        # Restore original sidebar widgets
         if hasattr(self, 'sidebar_widgets'):
             for widget in self.sidebar_widgets:
                 widget.show()
             self.sidebar_widgets = []
+        
+        # Make sure the sidebar is visible
+        self.sidebar.setVisible(True)
+            
+            # Make sure the sidebar is visible
+        self.sidebar.setVisible(True)
 
     def refresh_data(self):
         """Refresh data in all widgets that display coin data"""
