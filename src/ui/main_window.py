@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                               QPushButton, QStackedWidget, QLabel, QLineEdit)
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QPixmap
 from .widgets.coin_table_widget import CoinTableWidget
 from .widgets.home_dashboard import HomeDashboard
 from .widgets.analysis_widgets import AnalysisWidget
@@ -66,13 +66,13 @@ class MainWindow(QMainWindow):
         self.sidebar_container_layout.setSpacing(0)
 
         # Add logo placeholder at the top of the sidebar
-        logo_placeholder = QLabel("Logo")
+        logo_placeholder = QLabel()
+        logo_pixmap = QPixmap("src/assets/CoinOdyssey_Logo_Final.png")
+        logo_placeholder.setPixmap(logo_pixmap.scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         logo_placeholder.setAlignment(Qt.AlignCenter)
         logo_placeholder.setStyleSheet(f"""
             QLabel {{
                 background-color: {self.theme_manager.get_color('surface')};
-                color: {self.theme_manager.get_color('text')};
-                padding: 20px;
                 border-bottom: 1px solid {self.theme_manager.get_color('border')};
             }}
         """)
