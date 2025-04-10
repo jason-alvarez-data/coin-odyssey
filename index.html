@@ -1,10 +1,34 @@
-   <!-- index.html -->
-   <!DOCTYPE html>
-   <html>
-   <head>
-     <title>My Electron App</title>
-   </head>
-   <body>
-     <h1>Hello, Electron!</h1>
-   </body>
-   </html>
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Coin Odyssey</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div id="sidebar">
+      <img src="src/assets/CoinOdyssey_Logo_Final.png" alt="Logo" id="logo">
+      <button class="sidebar-button add-coin">
+        <span class="icon">+</span> Add Coin
+      </button>
+      <ul id="menu">
+        <li class="sidebar-button"><span class="icon">🏠</span> Dashboard</li>
+        <!-- Code to add my own icons to button <img src="src/assets/dashboard-icon.png" alt="Dashboard" class="icon"> Dashboard -->
+        <li class="sidebar-button"><span class="icon">📊</span> Analysis</li>
+        <!-- Code to add my own icon <img src="src/assets/analysis-icon.png" alt="Analysis" class="icon"> Analysis -->
+        <li class="sidebar-button"><span class="icon">⚙️</span> Settings</li>
+        <!-- Code to add my own icon <img src="src/assets/settings-icon.png" alt="Settings" class="icon"> Settings -->
+      </ul>
+      <div id="toggle">
+        <label for="theme-switch">Light/Dark Mode</label>
+        <input type="checkbox" id="theme-switch">
+      </div>
+    </div>
+    <div id="main-content">
+      <input type="text" id="search-bar" placeholder="Search...">
+      <div id="content-sections">
+        <!-- Individual sections for components -->
+      </div>
+    </div>
+    <script src="renderer.js"></script>
+  </body>
+</html>

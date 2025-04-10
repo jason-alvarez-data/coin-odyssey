@@ -1,0 +1,91 @@
+body {
+    display: flex;
+    margin: 0;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    overflow-x: hidden;
+}
+
+#sidebar {
+    width: 200px;
+    background-color: #333;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+#logo {
+    width: 150px;
+    height: auto;
+    margin-bottom: 20px;
+}
+
+.sidebar-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 180px;
+    padding: 10px;
+    margin: 10px 0;
+    background-color: #444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.sidebar-button:hover {
+    background-color: #555;
+}
+
+.add-coin {
+    background-color: #00bfff;
+}
+
+.add-coin:hover {
+    background-color: #009acd;
+}
+
+.icon {
+    margin-right: 8px;
+}
+
+#menu {
+    list-style: none;
+    padding: 0;
+}
+
+#menu li {
+    margin: 10px 0;
+    cursor: pointer;
+}
+
+#toggle {
+    margin-top: auto;
+}
+
+#main-content {
+    flex-grow: 1;
+    background-color: #222;
+    color: white;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+}
+
+#search-bar {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+}
+
+#content-sections {
+    /* Style individual sections here */
+    flex-grow: 1;
+    overflow-y: auto;
+}

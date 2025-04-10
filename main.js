@@ -1,5 +1,6 @@
    // main.js
    const { app, BrowserWindow } = require('electron');
+   const path = require('path');
 
    function createWindow() {
      const win = new BrowserWindow({
@@ -8,6 +9,7 @@
        webPreferences: {
          nodeIntegration: true,
        },
+       icon: path.join(__dirname, 'src/assets/Coin Odyssey_Coin Logo.png')
      });
 
      win.loadFile('index.html');
