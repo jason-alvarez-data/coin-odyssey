@@ -4,8 +4,8 @@
   "description": "Modern Numismat is a personal project born from my passion for numismatics (coin collecting). This desktop application provides collectors with a modern, intuitive interface for managing their coin collections, analyzing their portfolio, and tracking the value of their investments over time.",
   "main": "main.js",
   "scripts": {
-     "start": "electron ."
-   },
+    "start": "electron ."
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jason-alvarez-data/coin-odyssey.git"
@@ -20,5 +20,8 @@
   "homepage": "https://github.com/jason-alvarez-data/coin-odyssey#readme",
   "devDependencies": {
     "electron": "^35.1.4"
+  },
+  "dependencies": {
+    "python-shell": "^5.0.0"
   }
 }
