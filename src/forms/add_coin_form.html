@@ -1,125 +1,133 @@
 <div class="add-coin-form">
-    <div class="form-header">
-        <h2>Add New Coin</h2>
-        <button id="close-form" class="close-button">×</button>
-    </div>
-    
     <div class="form-content">
         <form id="coin-form">
-            <div class="form-group">
-                <label for="title">Title:</label>
-                <input type="text" id="title" name="title" required>
+            <div class="form-grid">
+                <!-- Left Column -->
+                <div class="form-column">
+                    <div class="form-group">
+                        <label for="title">Title:</label>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="year">Year:</label>
+                        <input type="number" id="year" name="year" value="2024" min="1" max="9999">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="country">Country:</label>
+                        <input type="text" id="country" name="country">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="value">Value:</label>
+                        <input type="number" id="value" name="value" step="0.01" min="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="unit">Unit:</label>
+                        <select id="unit" name="unit">
+                            <option value="Cent">Cent</option>
+                            <option value="Dollar">Dollar</option>
+                            <option value="Euro">Euro</option>
+                            <option value="Peso">Peso</option>
+                            <option value="CAD">CAD</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mint">Mint:</label>
+                        <input type="text" id="mint" name="mint">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mint-mark">Mark:</label>
+                        <input type="text" id="mint-mark" name="mint_mark">
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="form-column">
+                    <div class="form-group">
+                        <label for="type">Type:</label>
+                        <select id="type" name="type">
+                            <option value="Regular Issue">Regular Issue</option>
+                            <option value="Commemorative">Commemorative</option>
+                            <option value="Bullion">Bullion</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="format">Format:</label>
+                        <select id="format" name="format">
+                            <option value="Single">Single</option>
+                            <option value="Proof">Proof</option>
+                            <option value="Set">Set</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="series">Series:</label>
+                        <input type="text" id="series" name="series">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="region">Region:</label>
+                        <select id="region" name="region">
+                            <option value="Americas">Americas</option>
+                            <option value="Europe">Europe</option>
+                            <option value="Asia">Asia</option>
+                            <option value="Africa">Africa</option>
+                            <option value="Oceania">Oceania</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="storage">Storage:</label>
+                        <select id="storage" name="storage">
+                            <option value="Clear Coin Bin">Clear Coin Bin</option>
+                            <option value="State Collection Volume 1">State Collection Volume 1</option>
+                            <option value="State Collection Volume 2">State Collection Volume 2</option>
+                            <option value="American Women Album">American Women Album</option>
+                            <option value="America the Beautiful Map">America the Beautiful Map</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Status:</label>
+                        <select id="status" name="status">
+                            <option value="owned">Owned</option>
+                            <option value="wanted">Wanted</option>
+                            <option value="ordered">Ordered</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="quantity">Quantity:</label>
+                        <input type="number" id="quantity" name="quantity" value="1" min="1" max="999">
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label for="year">Year:</label>
-                <input type="number" id="year" name="year" value="2024" min="1" max="9999">
-            </div>
-
-            <div class="form-group">
-                <label for="country">Country:</label>
-                <input type="text" id="country" name="country">
-            </div>
-
-            <div class="form-group">
-                <label for="value">Value:</label>
-                <input type="number" id="value" name="value" step="0.01" min="0">
-            </div>
-
-            <div class="form-group">
-                <label for="unit">Unit:</label>
-                <select id="unit" name="unit">
-                    <option value="Cent">Cent</option>
-                    <option value="Dollar">Dollar</option>
-                    <option value="Euro">Euro</option>
-                    <option value="Peso">Peso</option>
-                    <option value="CAD">CAD</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="mint">Mint:</label>
-                <input type="text" id="mint" name="mint">
-            </div>
-
-            <div class="form-group">
-                <label for="mint-mark">Mark:</label>
-                <input type="text" id="mint-mark" name="mint_mark">
-            </div>
-
-            <div class="form-group">
-                <label for="type">Type:</label>
-                <select id="type" name="type">
-                    <option value="Regular Issue">Regular Issue</option>
-                    <option value="Commemorative">Commemorative</option>
-                    <option value="Bullion">Bullion</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="format">Format:</label>
-                <select id="format" name="format">
-                    <option value="Single">Single</option>
-                    <option value="Proof">Proof</option>
-                    <option value="Set">Set</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="series">Series:</label>
-                <input type="text" id="series" name="series">
-            </div>
-
-            <div class="form-group">
-                <label for="region">Region:</label>
-                <select id="region" name="region">
-                    <option value="Americas">Americas</option>
-                    <option value="Europe">Europe</option>
-                    <option value="Asia">Asia</option>
-                    <option value="Africa">Africa</option>
-                    <option value="Oceania">Oceania</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="storage">Storage:</label>
-                <select id="storage" name="storage">
-                    <option value="Clear Coin Bin">Clear Coin Bin</option>
-                    <option value="State Collection Volume 1">State Collection Volume 1</option>
-                    <option value="State Collection Volume 2">State Collection Volume 2</option>
-                    <option value="American Women Album">American Women Album</option>
-                    <option value="America the Beautiful Map">America the Beautiful Map</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="status">Status:</label>
-                <select id="status" name="status">
-                    <option value="owned">Owned</option>
-                    <option value="wanted">Wanted</option>
-                    <option value="ordered">Ordered</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="quantity">Quantity:</label>
-                <input type="number" id="quantity" name="quantity" value="1" min="1" max="999">
-            </div>
-
-            <div class="form-group images-section">
+            <!-- Image Upload Section at Bottom -->
+            <div class="images-section">
                 <h3>Coin Images</h3>
                 <div class="image-upload-container">
                     <div class="image-upload">
                         <label for="obverse-image">Obverse</label>
+                        <div class="image-preview" id="obverse-preview">
+                            <span>Click or drag image here</span>
+                        </div>
                         <input type="file" id="obverse-image" name="obverse_image" accept="image/*">
-                        <div class="image-preview" id="obverse-preview"></div>
                     </div>
                     <div class="image-upload">
                         <label for="reverse-image">Reverse</label>
+                        <div class="image-preview" id="reverse-preview">
+                            <span>Click or drag image here</span>
+                        </div>
                         <input type="file" id="reverse-image" name="reverse_image" accept="image/*">
-                        <div class="image-preview" id="reverse-preview"></div>
                     </div>
                 </div>
             </div>

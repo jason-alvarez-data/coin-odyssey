@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <!-- Local Leaflet CSS -->
+    <link rel="stylesheet" href="../assets/leaflet/leaflet.css"/>
+    
+    <!-- Local Leaflet JavaScript -->
+    <script src="../assets/leaflet/leaflet.js"></script>
+    
+    <script>
+        // Check if Leaflet loaded
+        window.addEventListener('load', function() {
+            console.log('Window loaded');
+            if (typeof L !== 'undefined') {
+                console.log('Leaflet is available, version:', L.version);
+            } else {
+                console.error('Leaflet is not loaded!');
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="dashboard-title">Collection Dashboard</div>
+        
+        <!-- Overview Section -->
+        <div class="overview-frame">
+            <div class="stat-widget">
+                <div class="stat-label">Total Coins</div>
+                <div class="stat-value-container">
+                    <img src="src/assets/icons/coins.png" class="stat-icon" alt="coins">
+                    <div class="stat-value" id="total-coins">0</div>
+                </div>
+            </div>
+            
+            <div class="stat-widget">
+                <div class="stat-label">Countries</div>
+                <div class="stat-value-container">
+                    <img src="src/assets/icons/globe.png" class="stat-icon" alt="globe">
+                    <div class="stat-value" id="unique-countries">0</div>
+                </div>
+            </div>
+            
+            <div class="stat-widget">
+                <div class="stat-label">Years Span</div>
+                <div class="stat-value-container">
+                    <img src="src/assets/icons/coins2.png" class="stat-icon" alt="calendar">
+                    <div class="stat-value" id="unique-years">0</div>
+                </div>
+            </div>
+            
+            <div class="stat-widget">
+                <div class="stat-label">Estimated Value</div>
+                <div class="stat-value-container">
+                    <img src="src/assets/icons/usd-circle.png" class="stat-icon" alt="money">
+                    <div class="stat-value" id="estimated-value">$0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Section -->
+        <div class="map-section">
+            <div class="section-title">Collection Geography</div>
+            <div class="map-frame">
+                <div class="world-map-title">World Coin Collection Map</div>
+                <div class="subtitle" id="countries-count">You have coins from 0 countries</div>
+                <div id="offline-map" class="offline-map" style="height: 400px; width: 100%; position: relative;">
+                    <!-- Map will be initialized here -->
+                </div>
+                <div class="country-list" id="country-badges"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
