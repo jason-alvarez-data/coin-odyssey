@@ -1,6 +1,9 @@
 from sqlalchemy import create_engine, Column, Integer, String, Date, Float, ForeignKey
 from sqlalchemy.orm import sessionmaker
-from .models import Base, Coin, CoinImage
+try:
+    from .models import Base, Coin, CoinImage
+except ImportError:
+    from models import Base, Coin, CoinImage
 from datetime import datetime
 import os
 
