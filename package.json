@@ -19,9 +19,11 @@
   },
   "homepage": "https://github.com/jason-alvarez-data/coin-odyssey#readme",
   "devDependencies": {
-    "electron": "^35.1.4"
+    "electron": "^35.1.4",
+    "electron-rebuild": "^3.2.9"
   },
   "dependencies": {
+    "better-sqlite3": "^11.9.1",
     "electron-squirrel-startup": "^1.0.1",
     "python-shell": "^5.0.0"
   }

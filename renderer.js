@@ -1,14 +1,22 @@
-const { PythonShell } = require('python-shell');
+// Required Node.js modules
 const fs = require('fs');
 const path = require('path');
+
+// Custom modules
 const WorldMap = require('./src/ui/widgets/worldMap');
+const db = require('./src/database/db.js');
 
 // Theme Constants
 const THEME_KEY = 'app-theme';
 const DARK_THEME = 'dark';
 const LIGHT_THEME = 'light';
 
+// Global variables
 let worldMap = null;
+
+document.addEventListener('click', function(e) {
+    console.log('Click event:', e.target);
+});
 
 // Theme initialization function
 function initializeTheme() {
@@ -52,49 +60,32 @@ function loadDashboard() {
             showCountryCoins(countryName);
         });
 
-        // Get dashboard data from Python
-        const options = {
-            mode: 'json',
-            scriptPath: 'src/ui/widgets',
-            args: ['get_dashboard_data'],
-            pythonPath: 'python',
-            pythonOptions: ['-u']  // Unbuffered output
+        // Get dashboard data directly from database
+        const allCoins = db.getAllCoins();
+        const uniqueCountries = db.getUniqueCountries();
+        
+        // Calculate dashboard stats
+        const dashboardData = {
+            total_coins: allCoins.length,
+            unique_countries: uniqueCountries.length,
+            unique_years: new Set(allCoins.map(coin => coin.year)).size,
+            estimated_value: allCoins.reduce((sum, coin) => sum + (coin.current_value || coin.value || 0), 0),
+            collection_countries: uniqueCountries
         };
+        
+        // Update dashboard stats
+        document.getElementById('total-coins').textContent = dashboardData.total_coins;
+        document.getElementById('unique-countries').textContent = dashboardData.unique_countries;
+        document.getElementById('unique-years').textContent = dashboardData.unique_years;
+        document.getElementById('estimated-value').textContent = `$${dashboardData.estimated_value.toFixed(2)}`;
 
-        console.log('Running Python script with options:', options);
-
-        PythonShell.run('home_dashboard.py', options, function(err, results) {
-            if (err) {
-                console.error('Error loading dashboard data:', err);
-                return;
-            }
-            
-            try {
-                if (!results || results.length === 0) {
-                    console.error('No data received from Python');
-                    return;
-                }
-
-                const data = JSON.parse(results[0]);
-                console.log('Parsed dashboard data:', data);
-                
-                // Update dashboard stats
-                document.getElementById('total-coins').textContent = data.total_coins || 0;
-                document.getElementById('unique-countries').textContent = data.unique_countries || 0;
-                document.getElementById('unique-years').textContent = data.unique_years || 0;
-                document.getElementById('estimated-value').textContent = `$${(data.estimated_value || 0).toFixed(2)}`;
-
-                // Update map with collection data
-                if (worldMap) {
-                    worldMap.updateCollection(data.collection_countries || []);
-                }
-                
-                // Update country badges
-                updateCountryBadges(data.collection_countries || []);
-            } catch (parseError) {
-                console.error('Error parsing Python results:', parseError);
-            }
-        });
+        // Update map with collection data
+        if (worldMap) {
+            worldMap.updateCollection(dashboardData.collection_countries);
+        }
+        
+        // Update country badges
+        updateCountryBadges(dashboardData.collection_countries);
     } catch (error) {
         console.error('Error in loadDashboard:', error);
     }
@@ -108,337 +99,249 @@ function loadCollection() {
         // Load collection HTML template
         const collectionPath = path.join(__dirname, 'src', 'forms', 'collection.html');
         console.log('Loading collection from:', collectionPath);
+        
+        if (!fs.existsSync(collectionPath)) {
+            console.error('Collection template not found at:', collectionPath);
+            return;
+        }
+        
         const collectionContent = fs.readFileSync(collectionPath, 'utf8');
-        document.getElementById('main-content').innerHTML = collectionContent;
+        const mainContent = document.getElementById('main-content');
+        
+        if (!mainContent) {
+            console.error('Main content container not found');
+            return;
+        }
+        
+        mainContent.innerHTML = collectionContent;
 
-        // Get collection data from Python
-        const options = {
-            mode: 'json',
-            scriptPath: 'src/ui/widgets',
-            args: ['get_collection_data'],
-            pythonPath: 'python'
-        };
-
-        PythonShell.run('coin_table_widget.py', options, function(err, results) {
-            if (err) {
-                console.error('Error loading collection data:', err);
-                return;
-            }
-
-            try {
-                const data = JSON.parse(results[0]);
-                populateCollectionTable(data);
-                setupCollectionFilters();
-            } catch (parseError) {
-                console.error('Error parsing collection data:', parseError);
-            }
-        });
+        // Get collection data directly from database
+        const coins = db.getAllCoins();
+        console.log('Retrieved coins from database:', coins);
+        
+        populateCollectionTable(coins);
+        setupCollectionFilters();
 
         // Reinitialize theme after loading new content
         initializeTheme();
     } catch (error) {
         console.error('Error in loadCollection:', error);
+        // Show error to user
+        document.getElementById('main-content').innerHTML = `
+            <div class="error-message">
+                Error loading collection: ${error.message}
+            </div>
+        `;
     }
 }
 
+// Function to populate the collection table
 function populateCollectionTable(coins) {
-    const tbody = document.querySelector('#collection-table tbody');
-    if (!tbody) {
-        console.error('Table body not found');
-        return;
-    }
-
-    tbody.innerHTML = '';
-
+    const tableBody = document.querySelector('#collection-table tbody');
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = '';
+    
     coins.forEach(coin => {
         const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${coin.title || ''}</td>
-            <td>${coin.year || ''}</td>
-            <td>${coin.country || ''}</td>
-            <td>${coin.value || ''}</td>
-            <td>${coin.unit || ''}</td>
-            <td>${coin.mint || ''}</td>
-            <td>${coin.mint_mark || ''}</td>
-            <td>${coin.status || ''}</td>
-            <td>${coin.type || ''}</td>
-            <td>${coin.series || ''}</td>
-            <td>${coin.storage || ''}</td>
-            <td>${coin.format || ''}</td>
-            <td>${coin.region || ''}</td>
-            <td>${coin.quantity || ''}</td>
-        `;
-        tbody.appendChild(row);
+        
+        // Format the date for display
+        const dateCollected = coin.purchase_date ? 
+            new Date(coin.purchase_date).toLocaleDateString() : '';
+            
+        // Add each field to the row
+        const fields = [
+            { key: 'title', format: v => v },
+            { key: 'year', format: v => v },
+            { key: 'country', format: v => v },
+            { key: 'value', format: v => v ? `$${parseFloat(v).toFixed(2)}` : '' },
+            { key: 'unit', format: v => v },
+            { key: 'mint', format: v => v },
+            { key: 'mint_mark', format: v => v },
+            { key: 'status', format: v => v },
+            { key: 'type', format: v => v },
+            { key: 'series', format: v => v },
+            { key: 'storage', format: v => v },
+            { key: 'format', format: v => v },
+            { key: 'region', format: v => v },
+            { key: 'quantity', format: v => v },
+            { key: 'purchase_date', format: v => dateCollected } // Format date nicely
+        ];
+        
+        fields.forEach(({ key, format }) => {
+            const cell = document.createElement('td');
+            cell.textContent = format(coin[key] ?? '');
+            row.appendChild(cell);
+        });
+        
+        tableBody.appendChild(row);
     });
 }
 
+// Function to setup collection filters
 function setupCollectionFilters() {
-    const searchInput = document.getElementById('search-input');
-    const searchField = document.getElementById('search-field');
-    const conditionFilter = document.getElementById('condition-filter');
-    const valueFilter = document.getElementById('value-filter');
-
-    if (!searchInput || !searchField || !conditionFilter || !valueFilter) {
-        console.error('One or more filter elements not found');
-        return;
-    }
-
+    const filterInput = document.getElementById('filter-input');
+    if (!filterInput) return;
+    
+    filterInput.addEventListener('keyup', function() {
+        applyFilters();
+    });
+    
     const applyFilters = () => {
-        const options = {
-            mode: 'json',
-            scriptPath: 'src/ui/widgets',
-            args: [
-                'apply_filters',
-                searchInput.value,
-                searchField.value,
-                conditionFilter.value,
-                valueFilter.value
-            ],
-            pythonPath: 'python'
-        };
-
-        PythonShell.run('coin_table_widget.py', options, function(err, results) {
-            if (err) {
-                console.error('Error applying filters:', err);
-                return;
-            }
-            try {
-                const data = JSON.parse(results[0]);
-                populateCollectionTable(data);
-            } catch (parseError) {
-                console.error('Error parsing filter results:', parseError);
-            }
+        const filterText = filterInput.value.toLowerCase();
+        const rows = document.querySelectorAll('#collection-table tbody tr');
+        
+        rows.forEach(row => {
+            const title = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+            const year = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+            const country = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+            const type = row.querySelector('td:nth-child(9)').textContent.toLowerCase();
+            const series = row.querySelector('td:nth-child(10)').textContent.toLowerCase();
+            
+            // Check if any field contains the filter text
+            const match = title.includes(filterText) || 
+                          year.includes(filterText) || 
+                          country.includes(filterText) ||
+                          type.includes(filterText) ||
+                          series.includes(filterText);
+            
+            row.style.display = match ? '' : 'none';
         });
     };
-
-    // Add event listeners
-    searchInput.addEventListener('input', applyFilters);
-    searchField.addEventListener('change', applyFilters);
-    conditionFilter.addEventListener('change', applyFilters);
-    valueFilter.addEventListener('change', applyFilters);
+    
+    // Apply initial filters
+    applyFilters();
 }
 
+// Function to update country badges
 function updateCountryBadges(collectionCountries) {
-    const countryList = document.getElementById('country-badges');
-    const countriesCount = document.getElementById('countries-count');
+    const badgeContainer = document.getElementById('country-badges');
+    if (!badgeContainer) return;
     
-    if (!countryList || !countriesCount) return;
+    badgeContainer.innerHTML = '';
     
-    countriesCount.textContent = `You have coins from ${collectionCountries.length} countries`;
-    
-    countryList.innerHTML = ''; // Clear existing badges
-    collectionCountries.sort().forEach(country => {
+    collectionCountries.forEach(country => {
         const badge = document.createElement('div');
         badge.className = 'country-badge';
         badge.textContent = country;
-        countryList.appendChild(badge);
+        badge.addEventListener('click', () => showCountryCoins(country));
+        badgeContainer.appendChild(badge);
     });
 }
 
+// Function to show coins from a specific country
 function showCountryCoins(countryName) {
-    const options = {
-        mode: 'json',
-        scriptPath: 'src/database',
-        args: [JSON.stringify(coinData)],
-        pythonOptions: ['-u'],  // Unbuffered output for better debugging
-        stderrParser: line => console.error(`Python stderr: ${line}`),  // Log stderr output
-        stdoutParser: line => console.log(`Python stdout: ${line}`)     // Log stdout output
-    };
-
-    console.log('PythonShell options:', JSON.stringify(options, null, 2));
-
-    PythonShell.run('home_dashboard.py', options, function(err, results) {
-        if (err) {
-            console.error('Error loading country coins:', err);
-            return;
+    try {
+        // Get coins for this country directly from the database
+        const allCoins = db.getAllCoins();
+        const countryCoins = allCoins.filter(coin => coin.country === countryName);
+        
+        const coinsContainer = document.getElementById('country-coins');
+        if (coinsContainer) {
+            coinsContainer.innerHTML = `
+                <h3>Coins from ${countryName}</h3>
+                <div class="coins-grid">
+                    ${countryCoins.map(coin => `
+                        <div class="coin-card">
+                            <img src="${getCoinImagePath(coin.id) || 'src/assets/default-coin.png'}" alt="${coin.title}">
+                            <h4>${coin.title}</h4>
+                            <p>Year: ${coin.year}</p>
+                            <p>Value: ${coin.value} ${coin.unit}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
         }
-
-        try {
-            const coins = JSON.parse(results[0]);
-            const coinsContainer = document.getElementById('country-coins');
-            if (coinsContainer) {
-                coinsContainer.innerHTML = `
-                    <h3>Coins from ${countryName}</h3>
-                    <div class="coins-grid">
-                        ${coins.map(coin => `
-                            <div class="coin-card">
-                                <img src="${coin.image || 'src/assets/default-coin.png'}" alt="${coin.name}">
-                                <h4>${coin.name}</h4>
-                                <p>Year: ${coin.year}</p>
-                                <p>Value: $${coin.value.toFixed(2)}</p>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            }
-        } catch (parseError) {
-            console.error('Error parsing country coins:', parseError);
-        }
-    });
+    } catch (error) {
+        console.error('Error showing country coins:', error);
+    }
 }
 
-// Event listeners
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM Content Loaded');
-    
-    // Initialize theme
-    initializeTheme();
-    
-    // Load dashboard by default
-    loadDashboard();
-
-    // Dashboard button click handler
-    const dashboardButton = document.querySelector('#menu li:nth-child(1)');
-    if (dashboardButton) {
-        dashboardButton.addEventListener('click', loadDashboard);
+// Helper function to get the image path for a coin
+function getCoinImagePath(coinId) {
+    try {
+        const images = db.getCoinImages(coinId);
+        const obverseImage = images.find(img => img.image_type === 'obverse');
+        return obverseImage ? obverseImage.image_path : null;
+    } catch (error) {
+        console.error('Error getting coin image:', error);
+        return null;
     }
+}
 
-    // Collection button click handler
-    const collectionButton = document.querySelector('#menu li:nth-child(2)');
-    if (collectionButton) {
-        collectionButton.addEventListener('click', loadCollection);
+// Function to load the add coin form
+function loadAddCoinForm() {
+    try {
+        console.log('Add Coin button clicked');
+        
+        // Load form HTML
+        const formPath = path.join(__dirname, 'src', 'forms', 'add_coin_form.html');
+        console.log('Loading form from:', formPath);
+        const formContent = fs.readFileSync(formPath, 'utf8');
+        document.getElementById('main-content').innerHTML = formContent;
+        
+        // Set today's date automatically
+        const today = new Date();
+        const dateString = today.toISOString().split('T')[0];
+        const dateCollectedInput = document.getElementById('date-collected');
+        if (dateCollectedInput) {
+            dateCollectedInput.value = dateString;
+        }
+        
+        // Setup form handlers
+        setupFormHandlers();
+        
+        // Reinitialize theme after loading new content
+        initializeTheme();
+    } catch (error) {
+        console.error('Error loading add coin form:', error);
     }
+}
 
-    // Add Coin button click handler
-    const addCoinButton = document.querySelector('.add-coin');
-    if (addCoinButton) {
-        addCoinButton.addEventListener('click', function() {
-            console.log('Add Coin button clicked');
-            try {
-                const formPath = path.join(__dirname, 'src', 'forms', 'add_coin_form.html');
-                console.log('Loading form from:', formPath);
-                
-                const formContent = fs.readFileSync(formPath, 'utf8');
-                document.getElementById('main-content').innerHTML = formContent;
-                setupFormHandlers();
-                
-                // Reinitialize theme after loading new content
-                initializeTheme();
-            } catch (error) {
-                console.error('Error loading form:', error);
-            }
-        });
-    }
-});
-
-// Form handling functions
+// Function to setup form handlers
 function setupFormHandlers() {
     const form = document.getElementById('coin-form');
     const cancelButton = document.getElementById('cancel-add');
-
+    
     // Setup image preview handlers
-    const obverseInput = document.getElementById('obverse-image');
-    const reverseInput = document.getElementById('reverse-image');
-    const obversePreview = document.getElementById('obverse-preview');
-    const reversePreview = document.getElementById('reverse-preview');
-
-    // Handle obverse image preview
-    if (obverseInput && obversePreview) {
-        obverseInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    obversePreview.innerHTML = `<img src="${e.target.result}" alt="Obverse Preview">`;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-        
-        // Make the preview clickable
-        obversePreview.addEventListener('click', function() {
-            obverseInput.click();
-        });
-    }
-
-    // Handle reverse image preview
-    if (reverseInput && reversePreview) {
-        reverseInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    reversePreview.innerHTML = `<img src="${e.target.result}" alt="Reverse Preview">`;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-        
-        // Make the preview clickable
-        reversePreview.addEventListener('click', function() {
-            reverseInput.click();
-        });
-    }
+    setupImagePreviewHandlers();
 
     if (form) {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
+            // Get form data
             const formData = new FormData(form);
-            const coinData = {};
             
-            // Process form fields and ensure required fields have values
-            for (let [key, value] of formData.entries()) {
-                // Skip file inputs
-                if (key !== 'obverse_image' && key !== 'reverse_image') {
-                    // Make sure empty string fields are set to null
-                    coinData[key] = value.trim() === '' ? null : value;
-                }
-            }
-            
-            // Add default values for required fields if not provided
-            if (!coinData.year || coinData.year === null) {
-                coinData.year = new Date().getFullYear(); // Current year
-            }
-            
-            if (!coinData.quantity || coinData.quantity === null) {
-                coinData.quantity = 1; // Default quantity
-            }
-            
-            if (!coinData.value || coinData.value === null) {
-                coinData.value = 0; // Default value
-            }
-            
-            if (!coinData.status || coinData.status === null) {
-                coinData.status = 'owned'; // Default status
-            }
-            
-            if (!coinData.type || coinData.type === null) {
-                coinData.type = 'Regular Issue'; // Default type
-            }
-            
-            if (!coinData.format || coinData.format === null) {
-                coinData.format = 'Single'; // Default format
-            }
-            
-            if (!coinData.region || coinData.region === null) {
-                coinData.region = 'Americas'; // Default region if not specified
-            }
-            
-            // Add image data if available
-            const obverseFile = formData.get('obverse_image');
-            const reverseFile = formData.get('reverse_image');
-            
-            if (obverseFile && obverseFile.size > 0) {
-                coinData.has_obverse_image = true;
-            }
-            
-            if (reverseFile && reverseFile.size > 0) {
-                coinData.has_reverse_image = true;
-            }
-            
-            console.log('Submitting coin data:', coinData);
-            
-            const options = {
-                mode: 'json',
-                scriptPath: 'src/database',
-                args: [JSON.stringify(coinData)],
-                pythonOptions: ['-u'],  // Unbuffered output for better debugging
-                stderrParser: line => console.error(`Python stderr: ${line}`),  // Log stderr output
-                stdoutParser: line => console.log(`Python stdout: ${line}`)     // Log stdout output
+            // Create coin data object with proper type conversions
+            const coinData = {
+                title: formData.get('title'),
+                year: parseInt(formData.get('year')) || new Date().getFullYear(),
+                country: formData.get('country'),
+                value: parseFloat(formData.get('value')) || 0,
+                unit: formData.get('unit'),
+                mint: formData.get('mint'),
+                mint_mark: formData.get('mint_mark'),
+                type: formData.get('type') || 'Regular Issue',
+                format: formData.get('format') || 'Single',
+                series: formData.get('series'),
+                region: formData.get('region') || 'Americas',
+                storage: formData.get('storage'),
+                status: formData.get('status') || 'owned',
+                quantity: parseInt(formData.get('quantity')) || 1,
+                purchase_date: formData.get('purchase_date') || new Date().toISOString().split('T')[0],
+                purchase_price: parseFloat(formData.get('purchase_price')) || 0,
+                current_value: parseFloat(formData.get('value')) || 0 // Initially set to purchase value
             };
-            
-            console.log('PythonShell options:', JSON.stringify(options, null, 2));
+
+            // Clean up empty strings to null
+            Object.keys(coinData).forEach(key => {
+                if (coinData[key] === '') {
+                    coinData[key] = null;
+                }
+            });
+
+            console.log('Submitting coin data:', coinData);
             
             // Show a loading indicator
             const saveButton = document.getElementById('save-coin');
@@ -447,51 +350,42 @@ function setupFormHandlers() {
             saveButton.disabled = true;
 
             try {
-                PythonShell.run('save_coin.py', options, function(err, results) {
-                    // Always restore button state
-                    saveButton.innerHTML = originalText;
-                    saveButton.disabled = false;
-                    
-                    if (err) {
-                        console.error('Error saving coin:', err);
-                        alert('Failed to save coin: ' + (err.message || 'Unknown error'));
-                        return;
-                    }
-                    
-                    try {
-                        console.log('Python response:', results);
-                        
-                        // Check if we got valid results
-                        if (!results || !results.length) {
-                            alert('No response from server. The coin may not have been saved.');
-                            return;
-                        }
-                        
-                        const response = typeof results[0] === 'string' ? JSON.parse(results[0]) : results[0];
-                        
-                        if (response && response.status === 'success') {
-                            console.log('Coin saved successfully:', response);
-                            alert('Coin saved successfully!');
-                            loadDashboard();
-                        } else {
-                            console.error('Error in Python response:', response);
-                            alert('Failed to save coin: ' + (response.message || 'Unknown error'));
-                        }
-                    } catch (parseError) {
-                        console.error('Error parsing Python response:', parseError);
-                        alert('Error processing server response. The coin may not have been saved.');
-                    }
-                });
-            } catch (execError) {
-                // If PythonShell.run itself throws an error, restore button state
-                console.error('Error executing Python script:', execError);
+                // Save coin to database
+                const coinId = db.addCoin(coinData);
+                
+                // Handle image uploads if present
+                const obverseFile = formData.get('obverse_image');
+                const reverseFile = formData.get('reverse_image');
+                
+                if (obverseFile && obverseFile.size > 0) {
+                    const imagePath = saveImageFile(obverseFile, 'obverse');
+                    db.addCoinImage({
+                        coin_id: coinId,
+                        image_path: imagePath,
+                        image_type: 'obverse'
+                    });
+                }
+                
+                if (reverseFile && reverseFile.size > 0) {
+                    const imagePath = saveImageFile(reverseFile, 'reverse');
+                    db.addCoinImage({
+                        coin_id: coinId,
+                        image_path: imagePath,
+                        image_type: 'reverse'
+                    });
+                }
+                
+                // Success!
                 saveButton.innerHTML = originalText;
                 saveButton.disabled = false;
-                alert('Failed to execute save operation: ' + (execError.message || 'Unknown error'));
+                alert('Coin saved successfully!');
+                loadDashboard(); // Return to dashboard
+            } catch (error) {
+                console.error('Error saving coin:', error);
+                saveButton.innerHTML = originalText;
+                saveButton.disabled = false;
+                alert('Failed to save coin: ' + error.message);
             }
-
-            // Call this after trying to save a coin
-            checkDatabaseFile();
         });
     }
 
@@ -502,36 +396,191 @@ function setupFormHandlers() {
     }
 }
 
-// Add this function to your renderer.js
-function checkDatabaseFile() {
+// Helper function to save an image file
+function saveImageFile(file, type) {
     try {
-        const dbPath = path.join(__dirname, 'coins.db');
-        const exists = fs.existsSync(dbPath);
-        const stats = exists ? fs.statSync(dbPath) : null;
-        
-        console.log(`Database file exists: ${exists}`);
-        if (exists) {
-            console.log(`Database file size: ${stats.size} bytes`);
-            console.log(`Last modified: ${stats.mtime}`);
+        // Create images directory if it doesn't exist
+        const imagesDir = path.join(__dirname, 'images');
+        if (!fs.existsSync(imagesDir)) {
+            fs.mkdirSync(imagesDir, { recursive: true });
         }
         
-        // Call a Python script to count coins
-        const options = {
-            mode: 'json',
-            scriptPath: 'src/database',
-            args: ['count_coins'],
-            pythonOptions: ['-u']
-        };
+        // Create a unique filename
+        const timestamp = Date.now();
+        const filename = `${type}_${timestamp}_${file.name}`;
+        const outputPath = path.join(imagesDir, filename);
         
-        PythonShell.run('check_database.py', options, function(err, results) {
-            if (err) {
-                console.error('Error checking database:', err);
-                return;
-            }
-            
-            console.log('Database check results:', results);
+        // Read file data as array buffer
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+        
+        // Wait for file to be read
+        return new Promise((resolve, reject) => {
+            reader.onload = () => {
+                try {
+                    // Write file to disk
+                    const buffer = Buffer.from(reader.result);
+                    fs.writeFileSync(outputPath, buffer);
+                    resolve(outputPath);
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            reader.onerror = reject;
         });
     } catch (error) {
-        console.error('Error checking database file:', error);
+        console.error('Error saving image file:', error);
+        throw error;
     }
 }
+
+// Function to setup image preview handlers
+function setupImagePreviewHandlers() {
+    const obverseInput = document.getElementById('obverse-image');
+    const reverseInput = document.getElementById('reverse-image');
+    const obversePreview = document.getElementById('obverse-preview');
+    const reversePreview = document.getElementById('reverse-preview');
+    
+    if (obverseInput && obversePreview) {
+        obverseInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    obversePreview.innerHTML = `<img src="${e.target.result}" alt="Obverse Preview">`;
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+    
+    if (reverseInput && reversePreview) {
+        reverseInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    reversePreview.innerHTML = `<img src="${e.target.result}" alt="Reverse Preview">`;
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+    
+    // Setup drag and drop for image previews
+    [obversePreview, reversePreview].forEach(preview => {
+        if (!preview) return;
+        
+        preview.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.border = '2px solid #007bff';
+        });
+        
+        preview.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.style.border = '2px dashed #ccc';
+        });
+        
+        preview.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.style.border = '2px dashed #ccc';
+            
+            const files = e.dataTransfer.files;
+            if (files && files[0]) {
+                const isObverse = this.id === 'obverse-preview';
+                const input = isObverse ? obverseInput : reverseInput;
+                
+                // Set the file in the input
+                if (input) {
+                    input.files = files;
+                    
+                    // Trigger change event
+                    const event = new Event('change', { bubbles: true });
+                    input.dispatchEvent(event);
+                }
+            }
+        });
+    });
+}
+
+// Function to check database file
+function checkDatabaseFile() {
+    try {
+        const coinCount = db.getCoinCount();
+        const countries = db.getUniqueCountries();
+        
+        console.log(`Database coin count: ${coinCount}`);
+        console.log(`Unique countries: ${countries.join(', ')}`);
+        
+        return {
+            coinCount,
+            countries
+        };
+    } catch (error) {
+        console.error('Error checking database:', error);
+        return {
+            coinCount: 0,
+            countries: []
+        };
+    }
+}
+
+// Initialize application when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Document loaded, initializing app');
+    
+    // Initialize theme
+    initializeTheme();
+    
+    // Load dashboard by default
+    loadDashboard();
+    
+    // Check database on startup
+    checkDatabaseFile();
+    
+    // Add event listeners to sidebar buttons
+    document.querySelectorAll('.sidebar-button').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.sidebar-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            const view = this.dataset.view;
+            console.log(`Navigation: ${view}`);
+            
+            switch (view) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'collection':
+                    loadCollection();
+                    break;
+                case 'add':
+                    loadAddCoinForm();
+                    break;
+                case 'analysis':
+                    loadAnalysis();
+                    break;
+                case 'settings':
+                    loadSettings();
+                    break;
+                default:
+                    console.warn(`Unknown view: ${view}`);
+            }
+        });
+    });
+
+    // Theme switcher
+    const themeSwitch = document.getElementById('theme-switch');
+    if (themeSwitch) {
+        themeSwitch.addEventListener('change', function() {
+            const newTheme = this.checked ? 'dark' : 'light';
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    }
+});
