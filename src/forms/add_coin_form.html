@@ -1,6 +1,6 @@
 <div class="add-coin-form">
-    <div class="form-content">
-        <form id="coin-form">
+    <form id="coin-form">
+        <div class="form-content">
             <div class="form-grid">
                 <!-- Left Column -->
                 <div class="form-column">
@@ -123,31 +123,35 @@
                 </div>
             </div>
 
-            <!-- Image Upload Section at Bottom -->
+            <!-- Image Upload Section -->
             <div class="images-section">
-                <h3>Coin Images</h3>
                 <div class="image-upload-container">
                     <div class="image-upload">
                         <label for="obverse-image">Obverse</label>
                         <div class="image-preview" id="obverse-preview">
                             <span>Click or drag image here</span>
                         </div>
-                        <input type="file" id="obverse-image" name="obverse_image" accept="image/*">
+                        <div class="image-upload-button">
+                            <input type="file" id="obverse-image" name="obverse_image" accept="image/*">
+                        </div>
                     </div>
                     <div class="image-upload">
                         <label for="reverse-image">Reverse</label>
                         <div class="image-preview" id="reverse-preview">
                             <span>Click or drag image here</span>
                         </div>
-                        <input type="file" id="reverse-image" name="reverse_image" accept="image/*">
+                        <div class="image-upload-button">
+                            <input type="file" id="reverse-image" name="reverse_image" accept="image/*">
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="form-actions">
-                <button type="button" id="cancel-add" class="cancel-button">Cancel</button>
-                <button type="submit" id="save-coin" class="save-button">Save Coin</button>
-            </div>
-        </form>
+        <!-- Form Actions -->
+        <div class="form-actions">
+            <button type="button" id="cancel-add" class="cancel-button">Cancel</button>
+            <button type="submit" id="save-coin" class="save-button">Save Coin</button>
+        </div>
     </div>
+</form>
 </div>
