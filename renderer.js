@@ -63,14 +63,21 @@ function loadDashboard() {
         // Get dashboard data directly from database
         const allCoins = db.getAllCoins();
         const uniqueCountries = db.getUniqueCountries();
-        
+
+        // Create a map of country names to coin counts
+        const countryData = {};
+        uniqueCountries.forEach(country => {
+            // Count coins for each country
+            const countryCoins = allCoins.filter(coin => coin.country === country);
+            countryData[country] = countryCoins.length;
+        });
+
         // Calculate dashboard stats
         const dashboardData = {
             total_coins: allCoins.length,
             unique_countries: uniqueCountries.length,
             unique_years: new Set(allCoins.map(coin => coin.year)).size,
-            estimated_value: allCoins.reduce((sum, coin) => sum + (coin.current_value || coin.value || 0), 0),
-            collection_countries: uniqueCountries
+            estimated_value: allCoins.reduce((sum, coin) => sum + (coin.current_value || coin.value || 0), 0)
         };
         
         // Update dashboard stats
@@ -81,11 +88,11 @@ function loadDashboard() {
 
         // Update map with collection data
         if (worldMap) {
-            worldMap.updateCollection(dashboardData.collection_countries);
+            worldMap.updateCollection(countryData);  // Pass the country data object directly
         }
         
         // Update country badges
-        updateCountryBadges(dashboardData.collection_countries);
+        updateCountryBadges(uniqueCountries);  // Pass just the country names for badges
     } catch (error) {
         console.error('Error in loadDashboard:', error);
     }

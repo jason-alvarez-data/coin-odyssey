@@ -16,12 +16,12 @@ class WorldMap {
             if (!this.container) {
                 throw new Error('Map container not found');
             }
-
+    
             // Create tooltip element
             this.tooltip = document.createElement('div');
             this.tooltip.className = 'map-tooltip';
             this.container.appendChild(this.tooltip);
-
+    
             // Load SVG map
             const svgPath = path.join(__dirname, '..', 'assets', 'world-map.svg');
             const svgContent = fs.readFileSync(svgPath, 'utf8');
@@ -30,8 +30,26 @@ class WorldMap {
             const mapWrapper = document.createElement('div');
             mapWrapper.className = 'world-map-wrapper';
             mapWrapper.innerHTML = svgContent;
+    
+            // Add this new code block here ↓
+            // Process SVG paths to add necessary attributes
+            const paths = mapWrapper.querySelectorAll('path');
+            paths.forEach(path => {
+                const countryId = path.getAttribute('id');
+                const countryClass = path.getAttribute('class');
+                const countryName = path.getAttribute('name');
+                
+                // Handle both id and class-based country paths
+                if (countryId || countryClass) {
+                    path.classList.add('country');
+                    // If the path already has a class like "Canada", use that as the country name
+                    const name = countryName || countryClass || countryId;
+                    path.setAttribute('data-name', name);
+                }
+            });
+    
             this.container.appendChild(mapWrapper);
-
+    
             // Setup event handlers
             this.setupEventHandlers();
             

@@ -10,6 +10,9 @@
     --border-color: #e0e0e0;
     --hover-color: #f0f0f0;
     --shadow-color: rgba(0, 0, 0, 0.1);
+    --primary-color-light: #3498db;
+    --primary-color-dark: #2980b9;
+    --success-color: #27ae60;
 }
 
 /* Dark theme */
@@ -23,6 +26,9 @@
     --border-color: #404040;
     --hover-color: #363636;
     --shadow-color: rgba(0, 0, 0, 0.3);
+    --primary-color-light: #4aa3df;
+    --primary-color-dark: #357abd;
+    --success-color: #2ecc71;
 }
 
 /* Global Styles */
@@ -599,4 +605,44 @@ input[type="date"][readonly] {
 
 .dashboard-section {
     animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Map Tooltip and Country Styles */
+.map-tooltip {
+    position: absolute;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: var(--text-color);
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 2px 4px var(--shadow-color);
+    display: none;
+}
+
+.country {
+    transition: fill 0.3s ease;
+    cursor: pointer;
+}
+
+.country:hover {
+    fill: var(--primary-color-light);
+}
+
+.country.collected {
+    fill: var(--primary-color);
+}
+
+.country.collected:hover {
+    fill: var(--primary-color-dark);
+}
+
+.collected-status {
+    color: var(--success-color);
+}
+
+.not-collected-status {
+    color: var(--text-secondary);
 }
