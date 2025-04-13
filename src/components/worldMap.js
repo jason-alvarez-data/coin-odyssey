@@ -2,9 +2,9 @@ const path = require('path');
 const fs = require('fs');
 
 class WorldMap {
-    constructor(containerId, collectionCountries = []) {
+    constructor(containerId, countryData = {}) {
         this.containerId = containerId;
-        this.collectionCountries = collectionCountries;
+        this.countryData = countryData;  // Changed from collectionCountries to countryData
         this.container = null;
         this.tooltip = null;
         this.initialized = false;
@@ -23,7 +23,7 @@ class WorldMap {
             this.container.appendChild(this.tooltip);
 
             // Load SVG map
-            const svgPath = path.join(__dirname, '..', '..', 'assets', 'world-map.svg');
+            const svgPath = path.join(__dirname, '..', 'assets', 'world-map.svg');
             const svgContent = fs.readFileSync(svgPath, 'utf8');
             
             // Create map container
@@ -72,13 +72,14 @@ class WorldMap {
     handleCountryHover(event) {
         const country = event.target;
         const countryName = country.getAttribute('data-name');
-        const isCollected = this.collectionCountries.includes(countryName);
+        const coinCount = this.countryData[countryName] || 0;
+        const isCollected = coinCount > 0;
 
         this.tooltip.innerHTML = `
             <strong>${countryName}</strong><br>
             ${isCollected ? 
-                `<span class="collected-status">In Collection! 🎯</span>` : 
-                `<span class="not-collected-status">Not Collected Yet</span>`}
+                `<span class="collected-status">${coinCount} coin${coinCount > 1 ? 's' : ''} in collection</span>` : 
+                `<span class="not-collected-status">No coins yet</span>`}
         `;
         this.tooltip.style.display = 'block';
     }
@@ -102,7 +103,7 @@ class WorldMap {
         const countries = this.container.querySelectorAll('.country');
         countries.forEach(country => {
             const countryName = country.getAttribute('data-name');
-            if (this.collectionCountries.includes(countryName)) {
+            if (this.countryData[countryName] > 0) {
                 country.classList.add('collected');
             } else {
                 country.classList.remove('collected');
@@ -110,8 +111,8 @@ class WorldMap {
         });
     }
 
-    updateCollection(newCollectionCountries) {
-        this.collectionCountries = newCollectionCountries;
+    updateCollection(newCountryData) {
+        this.countryData = newCountryData;
         this.updateCollectionHighlights();
     }
 }

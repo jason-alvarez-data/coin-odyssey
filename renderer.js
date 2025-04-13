@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Custom modules
-const WorldMap = require('./src/ui/widgets/worldMap');
+const WorldMap = require('./src/components/worldMap.js');
 const db = require('./src/database/db.js');
 
 // Theme Constants
@@ -149,23 +149,23 @@ function populateCollectionTable(coins) {
         const dateCollected = coin.purchase_date ? 
             new Date(coin.purchase_date).toLocaleDateString() : '';
             
-        // Add each field to the row
+        // Add each field in the correct order matching the table headers
         const fields = [
-            { key: 'title', format: v => v },
-            { key: 'year', format: v => v },
-            { key: 'country', format: v => v },
-            { key: 'value', format: v => v ? `$${parseFloat(v).toFixed(2)}` : '' },
-            { key: 'unit', format: v => v },
-            { key: 'mint', format: v => v },
-            { key: 'mint_mark', format: v => v },
-            { key: 'status', format: v => v },
-            { key: 'type', format: v => v },
-            { key: 'series', format: v => v },
-            { key: 'storage', format: v => v },
-            { key: 'format', format: v => v },
-            { key: 'region', format: v => v },
-            { key: 'quantity', format: v => v },
-            { key: 'purchase_date', format: v => dateCollected } // Format date nicely
+            { key: 'purchase_date', format: v => dateCollected }, // Date Collected
+            { key: 'title', format: v => v },                     // Title
+            { key: 'year', format: v => v },                      // Year
+            { key: 'country', format: v => v },                   // Country
+            { key: 'value', format: v => v ? `$${parseFloat(v).toFixed(2)}` : '' }, // Value
+            { key: 'unit', format: v => v },                      // Unit
+            { key: 'mint', format: v => v },                      // Mint
+            { key: 'mint_mark', format: v => v },                 // Mint Mark
+            { key: 'status', format: v => v },                    // Status
+            { key: 'type', format: v => v },                      // Type
+            { key: 'series', format: v => v },                    // Series
+            { key: 'storage', format: v => v },                   // Storage
+            { key: 'format', format: v => v },                    // Format
+            { key: 'region', format: v => v },                    // Region
+            { key: 'quantity', format: v => v }                   // Quantity
         ];
         
         fields.forEach(({ key, format }) => {
