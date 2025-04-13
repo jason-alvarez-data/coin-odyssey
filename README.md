@@ -1,71 +1,102 @@
-# Modern Numismat - Coin Collection Manager
+<div align="center">
+  <img src="src/assets/CoinOdyssey_Logo_Final.png" alt="Coin Odyssey Logo" width="200"/>
+  <h1>Coin Odyssey</h1>
+  <p>A modern, feature-rich desktop application for coin collectors to manage and track their collections.</p>
+</div>
 
 ## Overview
-Modern Numismat is a personal project born from my passion for numismatics (coin collecting). This desktop application provides collectors with a modern, intuitive interface for managing their coin collections, analyzing their portfolio, and tracking the value of their investments over time.
 
-## Inspiration
-This project was inspired by OpenNumismat, an open-source coin collecting software that I used extensively in my collecting journey. While OpenNumismat provided excellent foundational features, I wanted to create a more modern implementation with enhanced data analysis capabilities and a streamlined user interface.
+Coin Odyssey is an Electron-based desktop application designed to help numismatists manage their coin collections with ease. The application provides an intuitive interface for tracking coins, managing collections, and visualizing collection data through an interactive world map.
 
 ## Features
-- **Collection Management**
-  - Add and catalog coins with detailed information
-  - Track essential details including:
-    - Title and year
-    - Country of origin
-    - Denomination
-    - Mint marks
-    - Condition grades
-    - Purchase information
-    - Current market values
 
-- **Data Analysis & Visualization**
-  - Value distribution analysis
-  - Geographic distribution of collection
-  - Timeline view of collection growth
-  - Condition analysis across collection
-  - Interactive charts and graphs
-
-- **Modern User Interface**
-  - Clean, intuitive design
-  - Responsive table views
-  - Easy-to-use forms
-  - Modern styling and interactions
-
-## Technical Details
-Built using modern Python technologies:
-- PySide6 (Qt) for the user interface
-- SQLAlchemy for database management
-- Matplotlib for data visualization
-- Pandas for data analysis
-- SQLite for local data storage
-
-## Future Enhancements
-- Image management for coin photographs
-- Price tracking integration
-- Advanced search and filtering
-- Export capabilities
-- Bulk import functionality
-- Market value estimation
+- **Interactive World Map**: Visualize your collection's geographic distribution with an interactive SVG map
+- **Comprehensive Coin Management**: 
+  - Add, edit, and track coins with detailed information
+  - Upload images of both obverse and reverse sides
+  - Track purchase dates, values, and conditions
+- **Advanced Collection Organization**:
+  - Filter and search through your entire collection
+  - Sort by various attributes (country, year, value, etc.)
+  - Organize coins by series, type, and storage location
+- **Dynamic Dashboard**:
+  - View collection statistics at a glance
+  - Track total collection value
+  - Monitor collection growth over time
+- **Modern UI**:
+  - Clean, intuitive interface
+  - Dark/Light mode support
+  - Responsive design for various screen sizes
 
 ## Getting Started
-1. Clone the repository
-2. Install dependencies:
-```bash
-pip install PySide6 matplotlib pandas sqlalchemy pillow
-```
-3. Run the application:
-```bash
-python src/main.py
-```
 
-## Personal Note
-As a coin collector, I understand the importance of maintaining an organized and detailed record of one's collection. This project combines my passion for numismatics with my software development skills, creating a tool that I hope will be useful to other collectors in the community.
+1. **Installation**:
+   ```bash
+   # Clone the repository
+   git clone https://github.com/yourusername/coin-odyssey.git
+   
+   # Navigate to project directory
+   cd coin-odyssey
+   
+   # Install dependencies
+   npm install
+   ```
 
-## Acknowledgments
-Special thanks to the OpenNumismat project and its contributors for inspiring this application and showing what's possible in numismatic software.
+2. **Running the Application**:
+   ```bash
+   npm start
+   ```
+
+## Usage
+
+1. **Adding Coins**:
+   - Click the "Add Coin" button in the sidebar
+   - Fill in coin details (title, year, country, etc.)
+   - Upload obverse and reverse images if available
+   - Click "Save" to add to your collection
+
+2. **Viewing Collection**:
+   - Use the "Collection" view to see all coins in a table format
+   - Filter and sort using the controls above the table
+   - Click on any coin to view detailed information
+
+3. **World Map**:
+   - Navigate to the "Dashboard" to see the world map
+   - Hover over countries to see collection statistics
+   - Click on countries to view coins from that region
+
+4. **Managing Collection**:
+   - Edit coin details at any time
+   - Track purchase prices and current values
+   - Organize coins by storage location
+   - Export collection data as needed
+
+## Technologies Used
+
+- Electron.js
+- Node.js
+- SQLite
+- HTML/CSS/JavaScript
+- SVG for interactive mapping
+
+## Using This Project
+
+Feel free to fork this repository and adapt it for your own coin collection needs! While this is primarily a personal project, you're welcome to:
+
+- Fork the repository and customize it for your collection
+- Use it as a starting point for your own coin tracking application
+- Modify the features to match your collecting style
+
+If you create something cool with this code, I'd love to see it!
+
+## Inspiration
+
+This project was inspired by [OpenNumismat](https://github.com/OpenNumismat/open-numismat), an open-source coin collecting software. While building upon some of their core concepts, Coin Odyssey takes a modern approach with a focus on interactive visualization and user experience.
 
 ## Author
-Jason Alvarez
+
+Created and maintained by Jason Alvarez
 
 ## License
-This project is open source and available under the MIT License.
+
+This project is licensed under the MIT License - see the LICENSE file for details.
