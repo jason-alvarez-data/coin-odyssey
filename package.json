@@ -25,6 +25,7 @@
   "dependencies": {
     "better-sqlite3": "^11.9.1",
     "electron-squirrel-startup": "^1.0.1",
+    "papaparse": "^5.5.2",
     "python-shell": "^5.0.0"
   }
 }

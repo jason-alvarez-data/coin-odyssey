@@ -1,6 +1,7 @@
 // Required Node.js modules
 const fs = require('fs');
 const path = require('path');
+const Papa = require('papaparse');
 
 // Custom modules
 const WorldMap = require('./src/components/worldMap.js');
@@ -305,6 +306,221 @@ function loadAddCoinForm() {
     }
 }
 
+// Function to load the upload collection form
+function loadUploadCollectionForm() {
+    try {
+        console.log('Loading upload collection form');
+        
+        // Load form HTML
+        const formPath = path.join(__dirname, 'src', 'forms', 'upload_collection.html');
+        console.log('Loading form from:', formPath);
+        const formContent = fs.readFileSync(formPath, 'utf8');
+        document.getElementById('main-content').innerHTML = formContent;
+
+        // Setup drag and drop handlers
+        const uploadBox = document.getElementById('upload-box');
+        const fileInput = document.getElementById('collection-file');
+        const fileInfo = document.getElementById('file-info');
+        const fileName = document.getElementById('file-name');
+        const importButton = document.getElementById('import-button');
+        const cancelButton = document.getElementById('cancel-upload');
+
+        // Remove the click handler from uploadBox completely
+        // The label's native handling of the file input is sufficient
+
+        uploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadBox.style.borderColor = 'var(--primary-color)';
+            uploadBox.style.backgroundColor = 'var(--hover-color)';
+        });
+
+        uploadBox.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadBox.style.borderColor = 'var(--border-color)';
+            uploadBox.style.backgroundColor = '';
+        });
+
+        uploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            handleFileSelection(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            handleFileSelection(file);
+        });
+
+        function handleFileSelection(file) {
+            if (file) {
+                const extension = file.name.split('.').pop().toLowerCase();
+                if (['csv', 'json', 'xlsx'].includes(extension)) {
+                    fileName.textContent = file.name;
+                    fileInfo.style.display = 'flex';
+                    uploadBox.style.borderColor = 'var(--success-color)';
+                } else {
+                    alert('Please select a valid file format (CSV, JSON, or XLSX)');
+                }
+            }
+        }
+
+        importButton.addEventListener('click', async () => {
+            const file = fileInput.files[0] || null;
+            if (!file) {
+                alert('Please select a file first');
+                return;
+            }
+        
+            try {
+                importButton.disabled = true;
+                importButton.textContent = 'Importing...';
+        
+                // Read the file content
+                const content = await readFileContent(file);
+                
+                // Process the file based on its type - await the Promise
+                const coins = await processFileContent(file.name, content);
+                
+                // Import coins to database
+                let importedCount = 0;
+                for (const coin of coins) {
+                    try {
+                        db.addCoin(coin);
+                        importedCount++;
+                    } catch (error) {
+                        console.error('Error importing coin:', error);
+                    }
+                }
+        
+                alert(`Successfully imported ${importedCount} coins!`);
+                loadDashboard();
+            } catch (error) {
+                console.error('Error importing collection:', error);
+                alert('Error importing collection: ' + error.message);
+            } finally {
+                importButton.disabled = false;
+                importButton.textContent = 'Import Collection';
+            }
+        });
+
+        cancelButton.addEventListener('click', () => {
+            loadDashboard();
+        });
+
+        // Reinitialize theme after loading new content
+        initializeTheme();
+    } catch (error) {
+        console.error('Error loading upload collection form:', error);
+    }
+}
+
+// Helper function to read file content
+function readFileContent(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(e);
+        
+        if (file.name.endsWith('.json')) {
+            reader.readAsText(file);
+        } else {
+            reader.readAsBinaryString(file);
+        }
+    });
+}
+
+// Helper function to process file content based on file type
+// Helper function to process file content based on file type
+function processFileContent(fileName, content) {
+    const extension = fileName.split('.').pop().toLowerCase();
+    
+    switch (extension) {
+        case 'csv':
+            // Define field mapping for your CSV structure
+            const CSV_FIELD_MAPPING = {
+                'coin_id': 'id',
+                'country': 'country',
+                'format': 'format',
+                'mint': 'mint',
+                'mintmark': 'mint_mark',
+                'quantity': 'quantity',
+                'region': 'region',
+                'status': 'status',
+                'title': 'title',
+                'type': 'type',
+                'unit': 'unit',
+                'value': 'value',
+                'year': 'year',
+                'series': 'series',
+                'storage': 'storage'
+                // Skip other fields that aren't in our database:
+                // category, subjectshort, period, features
+            };
+
+            return new Promise((resolve, reject) => {
+                Papa.parse(content, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        try {
+                            const coins = results.data.map(row => {
+                                // Create a new object with mapped fields
+                                const coin = {};
+                                
+                                // Map each field according to our mapping
+                                Object.entries(CSV_FIELD_MAPPING).forEach(([csvField, dbField]) => {
+                                    if (dbField && row[csvField] !== undefined) {
+                                        // Handle specific field transformations
+                                        switch (dbField) {
+                                            case 'year':
+                                                coin[dbField] = parseInt(row[csvField]) || null;
+                                                break;
+                                            case 'value':
+                                                coin[dbField] = parseFloat(row[csvField]) || null;
+                                                break;
+                                            case 'quantity':
+                                                coin[dbField] = parseInt(row[csvField]) || 1;
+                                                break;
+                                            default:
+                                                coin[dbField] = row[csvField] || null;
+                                        }
+                                    }
+                                });
+
+                                // Validate required fields
+                                if (!coin.title || !coin.year || !coin.country) {
+                                    console.warn('Skipping coin due to missing required fields:', row);
+                                    return null;
+                                }
+
+                                return coin;
+                            })
+                            // Filter out any null entries (skipped coins)
+                            .filter(coin => coin !== null);
+
+                            resolve(coins);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    },
+                    error: (error) => {
+                        reject(error);
+                    }
+                });
+            });
+            
+        case 'json':
+            return Promise.resolve(JSON.parse(content));
+            
+        case 'xlsx':
+            // Add Excel parsing logic here if needed
+            return Promise.resolve([]);
+            
+        default:
+            return Promise.reject(new Error('Unsupported file format'));
+    }
+}
+
 // Function to setup form handlers
 function setupFormHandlers() {
     const form = document.getElementById('coin-form');
@@ -571,6 +787,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     break;
                 case 'analysis':
                     loadAnalysis();
+                    break;
+                case 'upload':
+                    loadUploadCollectionForm();
                     break;
                 case 'settings':
                     loadSettings();
