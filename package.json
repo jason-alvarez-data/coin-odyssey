@@ -24,6 +24,9 @@
   },
   "dependencies": {
     "better-sqlite3": "^11.9.1",
+    "chart.js": "^4.4.9",
+    "chartjs-adapter-date-fns": "^3.0.0",
+    "date-fns": "^4.1.0",
     "electron-squirrel-startup": "^1.0.1",
     "papaparse": "^5.5.2",
     "python-shell": "^5.0.0"

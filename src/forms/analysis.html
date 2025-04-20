@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Collection Analysis</title>
+    <script src="../../node_modules/chart.js/dist/chart.umd.js"></script>
+    <script src="../../node_modules/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.js"></script>
+</head>
+<body>
+    <div class="analysis-dashboard">
+        <div class="dashboard-title">Collection Analysis</div>
+
+        <!-- Top Row - Key Metrics -->
+        <div class="analysis-overview">
+            <div class="metric-card">
+                <div class="metric-label">Total Value</div>
+                <div class="metric-value-container">
+                    <img src="../assets/icons/usd-circle.png" class="metric-icon" alt="value">
+                    <div class="metric-value" id="total-value">$0.00</div>
+                </div>
+                <div class="metric-trend" id="value-trend">↑ 0% from last month</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">Unique Countries</div>
+                <div class="metric-value-container">
+                    <img src="../assets/icons/globe.png" class="metric-icon" alt="countries">
+                    <div class="metric-value" id="country-count">0</div>
+                </div>
+                <div class="metric-trend" id="countries-trend">Coverage: 0%</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">Date Range</div>
+                <div class="metric-value-container">
+                    <img src="../assets/icons/calendar.png" class="metric-icon" alt="date">
+                    <div class="metric-value" id="year-range">0 years</div>
+                </div>
+                <div class="metric-trend" id="oldest-newest">Oldest: - | Newest: -</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">Collection Growth</div>
+                <div class="metric-value-container">
+                    <img src="../assets/icons/trending-up.png" class="metric-icon" alt="growth">
+                    <div class="metric-value" id="growth-rate">0</div>
+                </div>
+                <div class="metric-trend" id="growth-trend">Past 30 days</div>
+            </div>
+        </div>
+
+        <!-- Analysis Controls -->
+        <div class="analysis-controls">
+            <div class="time-range-selector">
+                <label for="time-range">Time Range:</label>
+                <select id="time-range">
+                    <option value="30">Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="180">Last 6 Months</option>
+                    <option value="365">Last Year</option>
+                    <option value="all">All Time</option>
+                </select>
+            </div>
+
+            <div class="chart-type-selector">
+                <label for="chart-type">Chart Type:</label>
+                <select id="chart-type">
+                    <option value="line">Line Chart</option>
+                    <option value="bar">Bar Chart</option>
+                    <option value="pie">Pie Chart</option>
+                    <option value="radar">Radar Chart</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Main Analysis Grid -->
+        <div class="analysis-grid">
+            <!-- Value Timeline Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3>Collection Value Over Time</h3>
+                    <div class="chart-controls">
+                        <button class="chart-control" data-action="download">
+                            <span class="icon">📥</span>
+                        </button>
+                        <button class="chart-control" data-action="expand">
+                            <span class="icon">⤢</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-area">
+                    <canvas id="valueTimelineChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Geographic Distribution -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3>Geographic Distribution</h3>
+                    <div class="chart-controls">
+                        <button class="chart-control" data-action="download">
+                            <span class="icon">📥</span>
+                        </button>
+                        <button class="chart-control" data-action="expand">
+                            <span class="icon">⤢</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-area">
+                    <canvas id="geoDistributionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Composition Analysis -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3>Collection Composition</h3>
+                    <div class="chart-controls">
+                        <button class="chart-control" data-action="download">
+                            <span class="icon">📥</span>
+                        </button>
+                        <button class="chart-control" data-action="expand">
+                            <span class="icon">⤢</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-area">
+                    <canvas id="compositionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Year Distribution -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3>Year Distribution</h3>
+                    <div class="chart-controls">
+                        <button class="chart-control" data-action="download">
+                            <span class="icon">📥</span>
+                        </button>
+                        <button class="chart-control" data-action="expand">
+                            <span class="icon">⤢</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-area">
+                    <canvas id="yearDistributionChart"></canvas>
+                </div>
+            </div>
+        </div> <!-- Closing div for analysis-grid -->
+
+        <!-- Detailed Analysis Section -->
+        <div class="detailed-analysis">
+            <div class="analysis-filters">
+                <select id="analysis-metric">
+                    <option value="value">Value Distribution</option>
+                    <option value="age">Age Distribution</option>
+                    <option value="type">Type Distribution</option>
+                    <option value="mint">Mint Distribution</option>
+                </select>
+                <div class="distribution-controls">
+                    <select data-control="grouping">
+                        <option value="country">Group by Country</option>
+                        <option value="type">Group by Type</option>
+                        <option value="year">Group by Year</option>
+                        <option value="mint">Group by Mint</option>
+                    </select>
+                </div>
+            </div>
+            <div class="analysis-table-container">
+                <table id="analysis-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Count</th>
+                            <th>Total Value</th>
+                            <th>Avg Value</th>
+                            <th>% of Collection</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="value-distribution-container">
+                <!-- Table will be inserted here -->
+            </div>
+        </div>
+    </div>
+</body>
+</html>
