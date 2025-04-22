@@ -4,7 +4,9 @@
   "description": "Modern Numismat is a personal project born from my passion for numismatics (coin collecting). This desktop application provides collectors with a modern, intuitive interface for managing their coin collections, analyzing their portfolio, and tracking the value of their investments over time.",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder",
+    "pack": "electron-builder --dir"
   },
   "repository": {
     "type": "git",
@@ -20,6 +22,7 @@
   "homepage": "https://github.com/jason-alvarez-data/coin-odyssey#readme",
   "devDependencies": {
     "electron": "^35.1.4",
+    "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9"
   },
   "dependencies": {
@@ -28,7 +31,40 @@
     "chartjs-adapter-date-fns": "^3.0.0",
     "date-fns": "^4.1.0",
     "electron-squirrel-startup": "^1.0.1",
-    "papaparse": "^5.5.2",
-    "python-shell": "^5.0.0"
+    "papaparse": "^5.5.2"
+  },
+  "build": {
+    "appId": "com.modernnumismat.app",
+    "productName": "Modern Numismat",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!**/*.db"
+    ],
+    "extraResources": [
+      {
+        "from": "coins.db",
+        "to": "coins.db"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    }
   }
 }

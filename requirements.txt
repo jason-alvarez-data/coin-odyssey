@@ -1,8 +1,0 @@
-PySide6>=6.4.0
-SQLAlchemy>=1.4.0
-pandas>=1.3.0
-matplotlib>=3.4.0
-mplcursors>=0.4
-country_converter>=0.7.0
-requests>=2.26.0
-Pillow>=8.0.0
