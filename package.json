@@ -1,34 +1,77 @@
 {
   "name": "coin-collecting-app",
   "version": "1.0.0",
+  "private": true,
+  "author": {
+    "name": "Jason Alvarez",
+    "url": "https://github.com/jason-alvarez-data"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
   "description": "Modern Numismat is a personal project born from my passion for numismatics (coin collecting). This desktop application provides collectors with a modern, intuitive interface for managing their coin collections, analyzing their portfolio, and tracking the value of their investments over time.",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dev": "electron .",
+    "build": "electron-builder",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "rebuild": "npx @electron/rebuild"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jason-alvarez-data/coin-odyssey.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "numismatics",
+    "coin-collecting",
+    "electron",
+    "desktop-app"
+  ],
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/jason-alvarez-data/coin-odyssey/issues"
   },
   "homepage": "https://github.com/jason-alvarez-data/coin-odyssey#readme",
+  "build": {
+    "appId": "com.coincollecting.app",
+    "productName": "Coin Collecting App",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!**/*.db"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
   "devDependencies": {
     "electron": "^35.1.4",
-    "electron-rebuild": "^3.2.9"
+    "electron-builder": "^24.9.1",
+    "electron-devtools-installer": "^3.2.0"
   },
   "dependencies": {
+    "@electron/remote": "^2.1.2",
     "better-sqlite3": "^11.9.1",
+    "better-sqlite3-multiple-ciphers": "^11.9.1",
     "chart.js": "^4.4.9",
     "chartjs-adapter-date-fns": "^3.0.0",
     "date-fns": "^4.1.0",
+    "electron-log": "^5.0.1",
     "electron-squirrel-startup": "^1.0.1",
-    "papaparse": "^5.5.2",
-    "python-shell": "^5.0.0"
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.7",
+    "papaparse": "^5.5.2"
   }
 }
