@@ -19,7 +19,16 @@ function createWindow() {
             nodeIntegration: true,
             contextIsolation: false,
             enableRemoteModule: true
-        }
+        },
+        show: false, // Don't show the window until it's ready
+        minWidth: 800, // Add minimum window size for better UX
+        minHeight: 600
+    });
+
+    // Show window when ready and maximize it
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.maximize();
+        mainWindow.show();
     });
 
     // Set Content Security Policy for map tiles and external resources

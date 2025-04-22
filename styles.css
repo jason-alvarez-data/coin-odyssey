@@ -296,6 +296,7 @@ input[type="date"][readonly] {
     height: 100%;
     display: flex;
     flex-direction: column;
+    padding: 20px;
 }
 
 #coin-form {
@@ -309,150 +310,123 @@ input[type="date"][readonly] {
     display: flex;
     flex-direction: column;
     flex: 1;
-    padding-bottom: 20px;
 }
 
-/* Form fields section - use less vertical space */
+/* Form fields section */
 .form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    padding: 15px 20px;
+    gap: 24px;
+    margin-bottom: 20px;
 }
 
-/* Consistent form groups */
+/* Form groups */
 .form-group {
-    margin-bottom: 12px;
+    margin-bottom: 16px;
     display: flex;
     flex-direction: column;
-    min-height: 70px; /* Set a consistent minimum height */
 }
 
-/* Align labels consistently */
+/* Labels */
 .form-group label {
     font-size: 14px;
     font-weight: 500;
-    margin-bottom: 5px;
-    display: block;
+    margin-bottom: 6px;
     color: var(--text-color);
 }
 
-/* Consistent input heights */
+/* Inputs and selects */
 .form-group input,
 .form-group select {
     width: 100%;
-    height: 36px; /* Fixed height for all inputs */
-    padding: 0 10px;
+    height: 36px;
+    padding: 0 12px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
     background-color: var(--surface-color);
     color: var(--text-color);
-    font-size: 14px;
-    box-sizing: border-box;
 }
 
-/* Special case for date input */
-.form-group input[type="date"] {
-    padding-right: 8px; /* Adjust for date picker icon */
-}
-
-/* Field hint positioning */
+/* Field hint */
 .field-hint {
     font-size: 12px;
     color: var(--text-secondary);
-    margin-top: 3px;
+    margin-top: 4px;
 }
 
-/* Columns alignment */
-.form-column {
-    display: flex;
-    flex-direction: column;
-}
-
-/* Image section with proper spacing */
-.images-section h3 {
-    display: none;
-}
-
+/* Image upload section */
 .images-section {
-    padding: 10px 20px;
-    margin-top: 5px;
+    margin-top: 20px;
 }
 
-/* Image upload section fixes */
+.image-upload-container {
+    display: flex;
+    gap: 24px;
+    height: 150px;
+}
+
 .image-upload {
+    flex: 1;
     display: flex;
     flex-direction: column;
 }
 
-.image-preview {
-    height: 120px;
-    border: 2px dashed var(--border-color);
-    border-radius: 6px;
-    margin-bottom: 10px;
-}
-
-.image-upload > label {
+.image-upload label {
     font-size: 14px;
     font-weight: 500;
     margin-bottom: 8px;
-    display: block;
+    color: var(--text-color);
 }
 
-/* File input button improvements */
-.image-upload-button {
-    margin-bottom: 15px;
+.image-preview {
+    flex: 1;
+    border: 2px dashed var(--border-color);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--surface-color);
+    color: var(--text-secondary);
+    cursor: pointer;
 }
 
-.image-upload input[type="file"] {
-    display: block;
-    width: 100%; /* Full width button */
-}
-
-/* Container layout */
-.image-upload-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-/* Action buttons with theme colors */
+/* Form actions */
 .form-actions {
+    margin-top: 20px;
+    padding: 16px 0;
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    margin-top: 20px;
-    padding: 20px 0 0;
-    border-top: 1px solid var(--border-color);
 }
 
-.form-actions button {
-    padding: 8px 16px;
+/* Buttons */
+.save-button, .cancel-button {
+    padding: 10px 24px;
     border-radius: 4px;
-    cursor: pointer;
     font-size: 14px;
-    transition: all 0.2s;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.form-actions .primary-button {
+.save-button {
     background-color: var(--primary-color);
     color: white;
     border: none;
 }
 
-.form-actions .primary-button:hover {
+.save-button:hover {
     background-color: var(--primary-color-dark);
+    transform: translateY(-1px);
 }
 
-.form-actions .secondary-button {
+.cancel-button {
     background-color: transparent;
     color: var(--text-color);
     border: 1px solid var(--border-color);
 }
 
-.form-actions .secondary-button:hover {
-    background-color: var(--surface-color);
+.cancel-button:hover {
+    background-color: var(--hover-color);
 }
 
 /* Collection Table Styles */
@@ -1200,4 +1174,196 @@ input[type="date"][readonly] {
 #collection-table td:last-child {
     text-align: center;
     width: 100px;
+}
+
+/* Settings Page Styles */
+.settings-container {
+    width: 100%;
+    height: calc(100vh - 100px); /* Adjust for any headers/margins */
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: -20px; /* Move everything up */
+}
+
+.settings-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 12px; /* Reduce bottom margin */
+    color: var(--text-color);
+    grid-column: 1 / -1;
+}
+
+.settings-section {
+    background: var(--surface-color);
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    min-height: 300px; /* Set a minimum height */
+    max-height: calc(100vh - 160px); /* Prevent overflow */
+}
+
+/* Adjust the spacing between items */
+.settings-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Reduce gap slightly */
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0; /* Reduce padding */
+}
+
+/* Make the checkbox group more compact */
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: calc(100vh - 300px); /* Adjust scrollable area */
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--background-color);
+}
+
+/* Button styles */
+.settings-button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: none;
+    background-color: var(--primary-color);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 120px;
+    text-align: center;
+}
+
+.settings-button:hover {
+    background-color: var(--primary-color-dark);
+    transform: translateY(-1px);
+}
+
+.settings-button.danger {
+    background-color: #dc3545;
+}
+
+.settings-button.danger:hover {
+    background-color: #bd2130;
+}
+
+/* Form controls */
+.settings-container select {
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    min-width: 150px;
+    cursor: pointer;
+}
+
+.settings-container select:hover {
+    border-color: var(--primary-color);
+}
+
+.settings-container select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Danger zone styling */
+.danger-zone {
+    margin-top: auto; /* Push to bottom of section */
+    padding-top: 16px;
+    border-top: 1px solid #dc3545;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .settings-container {
+        grid-template-columns: repeat(2, 1fr); /* 2 columns on medium screens */
+    }
+}
+
+@media (max-width: 768px) {
+    .settings-container {
+        grid-template-columns: 1fr; /* Single column on small screens */
+    }
+}
+
+/* Searchable Select Styles */
+.searchable-select {
+    position: relative;
+    width: 100%;
+}
+
+.select-search {
+    width: 100%;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--surface-color);
+    color: var(--text-color);
+}
+
+.select-options {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-top: 4px;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.select-options.show {
+    display: block;
+}
+
+.select-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--text-color);
+}
+
+.select-option:hover {
+    background-color: var(--hover-color);
+}
+
+.select-option.selected {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Scrollbar styles for the options */
+.select-options::-webkit-scrollbar {
+    width: 8px;
+}
+
+.select-options::-webkit-scrollbar-track {
+    background: var(--background-color);
+}
+
+.select-options::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.select-options::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
 }

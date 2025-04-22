@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Settings</title>
+</head>
+<body>
+    <div class="settings-container">
+        <h1 class="settings-title">Settings</h1>
+        
+        <!-- Application Preferences Section -->
+        <div class="settings-section">
+            <h2>Application Preferences</h2>
+            <div class="settings-content">
+                <div class="setting-item">
+                    <label>Theme</label>
+                    <div class="theme-toggle">
+                        <label for="theme-switch-settings">Dark Mode</label>
+                        <input type="checkbox" id="theme-switch-settings">
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label>Default Currency Format</label>
+                    <select id="currency-format">
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>Date Format</label>
+                    <select id="date-format">
+                        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Collection Display Settings -->
+        <div class="settings-section">
+            <h2>Collection Display</h2>
+            <div class="settings-content">
+                <div class="setting-item">
+                    <label>Default Collection View</label>
+                    <select id="default-view">
+                        <option value="table">Table View</option>
+                        <option value="grid">Grid View</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>Default Sorting</label>
+                    <select id="default-sort">
+                        <option value="date-added">Date Added</option>
+                        <option value="year">Year</option>
+                        <option value="value">Value</option>
+                        <option value="country">Country</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>Visible Columns</label>
+                    <div id="column-toggles" class="checkbox-group">
+                        <label><input type="checkbox" value="date_collected" checked> Date Collected</label>
+                        <label><input type="checkbox" value="title" checked> Title</label>
+                        <label><input type="checkbox" value="year" checked> Year</label>
+                        <label><input type="checkbox" value="country" checked> Country</label>
+                        <label><input type="checkbox" value="value" checked> Value</label>
+                        <label><input type="checkbox" value="unit" checked> Unit</label>
+                        <label><input type="checkbox" value="mint" checked> Mint</label>
+                        <label><input type="checkbox" value="mint_mark" checked> Mint Mark</label>
+                        <label><input type="checkbox" value="status" checked> Status</label>
+                        <label><input type="checkbox" value="type" checked> Type</label>
+                        <label><input type="checkbox" value="series" checked> Series</label>
+                        <label><input type="checkbox" value="storage" checked> Storage</label>
+                        <label><input type="checkbox" value="format" checked> Format</label>
+                        <label><input type="checkbox" value="region" checked> Region</label>
+                        <label><input type="checkbox" value="quantity" checked> Quantity</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Management -->
+        <div class="settings-section">
+            <h2>Data Management</h2>
+            <div class="settings-content">
+                <div class="setting-item">
+                    <label>Backup Collection</label>
+                    <button id="backup-data" class="settings-button">Export Backup</button>
+                </div>
+                <div class="setting-item">
+                    <label>Import Backup</label>
+                    <button id="import-backup" class="settings-button">Import Backup</button>
+                </div>
+                <div class="setting-item danger-zone">
+                    <label>Clear Application Data</label>
+                    <button id="clear-data" class="settings-button danger">Clear Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

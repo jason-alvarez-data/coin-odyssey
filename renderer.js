@@ -751,8 +751,138 @@ function generateColors(count) {
 
 // Function to load settings
 function loadSettings() {
-    // Implementation for settings page
-    console.log('Loading settings...');
+    try {
+        console.log('Loading settings view');
+        
+        // Load settings HTML template
+        const settingsPath = path.join(__dirname, 'src', 'forms', 'settings.html');
+        const settingsContent = fs.readFileSync(settingsPath, 'utf8');
+        document.getElementById('main-content').innerHTML = settingsContent;
+
+        // Initialize settings values from localStorage
+        const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+        
+        // Set theme switch
+        const themeSwitch = document.getElementById('theme-switch-settings');
+        if (themeSwitch) {
+            themeSwitch.checked = document.documentElement.getAttribute('data-theme') === 'dark';
+            themeSwitch.addEventListener('change', (e) => {
+                const newTheme = e.target.checked ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+            });
+        }
+
+        // Set other settings values
+        if (settings.currencyFormat) {
+            document.getElementById('currency-format').value = settings.currencyFormat;
+        }
+        if (settings.dateFormat) {
+            document.getElementById('date-format').value = settings.dateFormat;
+        }
+        if (settings.defaultView) {
+            document.getElementById('default-view').value = settings.defaultView;
+        }
+        if (settings.defaultSort) {
+            document.getElementById('default-sort').value = settings.defaultSort;
+        }
+
+        // Setup event listeners for settings changes
+        document.querySelectorAll('.settings-container select, .checkbox-group input[type="checkbox"]')
+            .forEach(input => {
+                input.addEventListener('change', saveSettings);
+            });
+
+        // Setup backup button
+        document.getElementById('backup-data').addEventListener('click', exportData);
+        
+        // Setup import button
+        document.getElementById('import-backup').addEventListener('click', importBackup);
+
+        // Setup clear data button
+        document.getElementById('clear-data').addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear all application data? This cannot be undone.')) {
+                localStorage.clear();
+                alert('All application data has been cleared. The application will now reload.');
+                window.location.reload();
+            }
+        });
+
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        document.getElementById('main-content').innerHTML = `
+            <div class="error-message">
+                Error loading settings: ${error.message}
+            </div>
+        `;
+    }
+}
+
+function saveSettings() {
+    const settings = {
+        currencyFormat: document.getElementById('currency-format').value,
+        dateFormat: document.getElementById('date-format').value,
+        defaultView: document.getElementById('default-view').value,
+        defaultSort: document.getElementById('default-sort').value,
+        visibleColumns: Array.from(document.querySelectorAll('#column-toggles input'))
+            .map(checkbox => ({
+                name: checkbox.value,
+                visible: checkbox.checked
+            }))
+    };
+    
+    localStorage.setItem('appSettings', JSON.stringify(settings));
+}
+
+function exportData() {
+    const collectionData = localStorage.getItem('coinCollection');
+    const settings = localStorage.getItem('appSettings');
+    
+    const exportData = {
+        collection: JSON.parse(collectionData || '[]'),
+        settings: JSON.parse(settings || '{}'),
+        exportDate: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `coin-collection-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function importBackup() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = readerEvent => {
+            try {
+                const content = JSON.parse(readerEvent.target.result);
+                
+                if (content.collection && content.settings) {
+                    localStorage.setItem('coinCollection', JSON.stringify(content.collection));
+                    localStorage.setItem('appSettings', JSON.stringify(content.settings));
+                    alert('Backup imported successfully. The application will now reload.');
+                    window.location.reload();
+                } else {
+                    alert('Invalid backup file format.');
+                }
+            } catch (error) {
+                alert('Error importing backup: ' + error.message);
+            }
+        };
+        
+        reader.readAsText(file);
+    };
+    
+    input.click();
 }
 
 // Function to initialize theme
@@ -858,6 +988,13 @@ function setupFormHandlers() {
     const form = document.getElementById('coin-form');
     const cancelButton = document.getElementById('cancel-add');
     
+    if (cancelButton) {
+        cancelButton.addEventListener('click', () => {
+            // Navigate back to dashboard when cancel is clicked
+            loadDashboard();
+        });
+    }
+    
     if (form) {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -899,11 +1036,133 @@ function setupFormHandlers() {
         });
     }
 
-    if (cancelButton) {
-        cancelButton.addEventListener('click', function() {
-            loadDashboard();
+    // Initialize searchable select
+    initializeSearchableSelect();
+}
+
+function initializeSearchableSelect() {
+    const countries = [
+        "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", 
+        "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", 
+        "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", 
+        "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cambodia", "Cameroon", "Canada", 
+        "Cape Verde", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", 
+        "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Djibouti", 
+        "Dominica", "Dominican Republic", "East Timor", "Ecuador", "Egypt", "El Salvador", 
+        "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", 
+        "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", 
+        "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", 
+        "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", 
+        "Kenya", "Kiribati", "Korea, North", "Korea, South", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", 
+        "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", 
+        "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", 
+        "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", 
+        "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", 
+        "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Macedonia", "Norway", "Oman", "Pakistan", 
+        "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", 
+        "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", 
+        "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", 
+        "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", 
+        "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka", 
+        "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", 
+        "Thailand", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", 
+        "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", 
+        "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia", 
+        "Zimbabwe"
+    ];
+    
+    const searchInput = document.getElementById('country-search');
+    const optionsContainer = document.getElementById('country-options');
+    const hiddenInput = document.getElementById('country');
+    
+    // Populate options
+    function populateOptions(filter = '') {
+        optionsContainer.innerHTML = '';
+        const filteredCountries = countries.filter(country => 
+            country.toLowerCase().includes(filter.toLowerCase())
+        );
+        
+        filteredCountries.forEach(country => {
+            const option = document.createElement('div');
+            option.className = 'select-option';
+            option.textContent = country;
+            if (country === hiddenInput.value) {
+                option.classList.add('selected');
+            }
+            
+            option.addEventListener('click', () => {
+                hiddenInput.value = country;
+                searchInput.value = country;
+                optionsContainer.classList.remove('show');
+                // Trigger change event for form validation
+                hiddenInput.dispatchEvent(new Event('change'));
+            });
+            
+            optionsContainer.appendChild(option);
         });
     }
+    
+    // Initialize options
+    populateOptions();
+    
+    // Search functionality
+    searchInput.addEventListener('input', (e) => {
+        populateOptions(e.target.value);
+        optionsContainer.classList.add('show');
+    });
+    
+    // Show options on focus
+    searchInput.addEventListener('focus', () => {
+        populateOptions(searchInput.value);
+        optionsContainer.classList.add('show');
+    });
+    
+    // Handle clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.searchable-select')) {
+            optionsContainer.classList.remove('show');
+        }
+    });
+    
+    // Keyboard navigation
+    searchInput.addEventListener('keydown', (e) => {
+        const options = optionsContainer.querySelectorAll('.select-option');
+        const currentIndex = Array.from(options).findIndex(opt => opt.classList.contains('selected'));
+        
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                if (currentIndex < options.length - 1) {
+                    options[currentIndex]?.classList.remove('selected');
+                    options[currentIndex + 1].classList.add('selected');
+                    options[currentIndex + 1].scrollIntoView({ block: 'nearest' });
+                }
+                break;
+                
+            case 'ArrowUp':
+                e.preventDefault();
+                if (currentIndex > 0) {
+                    options[currentIndex]?.classList.remove('selected');
+                    options[currentIndex - 1].classList.add('selected');
+                    options[currentIndex - 1].scrollIntoView({ block: 'nearest' });
+                }
+                break;
+                
+            case 'Enter':
+                e.preventDefault();
+                const selectedOption = optionsContainer.querySelector('.select-option.selected');
+                if (selectedOption) {
+                    hiddenInput.value = selectedOption.textContent;
+                    searchInput.value = selectedOption.textContent;
+                    optionsContainer.classList.remove('show');
+                }
+                break;
+                
+            case 'Escape':
+                optionsContainer.classList.remove('show');
+                break;
+        }
+    });
 }
 
 // Function to load the upload collection view

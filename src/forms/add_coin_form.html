@@ -16,32 +16,13 @@
 
                     <div class="form-group">
                         <label for="country">Country:</label>
-                        <select id="country" name="country" required>
-                            <option value="">Select a country</option>
-                            <option value="Angola">Angola</option>
-                            <option value="Argentina">Argentina</option>
-                            <option value="Australia">Australia</option>
-                            <option value="Azerbaijan">Azerbaijan</option>
-                            <option value="Canada">Canada</option>
-                            <option value="Chile">Chile</option>
-                            <option value="China">China</option>
-                            <option value="Denmark">Denmark</option>
-                            <option value="Greece">Greece</option>
-                            <option value="Indonesia">Indonesia</option>
-                            <option value="Italy">Italy</option>
-                            <option value="Japan">Japan</option>
-                            <option value="Malaysia">Malaysia</option>
-                            <option value="New Zealand">New Zealand</option>
-                            <option value="Norway">Norway</option>
-                            <option value="Oman">Oman</option>
-                            <option value="Papua New Guinea">Papua New Guinea</option>
-                            <option value="Philippines">Philippines</option>
-                            <option value="Russian Federation">Russian Federation</option>
-                            <option value="Turkey">Turkey</option>
-                            <option value="United Kingdom">United Kingdom</option>
-                            <option value="United States">United States</option>
-                            <!-- Add more countries as needed -->
-                        </select>
+                        <div class="searchable-select">
+                            <input type="text" id="country-search" placeholder="Search country..." class="select-search">
+                            <div class="select-options" id="country-options">
+                                <!-- Options will be populated by JavaScript -->
+                            </div>
+                            <input type="hidden" id="country" name="country" required>
+                        </div>
                     </div>
 
                     <div class="form-group">
