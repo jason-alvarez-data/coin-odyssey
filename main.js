@@ -23,7 +23,7 @@ function createWindow() {
         show: false, // Don't show the window until it's ready
         minWidth: 800, // Add minimum window size for better UX
         minHeight: 600,
-        icon: path.join(__dirname, 'src', 'assets', 'Coin Odyssey_favicon.png')
+        icon: path.join(__dirname, 'src', 'assets', 'Coin Odyssey_favicon_16x16.png')
     });
 
     // Show window when ready and maximize it

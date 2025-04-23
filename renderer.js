@@ -77,9 +77,6 @@ function loadDashboard() {
         if (worldMap) {
             worldMap.updateCollection(countryData);
         }
-        
-        // Update country badges
-        updateCountryBadges(uniqueCountries);
 
     } catch (error) {
         console.error('Error in loadDashboard:', error);
