@@ -3,18 +3,17 @@
     <div class="upload-section">
         <div class="upload-container">
             <div class="upload-box" id="upload-box">
-                <img src="src\assets\icons\file-arrow-up-solid.png" alt="Upload" class="upload-icon">
+                <img src="src/assets/icons/file-arrow-up-solid.png" alt="Upload" class="upload-icon">
                 <p>Drag and drop your collection file here<br>or</p>
-                <label for="collection-file" class="upload-button">Choose File</label>
-                <input type="file" id="collection-file" accept=".csv,.json,.xlsx" style="display: none;">
+                <label for="file-upload" class="upload-button">Choose File</label>
+                <input type="file" id="file-upload" accept=".csv,.json,.xlsx" style="display: none;">
             </div>
         </div>
         <div class="file-info" id="file-info" style="display: none;">
             <p>Selected file: <span id="file-name"></span></p>
-            <button id="import-button" class="primary-button">Import Collection</button>
+            <button id="import-button" class="primary-button" disabled>Import Collection</button>
             <button id="cancel-upload" class="secondary-button">Cancel</button>
         </div>
-        <div id="preview-container" class="preview-container"></div>
         <div class="upload-instructions">
             <h3>Supported Formats</h3>
             <ul>
@@ -35,11 +34,8 @@
                 <li>Status</li>
                 <li>Type</li>
                 <li>Series</li>
-                <li>Storage</li>
-                <li>Format</li>
-                <li>Region</li>
-                <li>Quantity</li>
             </ul>
         </div>
+        <div id="upload-status" class="status-message"></div>
     </div>
 </div>

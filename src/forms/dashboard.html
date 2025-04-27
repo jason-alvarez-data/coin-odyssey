@@ -1,55 +1,46 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Coin Collection Dashboard</title>
-</head>
-<body>
-    <div class="dashboard">
-        <div class="dashboard-title">Collection Dashboard</div>
-        
-        <!-- Overview Section -->
-        <div class="overview-frame">
-            <div class="stat-widget">
-                <div class="stat-label">Total Coins</div>
-                <div class="stat-value-container">
-                    <img src="src\assets\icons\coins.png" class="stat-icon" alt="coins">
-                    <div class="stat-value" id="total-coins">0</div>
-                </div>
-            </div>
-            
-            <div class="stat-widget">
-                <div class="stat-label">Countries</div>
-                <div class="stat-value-container">
-                    <img src="src\assets\icons\globe.png" class="stat-icon" alt="globe">
-                    <div class="stat-value" id="unique-countries">0</div>
-                </div>
-            </div>
-            
-            <div class="stat-widget">
-                <div class="stat-label">Years Span</div>
-                <div class="stat-value-container">
-                    <img src="src\assets\icons\coins2.png" class="stat-icon" alt="calendar">
-                    <div class="stat-value" id="unique-years">0</div>
-                </div>
-            </div>
-            
-            <div class="stat-widget">
-                <div class="stat-label">Estimated Value</div>
-                <div class="stat-value-container">
-                    <img src="src\assets\icons\usd-circle.png" class="stat-icon" alt="money">
-                    <div class="stat-value" id="estimated-value">$0.00</div>
-                </div>
+<div class="dashboard">
+    <div class="dashboard-title">Collection Dashboard</div>
+    
+    <!-- Overview Section -->
+    <div class="overview-frame">
+        <div class="stat-widget">
+            <div class="stat-label">Total Coins</div>
+            <div class="stat-value-container">
+                <img src="src/assets/icons/coins.png" class="stat-icon" alt="coins">
+                <div class="stat-value" id="total-coins">0</div>
             </div>
         </div>
-
-        <!-- Map Section -->
-        <div class="dashboard-section map-section">
-            <h2>Collection Map</h2>
-            <div class="map-container">
-                <div id="world-map" class="world-map-container"></div>
+        
+        <div class="stat-widget">
+            <div class="stat-label">Countries</div>
+            <div class="stat-value-container">
+                <img src="src/assets/icons/globe.png" class="stat-icon" alt="globe">
+                <div class="stat-value" id="unique-countries">0</div>
+            </div>
+        </div>
+        
+        <div class="stat-widget">
+            <div class="stat-label">Years Span</div>
+            <div class="stat-value-container">
+                <img src="src/assets/icons/coins2.png" class="stat-icon" alt="calendar">
+                <div class="stat-value" id="unique-years">0</div>
+            </div>
+        </div>
+        
+        <div class="stat-widget">
+            <div class="stat-label">Estimated Value</div>
+            <div class="stat-value-container">
+                <img src="src/assets/icons/usd-circle.png" class="stat-icon" alt="money">
+                <div class="stat-value" id="estimated-value">$0.00</div>
             </div>
         </div>
     </div>
-</body>
-</html>
+
+    <!-- Map Section -->
+    <div class="dashboard-section map-section">
+        <h2>Collection Map</h2>
+        <div class="map-container">
+            <div id="world-map" class="world-map-container"></div>
+        </div>
+    </div>
+</div>

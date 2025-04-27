@@ -1,5 +1,12 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs').promises;
+const db = require('./src/database/db.js');
+const Papa = require('papaparse');
+const Store = require('electron-store');
+
+// Initialize electron-store
+const store = new Store();
 
 let mainWindow;
 
@@ -11,19 +18,30 @@ try {
 }
 
 function createWindow() {
-    // Create the browser window
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false,
-            enableRemoteModule: true
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: true,
+            preload: path.join(__dirname, 'preload.js'),
+            webSecurity: true
         },
-        show: false, // Don't show the window until it's ready
-        minWidth: 800, // Add minimum window size for better UX
+        show: false,
+        minWidth: 800,
         minHeight: 600,
         icon: path.join(__dirname, 'src', 'assets', 'Coin Odyssey_favicon_16x16.png')
+    });
+
+    // Set CSP headers
+    mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+        callback({
+            responseHeaders: {
+                ...details.responseHeaders,
+                'Content-Security-Policy': ['default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'']
+            }
+        });
     });
 
     // Show window when ready and maximize it
@@ -32,62 +50,223 @@ function createWindow() {
         mainWindow.show();
     });
 
-    // Set Content Security Policy for map tiles and external resources
-    mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-        callback({
-            responseHeaders: {
-                ...details.responseHeaders,
-                'Content-Security-Policy': [
-                    "default-src 'self' 'unsafe-inline' 'unsafe-eval';" +
-                    "img-src 'self' data: https://*.tile.openstreetmap.org https://*.openstreetmap.org;" +
-                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com;" +
-                    "style-src 'self' 'unsafe-inline' https://unpkg.com;" +
-                    "connect-src 'self' https://*.tile.openstreetmap.org https://*.openstreetmap.org"
-                ]
-            }
-        });
-    });
-
-    // Load the index.html file
     mainWindow.loadFile('index.html');
 
-    // Open the DevTools in development
     if (process.env.NODE_ENV === 'development') {
         mainWindow.webContents.openDevTools();
     }
 }
 
-// This method will be called when Electron has finished initialization
+// App lifecycle handlers
 app.whenReady().then(() => {
     createWindow();
-
-    app.on('activate', () => {
-        // On macOS it's common to re-create a window in the app when the
-        // dock icon is clicked and there are no other windows open.
-        if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
-        }
-    });
+    
+    // Apply saved theme on startup
+    const savedTheme = store.get('app-theme');
+    if (savedTheme) {
+        mainWindow.webContents.send('theme-changed', savedTheme);
+    }
 });
 
-// Quit when all windows are closed
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
 });
 
-// Handle any uncaught exceptions
+app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+    }
+});
+
+// Error Handling
 process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception:', error);
 });
 
-// Handle any unhandled promise rejections
 process.on('unhandledRejection', (error) => {
     console.error('Unhandled Rejection:', error);
 });
 
-// Handle IPC events
-ipcMain.on('app-error', (event, error) => {
-    console.error('Application Error:', error);
+// File System Operation Handlers
+ipcMain.handle('read-file', async (event, filePath) => {
+    try {
+        const fullPath = path.join(__dirname, filePath);
+        return await fs.readFile(fullPath, 'utf8');
+    } catch (error) {
+        console.error('Error reading file:', error);
+        throw error;
+    }
+});
+
+// Database Operation Handlers
+ipcMain.handle('get-all-coins', async () => {
+    try {
+        return await db.getAllCoins();
+    } catch (error) {
+        console.error('Error getting all coins:', error);
+        throw error;
+    }
+});
+
+ipcMain.handle('get-unique-countries', async () => {
+    try {
+        return await db.getUniqueCountries();
+    } catch (error) {
+        console.error('Error getting unique countries:', error);
+        throw error;
+    }
+});
+
+ipcMain.handle('add-coin', async (event, coinData) => {
+    try {
+        return await db.addCoin(coinData);
+    } catch (error) {
+        console.error('Error adding coin:', error);
+        throw error;
+    }
+});
+
+ipcMain.handle('update-coin', async (event, coinId, coinData) => {
+    try {
+        return await db.updateCoin(coinId, coinData);
+    } catch (error) {
+        console.error('Error updating coin:', error);
+        throw error;
+    }
+});
+
+ipcMain.handle('delete-coin', async (event, coinId) => {
+    try {
+        return await db.deleteCoin(coinId);
+    } catch (error) {
+        console.error('Error deleting coin:', error);
+        throw error;
+    }
+});
+
+// Map Operation Handlers
+ipcMain.handle('update-map-data', async (event, countryData) => {
+    try {
+        // Just pass back the data since we don't need to store it
+        return countryData;
+    } catch (error) {
+        console.error('Error updating map data:', error);
+        throw error;
+    }
+});
+
+// Search Operations Handler
+ipcMain.handle('search-coins', async (event, searchText, searchField) => {
+    try {
+        return await db.searchCoins(searchText, searchField);
+    } catch (error) {
+        console.error('Error searching coins:', error);
+        throw error;
+    }
+});
+
+// Import/Export Operations
+ipcMain.handle('import-collection', async (event, fileData) => {
+    try {
+        // Parse the file data based on format (assumed JSON for now)
+        let coinsData;
+        try {
+            coinsData = JSON.parse(fileData);
+        } catch (e) {
+            // Try CSV parsing if JSON fails
+            const parseResult = Papa.parse(fileData, { header: true });
+            coinsData = parseResult.data;
+        }
+        
+        // Validate and import the data
+        if (Array.isArray(coinsData)) {
+            for (const coin of coinsData) {
+                await db.addCoin(coin);
+            }
+            return { success: true, count: coinsData.length };
+        } else {
+            throw new Error('Invalid data format. Expected an array of coins.');
+        }
+    } catch (error) {
+        console.error('Error importing collection:', error);
+        throw error;
+    }
+});
+
+ipcMain.handle('export-collection', async (event, format) => {
+    try {
+        const coins = await db.getAllCoins();
+        
+        if (format === 'json') {
+            return JSON.stringify(coins, null, 2);
+        } else if (format === 'csv') {
+            return Papa.unparse(coins);
+        } else {
+            throw new Error(`Unsupported export format: ${format}`);
+        }
+    } catch (error) {
+        console.error('Error exporting collection:', error);
+        throw error;
+    }
+});
+
+// Analytics Handlers
+ipcMain.handle('get-value-timeline', async () => {
+    try {
+        return await db.getValueTimeline();
+    } catch (error) {
+        console.error('Error getting value timeline:', error);
+        throw error;
+    }
+});
+
+ipcMain.handle('get-geographic-distribution', async () => {
+    try {
+        return await db.getGeographicDistribution();
+    } catch (error) {
+        console.error('Error getting geographic distribution:', error);
+        throw error;
+    }
+});
+
+ipcMain.handle('get-year-distribution', async () => {
+    try {
+        return await db.getYearDistribution();
+    } catch (error) {
+        console.error('Error getting year distribution:', error);
+        throw error;
+    }
+});
+
+ipcMain.handle('get-collection-composition', async () => {
+    try {
+        return await db.getCollectionComposition();
+    } catch (error) {
+        console.error('Error getting collection composition:', error);
+        throw error;
+    }
+});
+
+// Settings Handler
+ipcMain.handle('get-setting', async (event, key) => {
+    return store.get(key);
+});
+
+ipcMain.handle('set-setting', async (event, key, value) => {
+    store.set(key, value);
+    return true;
+});
+
+ipcMain.handle('set-theme', async (event, theme) => {
+    store.set('app-theme', theme);
+    event.sender.send('theme-changed', theme);
+    return true;
+});
+
+// Error Reporting Handler
+ipcMain.handle('report-error', async (event, error) => {
+    console.error('Renderer Error:', error);
+    return true;
 });

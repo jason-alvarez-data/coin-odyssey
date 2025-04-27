@@ -1,22 +1,3 @@
-// Required Node.js modules
-const fs = require('fs');
-const path = require('path');
-const Papa = require('papaparse');
-
-// Chart.js and adapters
-const Chart = require('chart.js/auto');
-const { Chart: ChartJS } = require('chart.js');
-const { DateAdapter } = require('chartjs-adapter-date-fns');
-const { enUS } = require('date-fns/locale');
-
-// Register the date adapter
-Chart.register(require('chartjs-adapter-date-fns'));
-
-// Custom modules
-const WorldMap = require('./src/components/worldMap.js');
-const db = require('./src/database/db.js');
-const { getChartConfig } = require('./chartConfig.js');
-
 // Theme Constants
 const THEME_KEY = 'app-theme';
 const DARK_THEME = 'dark';
@@ -24,40 +5,126 @@ const LIGHT_THEME = 'light';
 
 // Global variables
 let worldMap = null;
+// Store chart references for cleanup
+let charts = {};
+
+// Chart configuration helper
+function createChart(ctx, config) {
+    try {
+        if (!ctx || !ctx.canvas) {
+            console.error('Invalid canvas context provided');
+            return null;
+        }
+        
+        const canvasId = ctx.canvas.id;
+        
+        // Attempt to get existing chart by ID
+        const existingChart = Chart.getChart(ctx.canvas);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+        
+        // Create new chart
+        const chart = new Chart(ctx, config);
+        charts[canvasId] = chart;
+        return chart;
+    } catch (error) {
+        console.error('Error creating chart:', error);
+        return null;
+    }
+}
+
+// Add navigation event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    // Setup navigation
+    document.querySelectorAll('.sidebar-button').forEach(button => {
+        button.addEventListener('click', async () => {
+            const view = button.getAttribute('data-view');
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.sidebar-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to clicked button
+            button.classList.add('active');
+            
+            // Load the appropriate view
+            try {
+                switch (view) {
+                    case 'dashboard':
+                        await loadDashboard();
+                        break;
+                    case 'collection':
+                        await loadCollection();
+                        break;
+                    case 'analysis':
+                        await loadAnalysis();
+                        break;
+                    case 'upload':
+                        await loadUploadCollection();
+                        break;
+                    case 'settings':
+                        await loadSettings();
+                        break;
+                    case 'add':
+                        await loadAddCoin();
+                        break;
+                    default:
+                        console.error(`Unknown view: ${view}`);
+                }
+            } catch (error) {
+                console.error(`Error loading ${view} view:`, error);
+                window.electronAPI.reportError(error);
+            }
+        });
+    });
+
+    // Setup theme toggle switch
+    const themeSwitch = document.getElementById('theme-switch');
+    if (themeSwitch) {
+        themeSwitch.addEventListener('change', async () => {
+            const theme = themeSwitch.checked ? DARK_THEME : LIGHT_THEME;
+            await window.electronAPI.setSetting(THEME_KEY, theme);
+            await window.electronAPI.setTheme(theme);
+            document.documentElement.setAttribute('data-theme', theme);
+        });
+    }
+
+    // Initialize the application
+    initializeTheme();
+    loadDashboard();
+});
 
 // Function to load the dashboard
-function loadDashboard() {
+async function loadDashboard() {
     try {
         console.log('Starting dashboard load');
         
         // Load dashboard HTML template
-        const dashboardPath = path.join(__dirname, 'src', 'forms', 'dashboard.html');
-        console.log('Loading dashboard from:', dashboardPath);
-        const dashboardContent = fs.readFileSync(dashboardPath, 'utf8');
+        const dashboardContent = await window.electronAPI.readFile('src/forms/dashboard.html');
         document.getElementById('main-content').innerHTML = dashboardContent;
 
-        // Initialize the world map
-        worldMap = new WorldMap('world-map');
-        worldMap.initialize();
+        // Load the WorldMap class
+        await import('./src/components/worldMap.js');
 
-        // Add event listener for country selection
-        document.getElementById('world-map').addEventListener('country-selected', (e) => {
-            const countryName = e.detail.country;
-            console.log(`Selected country: ${countryName}`);
-            showCountryCoins(countryName);
-        });
-
-        // Get dashboard data directly from database
-        const allCoins = db.getAllCoins();
-        const uniqueCountries = db.getUniqueCountries();
+        // Get dashboard data
+        const allCoins = await window.electronAPI.getAllCoins();
+        const uniqueCountries = await window.electronAPI.getUniqueCountries();
 
         // Create a map of country names to coin counts
         const countryData = {};
         uniqueCountries.forEach(country => {
-            // Count coins for each country
             const countryCoins = allCoins.filter(coin => coin.country === country);
             countryData[country] = countryCoins.length;
         });
+
+        // Initialize the world map
+        if (worldMap) {
+            worldMap.destroy(); // Clean up any existing map instance
+        }
+        worldMap = new WorldMap('world-map', countryData);
+        await worldMap.initialize();
 
         // Calculate dashboard stats
         const dashboardData = {
@@ -75,49 +142,41 @@ function loadDashboard() {
 
         // Update map with collection data
         if (worldMap) {
+            await window.electronAPI.updateMapData(countryData);
             worldMap.updateCollection(countryData);
         }
 
     } catch (error) {
         console.error('Error in loadDashboard:', error);
+        window.electronAPI.reportError(error);
+        
+        // Show error message in the dashboard
+        document.getElementById('main-content').innerHTML = `
+            <div class="error-message">
+                <h3>Error Loading Dashboard</h3>
+                <p>${error.message}</p>
+            </div>
+        `;
     }
 }
 
 // Function to load the collection view
-function loadCollection() {
+async function loadCollection() {
     try {
         console.log('Loading collection view');
         
-        // Load collection HTML template
-        const collectionPath = path.join(__dirname, 'src', 'forms', 'collection.html');
-        console.log('Loading collection from:', collectionPath);
-        
-        if (!fs.existsSync(collectionPath)) {
-            console.error('Collection template not found at:', collectionPath);
-            return;
-        }
-        
-        const collectionContent = fs.readFileSync(collectionPath, 'utf8');
-        const mainContent = document.getElementById('main-content');
-        
-        if (!mainContent) {
-            console.error('Main content container not found');
-            return;
-        }
-        
-        mainContent.innerHTML = collectionContent;
+        const collectionContent = await window.electronAPI.readFile('src/forms/collection.html');
+        document.getElementById('main-content').innerHTML = collectionContent;
 
-        // Get collection data directly from database
-        const coins = db.getAllCoins();
+        const coins = await window.electronAPI.getAllCoins();
         console.log('Retrieved coins from database:', coins);
         
-        populateCollectionTable(coins);
+        await populateCollectionTable(coins);
         setupCollectionFilters();
-
-        // Reinitialize theme after loading new content
-        initializeTheme();
+        await initializeTheme();
     } catch (error) {
         console.error('Error in loadCollection:', error);
+        window.electronAPI.reportError(error);
         document.getElementById('main-content').innerHTML = `
             <div class="error-message">
                 Error loading collection: ${error.message}
@@ -127,7 +186,7 @@ function loadCollection() {
 }
 
 // Function to populate the collection table
-function populateCollectionTable(coins) {
+async function populateCollectionTable(coins) {
     const tableBody = document.querySelector('#collection-table tbody');
     if (!tableBody) return;
     
@@ -136,11 +195,9 @@ function populateCollectionTable(coins) {
     coins.forEach(coin => {
         const row = document.createElement('tr');
         
-        // Format the date for display
         const dateCollected = coin.purchase_date ? 
-            new Date(coin.purchase_date).toLocaleDateString() : '';
+            dateFns.format(new Date(coin.purchase_date), 'yyyy-MM-dd') : '';
             
-        // Add each field in the correct order matching the table headers
         const fields = [
             { key: 'purchase_date', format: v => dateCollected },
             { key: 'title', format: v => v },
@@ -165,7 +222,6 @@ function populateCollectionTable(coins) {
             row.appendChild(cell);
         });
 
-        // Add action buttons
         const actionsCell = document.createElement('td');
         actionsCell.className = 'coin-actions';
         actionsCell.innerHTML = `
@@ -181,8 +237,7 @@ function populateCollectionTable(coins) {
         tableBody.appendChild(row);
     });
 
-    // Add event listeners for edit and delete buttons
-    setupActionButtons();
+    await setupActionButtons();
 }
 
 // Function to setup collection filters
@@ -191,363 +246,280 @@ function setupCollectionFilters() {
     const searchField = document.getElementById('search-field');
     
     if (searchInput && searchField) {
-        searchInput.addEventListener('input', function() {
+        searchInput.addEventListener('input', async function() {
             const searchText = this.value.toLowerCase();
             const searchFieldValue = searchField.value;
-            const rows = document.querySelectorAll('#collection-table tbody tr');
             
-            rows.forEach(row => {
-                let match = false;
-                if (searchFieldValue === 'All Fields') {
-                    // Search all columns
-                    const allText = Array.from(row.cells)
-                        .map(cell => cell.textContent.toLowerCase())
-                        .join(' ');
-                    match = allText.includes(searchText);
-                } else {
-                    // Search specific column
-                    const columnIndex = getColumnIndex(searchFieldValue);
-                    if (columnIndex !== -1) {
-                        const cellText = row.cells[columnIndex].textContent.toLowerCase();
-                        match = cellText.includes(searchText);
-                    }
-                }
-                row.style.display = match ? '' : 'none';
-            });
+            try {
+                const filteredCoins = await window.electronAPI.searchCoins(searchText, searchFieldValue);
+                await populateCollectionTable(filteredCoins);
+            } catch (error) {
+                console.error('Error searching coins:', error);
+                window.electronAPI.reportError(error);
+            }
         });
     }
 }
 
-// Function to get column index based on field name
-function getColumnIndex(fieldName) {
-    const columnMap = {
-        'title': 1,
-        'country': 3,
-        'year': 2
-    };
-    return columnMap[fieldName] ?? -1;
-}
-
-// Function to load the analysis view
-function loadAnalysis() {
+// Function to load analysis view
+async function loadAnalysis() {
     try {
-        console.log('1. Starting loadAnalysis');
+        // Clear chart instances before changing the DOM
+        Object.keys(charts).forEach(key => {
+            if (charts[key] && typeof charts[key].destroy === 'function') {
+                try {
+                    charts[key].destroy();
+                } catch (err) {
+                    console.error(`Error destroying chart ${key}:`, err);
+                }
+            }
+        });
+        charts = {}; // Reset the charts object
         
-        const analysisPath = path.join(__dirname, 'src', 'forms', 'analysis.html');
-        console.log('2. Analysis path:', analysisPath);
-        
-        if (!fs.existsSync(analysisPath)) {
-            console.error('Analysis template not found at:', analysisPath);
-            return;
-        }
-        
-        const analysisContent = fs.readFileSync(analysisPath, 'utf8');
-        console.log('3. Analysis content loaded');
-        
-        const mainContent = document.getElementById('main-content');
-        if (!mainContent) {
-            console.error('Main content container not found');
-            return;
-        }
-        
-        mainContent.innerHTML = analysisContent;
-        console.log('4. Analysis content inserted into DOM');
+        // Load the analytics content
+        const analyticsContent = await window.electronAPI.readFile('src/forms/analytics.html');
+        document.getElementById('main-content').innerHTML = analyticsContent;
 
-        // Short timeout to ensure DOM is ready
-        setTimeout(() => {
-            // Get all coins from database
-            const coins = db.getAllCoins();
-            console.log('6. Retrieved coins:', coins);
-            
-            // Initialize metrics
-            updateAnalyticsMetrics(coins);
-            console.log('7. Metrics updated');
-            
-            // Initialize charts
-            console.log('8. About to initialize charts');
-            initializeCharts(coins);
-            console.log('9. Charts initialized');
-
-            // Add these lines
-            // Initialize value distribution table
-            updateValueDistributionTable(coins, 'country'); // Default grouping by country
-            setupDistributionControls(coins);
-        }, 100);
-
+        const coins = await window.electronAPI.getAllCoins();
+        await updateAnalyticsMetrics(coins);
+        await initializeCharts();
     } catch (error) {
         console.error('Error in loadAnalysis:', error);
+        window.electronAPI.reportError(error);
     }
 }
 
 // Function to update analytics metrics
-function updateAnalyticsMetrics(coins) {
+async function updateAnalyticsMetrics(coins) {
     try {
-        console.log('Updating analytics metrics');
-        
-        // Calculate total value
-        const totalValue = coins.reduce((sum, coin) => {
-            return sum + (parseFloat(coin.current_value) || parseFloat(coin.value) || 0);
-        }, 0);
-        
-        // Calculate unique countries
-        const uniqueCountries = new Set(coins.map(coin => coin.country)).size;
-        
-        // Calculate year range
-        const years = coins.map(coin => parseInt(coin.year)).filter(year => !isNaN(year));
-        const yearRange = years.length > 0 
-            ? `${Math.min(...years)} - ${Math.max(...years)}`
-            : 'N/A';
-        
-        // Calculate collection growth (coins added in last 30 days)
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const recentCoins = coins.filter(coin => {
-            const purchaseDate = new Date(coin.purchase_date);
-            return purchaseDate >= thirtyDaysAgo;
-        }).length;
+        const totalValue = coins.reduce((sum, coin) => sum + (coin.current_value || coin.value || 0), 0);
+        const averageValue = totalValue / coins.length;
+        const previousMonthValue = await calculatePreviousMonthValue(coins);
+        const valueChange = totalValue - previousMonthValue;
+        const percentageChange = (valueChange / previousMonthValue) * 100;
 
-        // Update DOM elements
         document.getElementById('total-value').textContent = `$${totalValue.toFixed(2)}`;
-        document.getElementById('country-count').textContent = uniqueCountries;
-        document.getElementById('year-range').textContent = yearRange;
-        document.getElementById('growth-rate').textContent = `+${recentCoins}`;
-
-        // Calculate and update percentage change
-        const previousMonthValue = calculatePreviousMonthValue(coins);
-        const valueChange = previousMonthValue > 0 
-            ? ((totalValue - previousMonthValue) / previousMonthValue) * 100 
-            : 0;
-        const valueChangeElement = document.querySelector('.metric-change');
-        if (valueChangeElement) {
-            valueChangeElement.textContent = `${valueChange.toFixed(1)}% from last month`;
-        }
-
+        document.getElementById('average-value').textContent = `$${averageValue.toFixed(2)}`;
+        document.getElementById('value-change').textContent = `$${valueChange.toFixed(2)}`;
+        document.getElementById('percentage-change').textContent = `(${percentageChange.toFixed(1)}%)`;
+        
+        const indicator = document.getElementById('change-indicator');
+        indicator.textContent = valueChange >= 0 ? '↑' : '↓';
+        indicator.style.color = valueChange >= 0 ? 'var(--success-color)' : 'var(--error-color)';
     } catch (error) {
         console.error('Error updating analytics metrics:', error);
+        window.electronAPI.reportError(error);
     }
 }
 
-// Helper function to calculate previous month's collection value
-function calculatePreviousMonthValue(coins) {
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-    
+// Function to calculate previous month value
+async function calculatePreviousMonthValue(coins) {
+    const oneMonthAgo = dateFns.subMonths(new Date(), 1);
     return coins.reduce((sum, coin) => {
         const purchaseDate = new Date(coin.purchase_date);
-        if (purchaseDate <= oneMonthAgo) {
-            return sum + (parseFloat(coin.current_value) || parseFloat(coin.value) || 0);
+        if (dateFns.isBefore(purchaseDate, oneMonthAgo)) {
+            return sum + (coin.value || 0);
         }
         return sum;
     }, 0);
 }
 
-// Function to initialize all charts
-function initializeCharts(coins) {
-    console.log('Initializing all charts');
-    initializeValueTimelineChart(coins);
-    initializeGeographicDistribution(coins);
-    initializeYearDistribution(coins);
-    initializeCollectionComposition(coins);
+// Function to initialize charts
+async function initializeCharts() {
+    try {
+        // Destroy all existing charts to prevent memory leaks
+        Object.keys(charts).forEach(key => {
+            if (charts[key] && typeof charts[key].destroy === 'function') {
+                charts[key].destroy();
+            }
+        });
+        
+        // Clear the charts object
+        charts = {};
+        
+        // Get all canvas elements
+        const canvasElements = [
+            document.getElementById('value-timeline-chart'),
+            document.getElementById('geographic-distribution-chart'),
+            document.getElementById('year-distribution-chart'),
+            document.getElementById('collection-composition-chart')
+        ];
+        
+        // Replace each canvas with a new one
+        canvasElements.forEach(canvas => {
+            if (canvas) {
+                const parent = canvas.parentNode;
+                if (parent) {
+                    // Create a replacement canvas
+                    const newCanvas = document.createElement('canvas');
+                    newCanvas.id = canvas.id;
+                    
+                    // Replace the old canvas
+                    parent.replaceChild(newCanvas, canvas);
+                }
+            }
+        });
+        
+        // Now fetch the data and initialize charts
+        const timelineData = await window.electronAPI.getValueTimeline();
+        const geoData = await window.electronAPI.getGeographicDistribution();
+        const yearData = await window.electronAPI.getYearDistribution();
+        const compositionData = await window.electronAPI.getCollectionComposition();
+
+        // Initialize each chart
+        await initializeValueTimelineChart(timelineData);
+        await initializeGeographicDistribution(geoData);
+        await initializeYearDistribution(yearData);
+        await initializeCollectionComposition(compositionData);
+    } catch (error) {
+        console.error('Error initializing charts:', error);
+        window.electronAPI.reportError(error);
+    }
 }
 
-function initializeValueTimelineChart(coins) {
-    console.log('Initializing value timeline chart');
-    const canvas = document.getElementById('valueTimelineChart');
-    
-    if (!canvas) {
-        console.error('Could not find valueTimelineChart canvas element');
-        return;
+// Function to create dynamic canvas elements for chart
+function createCanvasElement(parentId, chartId) {
+    // Remove any existing canvas with this ID
+    const existingCanvas = document.getElementById(chartId);
+    if (existingCanvas) {
+        existingCanvas.remove();
     }
+    
+    // Create new canvas element
+    const canvas = document.createElement('canvas');
+    canvas.id = chartId;
+    
+    // Append to parent
+    const parent = document.getElementById(parentId);
+    if (parent) {
+        parent.innerHTML = ''; // Clear any existing content
+        parent.appendChild(canvas);
+        return canvas;
+    }
+    
+    return null;
+}
 
-    // Process coins to create timeline data
-    const timelineData = processCoinsForTimeline(coins);
-    console.log('Timeline data:', timelineData);
-
+// Function to initialize value timeline chart
+async function initializeValueTimelineChart(timelineData) {
     try {
-        new Chart(canvas, {
+        const container = document.querySelector('.chart-container:has(#value-timeline-chart)');
+        if (container) {
+            container.innerHTML = ''; // Clear existing content
+            const canvas = document.createElement('canvas');
+            canvas.id = 'value-timeline-chart';
+            container.appendChild(canvas);
+        }
+        
+        const ctx = document.getElementById('value-timeline-chart').getContext('2d');
+        const processedData = await processCoinsForTimeline(timelineData);
+        
+        return createChart(ctx, {
             type: 'line',
             data: {
-                labels: timelineData.labels,
+                labels: processedData.labels,
                 datasets: [{
                     label: 'Collection Value',
-                    data: timelineData.dataPoints,
-                    borderColor: getComputedStyle(document.documentElement)
-                        .getPropertyValue('--primary-color').trim(),
-                    backgroundColor: getComputedStyle(document.documentElement)
-                        .getPropertyValue('--primary-color').trim() + '33',
-                    fill: true,
-                    tension: 0.4,
-                    pointStyle: 'circle',
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    pointBackgroundColor: getComputedStyle(document.documentElement)
-                        .getPropertyValue('--primary-color').trim(),
+                    data: processedData.values,
+                    borderColor: 'var(--accent-color)',
+                    backgroundColor: 'rgba(74, 144, 226, 0.1)',
+                    fill: true
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Collection Value Over Time'
-                    },
-                    tooltip: {
-                        enabled: true,
-                        callbacks: {
-                            label: function(context) {
-                                return `Value: $${context.parsed.y.toFixed(2)}`;
-                            }
-                        }
-                    }
-                },
                 scales: {
                     x: {
-                        display: true,
-                        title: {
-                            display: true,
-                            text: 'Date'
-                        },
-                        grid: {
-                            display: false
+                        type: 'time',
+                        time: {
+                            unit: 'month'
                         }
                     },
                     y: {
-                        display: true,
-                        title: {
-                            display: true,
-                            text: 'Value ($)'
-                        },
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) {
-                                return '$' + value.toFixed(2);
-                            }
+                            callback: value => `$${value}`
                         }
                     }
                 }
             }
         });
-        console.log('Real data chart created successfully');
     } catch (error) {
-        console.error('Error creating real data chart:', error);
+        console.error('Error initializing value timeline chart:', error);
+        window.electronAPI.reportError(error);
     }
 }
 
-function initializeGeographicDistribution(coins) {
-    console.log('Initializing geographic distribution chart');
-    const canvas = document.getElementById('geographicDistributionChart');
-    
-    if (!canvas) {
-        console.error('Could not find geographicDistributionChart canvas element');
-        return;
-    }
-
-    // Process data for geographic distribution
-    const countryData = processCountryData(coins);
-    
+// Function to initialize geographic distribution chart
+async function initializeGeographicDistribution(geoData) {
     try {
-        new Chart(canvas, {
+        const container = document.querySelector('.chart-container:has(#geographic-distribution-chart)');
+        if (container) {
+            container.innerHTML = ''; // Clear existing content
+            const canvas = document.createElement('canvas');
+            canvas.id = 'geographic-distribution-chart';
+            container.appendChild(canvas);
+        }
+        
+        const ctx = document.getElementById('geographic-distribution-chart').getContext('2d');
+        const processedData = await processCountryData(geoData);
+        const colors = generateColors(processedData.labels.length);
+        
+        return createChart(ctx, {
             type: 'pie',
             data: {
-                labels: countryData.labels,
+                labels: processedData.labels,
                 datasets: [{
-                    data: countryData.values,
-                    backgroundColor: generateColors(countryData.labels.length),
-                    borderWidth: 1
+                    data: processedData.values,
+                    backgroundColor: colors
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    title: {
-                        display: true,
-                        text: 'Geographic Distribution'
-                    },
                     legend: {
-                        position: 'right',
-                        labels: {
-                            color: getComputedStyle(document.documentElement)
-                                .getPropertyValue('--text-color').trim()
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const value = context.raw;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                return `${context.label}: ${value} coins (${percentage}%)`;
-                            }
-                        }
+                        position: 'right'
                     }
                 }
             }
         });
     } catch (error) {
-        console.error('Error creating geographic distribution chart:', error);
+        console.error('Error initializing geographic distribution chart:', error);
+        window.electronAPI.reportError(error);
     }
 }
 
-function initializeYearDistribution(coins) {
-    console.log('Initializing year distribution chart');
-    const canvas = document.getElementById('yearDistributionChart');
-    
-    if (!canvas) {
-        console.error('Could not find yearDistributionChart canvas element');
-        return;
-    }
-
-    // Process data for year distribution
-    const yearData = processYearData(coins);
-    
+// Function to initialize year distribution chart
+async function initializeYearDistribution(yearData) {
     try {
-        new Chart(canvas, {
+        const container = document.querySelector('.chart-container:has(#year-distribution-chart)');
+        if (container) {
+            container.innerHTML = ''; // Clear existing content
+            const canvas = document.createElement('canvas');
+            canvas.id = 'year-distribution-chart';
+            container.appendChild(canvas);
+        }
+        
+        const ctx = document.getElementById('year-distribution-chart').getContext('2d');
+        const processedData = await processYearData(yearData);
+        
+        return createChart(ctx, {
             type: 'bar',
             data: {
-                labels: yearData.labels,
+                labels: processedData.labels,
                 datasets: [{
-                    label: 'Number of Coins',
-                    data: yearData.values,
-                    backgroundColor: getComputedStyle(document.documentElement)
-                        .getPropertyValue('--primary-color').trim() + '80',
-                    borderColor: getComputedStyle(document.documentElement)
-                        .getPropertyValue('--primary-color').trim(),
-                    borderWidth: 1
+                    label: 'Coins per Year',
+                    data: processedData.values,
+                    backgroundColor: 'var(--accent-color)'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Year Distribution'
-                    },
-                    legend: {
-                        display: false
-                    }
-                },
                 scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Year'
-                        },
-                        grid: {
-                            display: false
-                        }
-                    },
                     y: {
-                        title: {
-                            display: true,
-                            text: 'Number of Coins'
-                        },
                         beginAtZero: true,
                         ticks: {
                             stepSize: 1
@@ -557,1072 +529,675 @@ function initializeYearDistribution(coins) {
             }
         });
     } catch (error) {
-        console.error('Error creating year distribution chart:', error);
+        console.error('Error initializing year distribution chart:', error);
+        window.electronAPI.reportError(error);
     }
 }
 
-function initializeCollectionComposition(coins) {
-    console.log('Initializing collection composition chart');
-    const canvas = document.getElementById('collectionCompositionChart');
-    
-    if (!canvas) {
-        console.error('Could not find collectionCompositionChart canvas element');
-        return;
-    }
-
-    // Process data for collection composition (by type)
-    const typeData = processTypeData(coins);
-    
+// Function to initialize collection composition chart
+async function initializeCollectionComposition(compositionData) {
     try {
-        new Chart(canvas, {
+        const container = document.querySelector('.chart-container:has(#collection-composition-chart)');
+        if (container) {
+            container.innerHTML = ''; // Clear existing content
+            const canvas = document.createElement('canvas');
+            canvas.id = 'collection-composition-chart';
+            container.appendChild(canvas);
+        }
+        
+        const ctx = document.getElementById('collection-composition-chart').getContext('2d');
+        const processedData = await processTypeData(compositionData);
+        const colors = generateColors(processedData.labels.length);
+        
+        return createChart(ctx, {
             type: 'doughnut',
             data: {
-                labels: typeData.labels,
+                labels: processedData.labels,
                 datasets: [{
-                    data: typeData.values,
-                    backgroundColor: generateColors(typeData.labels.length),
-                    borderWidth: 1
+                    data: processedData.values,
+                    backgroundColor: colors
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    title: {
-                        display: true,
-                        text: 'Collection Composition by Type'
-                    },
                     legend: {
-                        position: 'right',
-                        labels: {
-                            color: getComputedStyle(document.documentElement)
-                                .getPropertyValue('--text-color').trim()
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const value = context.raw;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                return `${context.label}: ${value} coins (${percentage}%)`;
-                            }
-                        }
+                        position: 'right'
                     }
                 }
             }
         });
     } catch (error) {
-        console.error('Error creating collection composition chart:', error);
+        console.error('Error initializing collection composition chart:', error);
+        window.electronAPI.reportError(error);
     }
 }
 
-// Helper functions for data processing
-function processCoinsForTimeline(coins) {
-    console.log('Processing coins for timeline:', coins);
+// Data processing functions
+async function processCoinsForTimeline(timelineData) {
+    // Filter out invalid dates first
+    const validData = timelineData.filter(item => {
+        const date = new Date(item.date);
+        return !isNaN(date.getTime());
+    });
     
-    // Filter out coins without purchase dates or values
-    const validCoins = coins.filter(coin => {
-        const hasDate = Boolean(coin.purchase_date);
-        const hasValue = Boolean(coin.current_value || coin.value);
-        return hasDate && hasValue;
-    });
-
-    console.log('Valid coins:', validCoins);
-
-    // Sort coins by purchase date
-    const sortedCoins = [...validCoins].sort((a, b) => {
-        return new Date(a.purchase_date) - new Date(b.purchase_date);
-    });
-
-    console.log('Sorted coins:', sortedCoins);
-
-    let labels = [];
-    let dataPoints = [];
-    let runningTotal = 0;
-
-    // Create monthly data points
-    sortedCoins.forEach(coin => {
-        const date = new Date(coin.purchase_date);
-        const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
-        const value = parseFloat(coin.current_value || coin.value || 0);
-        
-        runningTotal += value;
-
-        // Add or update the value for this month
-        const existingIndex = labels.indexOf(monthYear);
-        if (existingIndex === -1) {
-            labels.push(monthYear);
-            dataPoints.push(runningTotal);
-        } else {
-            dataPoints[existingIndex] = Math.max(dataPoints[existingIndex], runningTotal);
-        }
-    });
-
-    // If we have no data points, add a single point
-    if (labels.length === 0) {
-        const now = new Date();
-        const currentMonth = `${now.toLocaleString('default', { month: 'short' })} ${now.getFullYear()}`;
-        labels.push(currentMonth);
-        dataPoints.push(0);
-    }
-
-    console.log('Processed data:', {
-        labels: labels,
-        dataPoints: dataPoints
-    });
-
     return {
-        labels: labels,
-        dataPoints: dataPoints
+        labels: validData.map(item => new Date(item.date)),
+        values: validData.map(item => item.value)
     };
 }
 
-function processCountryData(coins) {
-    const countryCount = {};
-    coins.forEach(coin => {
-        if (coin.country) {
-            countryCount[coin.country] = (countryCount[coin.country] || 0) + 1;
-        }
-    });
-
-    // Sort by count in descending order
-    const sortedData = Object.entries(countryCount)
-        .sort(([,a], [,b]) => b - a);
-
+async function processCountryData(geoData) {
     return {
-        labels: sortedData.map(([country]) => country),
-        values: sortedData.map(([,count]) => count)
+        labels: geoData.map(item => item.country || 'Unknown'),
+        values: geoData.map(item => item.coin_count || 0)
     };
 }
 
-function processYearData(coins) {
-    const yearCount = {};
-    coins.forEach(coin => {
-        if (coin.year) {
-            yearCount[coin.year] = (yearCount[coin.year] || 0) + 1;
-        }
-    });
-
-    // Sort years chronologically
-    const sortedYears = Object.keys(yearCount).sort();
-
+async function processYearData(yearData) {
     return {
-        labels: sortedYears,
-        values: sortedYears.map(year => yearCount[year])
+        labels: yearData.map(item => item.year || 'Unknown'),
+        values: yearData.map(item => item.coin_count || 0)
     };
 }
 
-function processTypeData(coins) {
-    const typeCount = {};
-    coins.forEach(coin => {
-        const type = coin.type || 'Unspecified';
-        typeCount[type] = (typeCount[type] || 0) + 1;
-    });
-
-    // Sort by count in descending order
-    const sortedData = Object.entries(typeCount)
-        .sort(([,a], [,b]) => b - a);
-
+async function processTypeData(typeData) {
     return {
-        labels: sortedData.map(([type]) => type),
-        values: sortedData.map(([,count]) => count)
+        labels: typeData.map(item => item.type || 'Uncategorized'),
+        values: typeData.map(item => item.count || 0)
     };
 }
 
-// Helper function to generate colors for charts
+// Utility function to generate colors
 function generateColors(count) {
-    const baseColors = [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-        '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF9F40'
-    ];
-    
-    // If we need more colors than in our base array, generate them
-    while (baseColors.length < count) {
-        const hue = (baseColors.length * 137.508) % 360; // Use golden angle approximation
-        baseColors.push(`hsl(${hue}, 70%, 60%)`);
+    const colors = [];
+    for (let i = 0; i < count; i++) {
+        const hue = (i * 360) / count;
+        colors.push(`hsl(${hue}, 70%, 60%)`);
     }
-    
-    return baseColors.slice(0, count);
+    return colors;
 }
 
-// Function to load settings
-function loadSettings() {
+// Settings functions
+async function loadSettings() {
     try {
-        console.log('Loading settings view');
-        
-        // Load settings HTML template
-        const settingsPath = path.join(__dirname, 'src', 'forms', 'settings.html');
-        const settingsContent = fs.readFileSync(settingsPath, 'utf8');
+        const settingsContent = await window.electronAPI.readFile('src/forms/settings.html');
         document.getElementById('main-content').innerHTML = settingsContent;
 
-        // Initialize settings values from localStorage
-        const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+        const currentTheme = await window.electronAPI.getSetting(THEME_KEY);
         
-        // Set theme switch
-        const themeSwitch = document.getElementById('theme-switch-settings');
-        if (themeSwitch) {
-            themeSwitch.checked = document.documentElement.getAttribute('data-theme') === 'dark';
-            themeSwitch.addEventListener('change', (e) => {
-                const newTheme = e.target.checked ? 'dark' : 'light';
-                document.documentElement.setAttribute('data-theme', newTheme);
-                localStorage.setItem('theme', newTheme);
-            });
+        // Update the theme selector in settings page
+        const themeSelector = document.querySelector('#settings #theme-selector');
+        if (themeSelector) {
+            themeSelector.value = currentTheme || LIGHT_THEME;
         }
-
-        // Set other settings values
-        if (settings.currencyFormat) {
-            document.getElementById('currency-format').value = settings.currencyFormat;
-        }
-        if (settings.dateFormat) {
-            document.getElementById('date-format').value = settings.dateFormat;
-        }
-        if (settings.defaultView) {
-            document.getElementById('default-view').value = settings.defaultView;
-        }
-        if (settings.defaultSort) {
-            document.getElementById('default-sort').value = settings.defaultSort;
-        }
-
-        // Setup event listeners for settings changes
-        document.querySelectorAll('.settings-container select, .checkbox-group input[type="checkbox"]')
-            .forEach(input => {
-                input.addEventListener('change', saveSettings);
-            });
-
-        // Setup backup button
-        document.getElementById('backup-data').addEventListener('click', exportData);
         
-        // Setup import button
-        document.getElementById('import-backup').addEventListener('click', importBackup);
-
-        // Setup clear data button
-        document.getElementById('clear-data').addEventListener('click', () => {
-            if (confirm('Are you sure you want to clear all application data? This cannot be undone.')) {
-                localStorage.clear();
-                alert('All application data has been cleared. The application will now reload.');
-                window.location.reload();
-            }
-        });
-
+        setupSettingsHandlers();
     } catch (error) {
         console.error('Error loading settings:', error);
-        document.getElementById('main-content').innerHTML = `
-            <div class="error-message">
-                Error loading settings: ${error.message}
-            </div>
-        `;
+        window.electronAPI.reportError(error);
     }
 }
 
-function saveSettings() {
-    const settings = {
-        currencyFormat: document.getElementById('currency-format').value,
-        dateFormat: document.getElementById('date-format').value,
-        defaultView: document.getElementById('default-view').value,
-        defaultSort: document.getElementById('default-sort').value,
-        visibleColumns: Array.from(document.querySelectorAll('#column-toggles input'))
-            .map(checkbox => ({
-                name: checkbox.value,
-                visible: checkbox.checked
-            }))
-    };
+// Function to set up settings page event handlers
+function setupSettingsHandlers() {
+    // Theme selector
+    const themeSelector = document.getElementById('theme-selector');
+    if (themeSelector) {
+        themeSelector.addEventListener('change', async () => {
+            const theme = themeSelector.value;
+            await window.electronAPI.setSetting(THEME_KEY, theme);
+            document.documentElement.setAttribute('data-theme', theme);
+        });
+    }
     
-    localStorage.setItem('appSettings', JSON.stringify(settings));
-}
-
-function exportData() {
-    const collectionData = localStorage.getItem('coinCollection');
-    const settings = localStorage.getItem('appSettings');
+    // Export button
+    const exportBtn = document.getElementById('export-data');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', async () => {
+            await exportData();
+        });
+    }
     
-    const exportData = {
-        collection: JSON.parse(collectionData || '[]'),
-        settings: JSON.parse(settings || '{}'),
-        exportDate: new Date().toISOString()
-    };
-
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `coin-collection-backup-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-function importBackup() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
+    // Import button
+    const importBtn = document.getElementById('import-data');
+    const fileInput = document.getElementById('import-file');
     
-    input.onchange = e => {
-        const file = e.target.files[0];
-        const reader = new FileReader();
+    if (importBtn && fileInput) {
+        importBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
         
-        reader.onload = readerEvent => {
+        fileInput.addEventListener('change', async () => {
+            if (fileInput.files.length > 0) {
+                await importBackup(fileInput.files[0]);
+            }
+        });
+    }
+}
+
+async function saveSettings() {
+    try {
+        const theme = document.getElementById('theme-selector').value;
+        await window.electronAPI.setSetting(THEME_KEY, theme);
+        await window.electronAPI.setTheme(theme);
+        
+        document.getElementById('settings-status').textContent = 'Settings saved successfully!';
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        window.electronAPI.reportError(error);
+        document.getElementById('settings-status').textContent = 'Error saving settings';
+    }
+}
+
+// Export function
+async function exportData() {
+    try {
+        const format = document.getElementById('export-format').value;
+        const exportedData = await window.electronAPI.exportCollection(format);
+        
+        const blob = new Blob([exportedData], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `coin-collection.${format}`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error exporting data:', error);
+        window.electronAPI.reportError(error);
+    }
+}
+
+// Import function
+async function importBackup(file) {
+    try {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
             try {
-                const content = JSON.parse(readerEvent.target.result);
+                const fileData = event.target.result;
                 
-                if (content.collection && content.settings) {
-                    localStorage.setItem('coinCollection', JSON.stringify(content.collection));
-                    localStorage.setItem('appSettings', JSON.stringify(content.settings));
-                    alert('Backup imported successfully. The application will now reload.');
-                    window.location.reload();
+                // Update status
+                const statusElement = document.getElementById('upload-status');
+                if (statusElement) {
+                    statusElement.textContent = 'Processing file...';
+                }
+                
+                // Process file based on extension
+                const fileName = file.name.toLowerCase();
+                if (fileName.endsWith('.json') || fileName.endsWith('.csv')) {
+                    // Display processing message
+                    document.getElementById('upload-status').textContent = 'Importing data...';
+                    
+                    // Call the API to import the collection
+                    await window.electronAPI.importCollection(fileData);
+                    
+                    // Show success message
+                    document.getElementById('upload-status').textContent = 'Data imported successfully!';
+                    document.getElementById('upload-status').className = 'success-message';
+                    
+                    // Reload dashboard after a short delay
+                    setTimeout(() => loadDashboard(), 2000);
                 } else {
-                    alert('Invalid backup file format.');
+                    throw new Error('Unsupported file format. Please use JSON or CSV files.');
                 }
             } catch (error) {
-                alert('Error importing backup: ' + error.message);
+                console.error('Error importing file:', error);
+                window.electronAPI.reportError(error);
+                
+                // Show error message
+                const statusElement = document.getElementById('upload-status');
+                if (statusElement) {
+                    statusElement.textContent = `Error: ${error.message}`;
+                    statusElement.className = 'error-message';
+                }
             }
         };
         
         reader.readAsText(file);
-    };
-    
-    input.click();
-}
-
-// Function to initialize theme
-function initializeTheme() {
-    const savedTheme = localStorage.getItem(THEME_KEY) || LIGHT_THEME;
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    
-    const themeSwitch = document.getElementById('theme-switch');
-    if (themeSwitch) {
-        themeSwitch.checked = savedTheme === DARK_THEME;
-        
-        themeSwitch.addEventListener('change', function() {
-            const newTheme = this.checked ? DARK_THEME : LIGHT_THEME;
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem(THEME_KEY, newTheme);
-        });
-    }
-}
-
-// Initialize application when document is ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Document loaded, initializing app');
-    
-    // Initialize theme
-    initializeTheme();
-    
-    // Load dashboard by default
-    loadDashboard();
-    
-    // Add event listeners to sidebar buttons
-    document.querySelectorAll('.sidebar-button').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Remove active class from all buttons
-            document.querySelectorAll('.sidebar-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Add active class to clicked button
-            this.classList.add('active');
-            
-            const view = this.dataset.view;
-            console.log(`Navigation: ${view}`);
-            
-            switch (view) {
-                case 'dashboard':
-                    loadDashboard();
-                    break;
-                case 'collection':
-                    loadCollection();
-                    break;
-                case 'add':
-                    loadAddCoinForm();
-                    break;
-                case 'analysis':
-                    loadAnalysis();
-                    break;
-                case 'settings':
-                    loadSettings();
-                    break;
-                case 'upload':
-                    loadUploadCollection();
-                    break;
-                default:
-                    console.warn(`Unknown view: ${view}`);
-            }
-        });
-    });
-});
-
-// Function to load the add coin form
-function loadAddCoinForm() {
-    try {
-        console.log('Add Coin button clicked');
-        
-        // Load form HTML
-        const formPath = path.join(__dirname, 'src', 'forms', 'add_coin_form.html');
-        console.log('Loading form from:', formPath);
-        const formContent = fs.readFileSync(formPath, 'utf8');
-        document.getElementById('main-content').innerHTML = formContent;
-        
-        // Set today's date automatically
-        const today = new Date();
-        const dateString = today.toISOString().split('T')[0];
-        const dateCollectedInput = document.getElementById('date-collected');
-        if (dateCollectedInput) {
-            dateCollectedInput.value = dateString;
-        }
-        
-        // Setup form handlers
-        setupFormHandlers();
-        
-        // Reinitialize theme after loading new content
-        initializeTheme();
     } catch (error) {
-        console.error('Error loading add coin form:', error);
+        console.error('Error reading upload file:', error);
+        window.electronAPI.reportError(error);
     }
 }
 
-// Function to setup form handlers
-function setupFormHandlers() {
-    const form = document.getElementById('coin-form');
-    const cancelButton = document.getElementById('cancel-add');
-    
-    if (cancelButton) {
-        cancelButton.addEventListener('click', () => {
-            // Navigate back to dashboard when cancel is clicked
-            loadDashboard();
-        });
-    }
-    
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Get form data
-            const formData = new FormData(form);
-            
-            // Create coin data object
-            const coinData = {
-                title: formData.get('title'),
-                year: parseInt(formData.get('year')) || null,
-                country: formData.get('country'),
-                value: parseFloat(formData.get('value')) || null,
-                unit: formData.get('unit'),
-                mint: formData.get('mint'),
-                mint_mark: formData.get('mint_mark'),
-                type: formData.get('type'),
-                format: formData.get('format'),
-                series: formData.get('series'),
-                region: formData.get('region'),
-                storage: formData.get('storage'),
-                status: formData.get('status'),
-                quantity: parseInt(formData.get('quantity')) || 1,
-                purchase_date: formData.get('purchase_date'),
-                purchase_price: parseFloat(formData.get('purchase_price')) || null,
-                current_value: parseFloat(formData.get('value')) || null
-            };
-
-            try {
-                // Save coin to database
-                const coinId = db.addCoin(coinData);
-                console.log('Coin saved with ID:', coinId);
-                alert('Coin saved successfully!');
-                loadDashboard();
-            } catch (error) {
-                console.error('Error saving coin:', error);
-                alert('Error saving coin: ' + error.message);
-            }
-        });
-    }
-
-    // Initialize searchable select
-    initializeSearchableSelect();
-}
-
-function initializeSearchableSelect() {
-    const countries = [
-        "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", 
-        "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", 
-        "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", 
-        "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cambodia", "Cameroon", "Canada", 
-        "Cape Verde", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", 
-        "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Djibouti", 
-        "Dominica", "Dominican Republic", "East Timor", "Ecuador", "Egypt", "El Salvador", 
-        "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", 
-        "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", 
-        "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", 
-        "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", 
-        "Kenya", "Kiribati", "Korea, North", "Korea, South", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", 
-        "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", 
-        "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", 
-        "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", 
-        "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", 
-        "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Macedonia", "Norway", "Oman", "Pakistan", 
-        "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", 
-        "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", 
-        "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", 
-        "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", 
-        "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka", 
-        "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", 
-        "Thailand", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", 
-        "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", 
-        "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia", 
-        "Zimbabwe"
-    ];
-    
-    const searchInput = document.getElementById('country-search');
-    const optionsContainer = document.getElementById('country-options');
-    const hiddenInput = document.getElementById('country');
-    
-    // Populate options
-    function populateOptions(filter = '') {
-        optionsContainer.innerHTML = '';
-        const filteredCountries = countries.filter(country => 
-            country.toLowerCase().includes(filter.toLowerCase())
-        );
-        
-        filteredCountries.forEach(country => {
-            const option = document.createElement('div');
-            option.className = 'select-option';
-            option.textContent = country;
-            if (country === hiddenInput.value) {
-                option.classList.add('selected');
-            }
-            
-            option.addEventListener('click', () => {
-                hiddenInput.value = country;
-                searchInput.value = country;
-                optionsContainer.classList.remove('show');
-                // Trigger change event for form validation
-                hiddenInput.dispatchEvent(new Event('change'));
-            });
-            
-            optionsContainer.appendChild(option);
-        });
-    }
-    
-    // Initialize options
-    populateOptions();
-    
-    // Search functionality
-    searchInput.addEventListener('input', (e) => {
-        populateOptions(e.target.value);
-        optionsContainer.classList.add('show');
-    });
-    
-    // Show options on focus
-    searchInput.addEventListener('focus', () => {
-        populateOptions(searchInput.value);
-        optionsContainer.classList.add('show');
-    });
-    
-    // Handle clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.searchable-select')) {
-            optionsContainer.classList.remove('show');
-        }
-    });
-    
-    // Keyboard navigation
-    searchInput.addEventListener('keydown', (e) => {
-        const options = optionsContainer.querySelectorAll('.select-option');
-        const currentIndex = Array.from(options).findIndex(opt => opt.classList.contains('selected'));
-        
-        switch(e.key) {
-            case 'ArrowDown':
-                e.preventDefault();
-                if (currentIndex < options.length - 1) {
-                    options[currentIndex]?.classList.remove('selected');
-                    options[currentIndex + 1].classList.add('selected');
-                    options[currentIndex + 1].scrollIntoView({ block: 'nearest' });
-                }
-                break;
-                
-            case 'ArrowUp':
-                e.preventDefault();
-                if (currentIndex > 0) {
-                    options[currentIndex]?.classList.remove('selected');
-                    options[currentIndex - 1].classList.add('selected');
-                    options[currentIndex - 1].scrollIntoView({ block: 'nearest' });
-                }
-                break;
-                
-            case 'Enter':
-                e.preventDefault();
-                const selectedOption = optionsContainer.querySelector('.select-option.selected');
-                if (selectedOption) {
-                    hiddenInput.value = selectedOption.textContent;
-                    searchInput.value = selectedOption.textContent;
-                    optionsContainer.classList.remove('show');
-                }
-                break;
-                
-            case 'Escape':
-                optionsContainer.classList.remove('show');
-                break;
-        }
-    });
-}
-
-// Function to load the upload collection view
-function loadUploadCollection() {
+// Theme initialization
+async function initializeTheme() {
     try {
-        console.log('Loading upload collection view');
+        const theme = await window.electronAPI.getSetting(THEME_KEY) || LIGHT_THEME;
+        document.documentElement.setAttribute('data-theme', theme);
         
-        const uploadPath = path.join(__dirname, 'src', 'forms', 'upload_collection.html');
-        const uploadContent = fs.readFileSync(uploadPath, 'utf8');
-        document.getElementById('main-content').innerHTML = uploadContent;
+        // Update the theme toggle switch to match current theme
+        const themeSwitch = document.getElementById('theme-switch');
+        if (themeSwitch) {
+            themeSwitch.checked = theme === DARK_THEME;
+        }
         
-        // Setup upload handlers
-        setupUploadHandlers();
-        
+        // Ensure theme is properly synced
+        await window.electronAPI.setTheme(theme);
     } catch (error) {
-        console.error('Error loading upload collection form:', error);
+        console.error('Error initializing theme:', error);
+        window.electronAPI.reportError(error);
     }
 }
 
-// Function to setup upload handlers
-function setupUploadHandlers() {
-    const fileInput = document.getElementById('collection-file');
-    const uploadBox = document.getElementById('upload-box');
-    const fileInfo = document.getElementById('file-info');
-    const fileName = document.getElementById('file-name');
-    const importButton = document.getElementById('import-button');
-    const cancelButton = document.getElementById('cancel-upload');
-
-    // Handle file selection
-    fileInput.addEventListener('change', handleFileSelect);
-    
-    // Handle drag and drop
-    uploadBox.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadBox.style.borderColor = 'var(--primary-color)';
-    });
-    
-    uploadBox.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        uploadBox.style.borderColor = 'var(--border-color)';
-    });
-    
-    uploadBox.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadBox.style.borderColor = 'var(--border-color)';
-        const file = e.dataTransfer.files[0];
-        handleFile(file);
-    });
-    
-    // Handle import button click
-    importButton.addEventListener('click', () => {
-        const file = fileInput.files[0];
-        if (file) {
-            importCollection(file);
-        }
-    });
-    
-    // Handle cancel button click
-    if (cancelButton) {
-        cancelButton.addEventListener('click', () => {
-            loadDashboard();
-        });
-    }
-}
-
-// Function to handle file selection
-function handleFileSelect(event) {
-    const file = event.target.files[0];
-    handleFile(file);
-}
-
-// Function to handle file
-function handleFile(file) {
-    const fileInfo = document.getElementById('file-info');
-    const fileName = document.getElementById('file-name');
-    
-    if (file) {
-        fileName.textContent = file.name;
-        fileInfo.style.display = 'flex';
-    }
-}
-
-// Function to import collection
-function importCollection(file) {
-    const reader = new FileReader();
-    
-    reader.onload = function(e) {
-        const importDate = new Date().toISOString().split('T')[0]; // Today's date
-        
-        Papa.parse(e.target.result, {
-            header: true,
-            skipEmptyLines: true,
-            complete: function(results) {
-                console.log('CSV Headers:', results.meta.fields);
-                
-                // Show column mapping dialog
-                const mappingDialog = document.createElement('div');
-                mappingDialog.className = 'mapping-dialog';
-                mappingDialog.innerHTML = `
-                    <div class="mapping-content">
-                        <h3>Map CSV Columns</h3>
-                        <p>Match your CSV columns to the application fields:</p>
-                        <div class="mapping-fields">
-                            <div class="mapping-field">
-                                <label for="title-map">Title (Required):</label>
-                                <select id="title-map" required>
-                                    ${generateOptionsHtml(results.meta.fields)}
-                                </select>
-                            </div>
-                            <div class="mapping-field">
-                                <label for="date-map">Date Collected:</label>
-                                <select id="date-map">
-                                    <option value="">-- Use Import Date --</option>
-                                    ${generateOptionsHtml(results.meta.fields)}
-                                </select>
-                            </div>
-                            <div class="mapping-field">
-                                <label for="value-map">Value:</label>
-                                <select id="value-map">
-                                    <option value="">-- Not Mapped --</option>
-                                    ${generateOptionsHtml(results.meta.fields)}
-                                </select>
-                            </div>
-                            <div class="mapping-field">
-                                <label for="year-map">Year (Required):</label>
-                                <select id="year-map" required>
-                                    ${generateOptionsHtml(results.meta.fields)}
-                                </select>
-                            </div>
-                            <div class="mapping-field">
-                                <label for="country-map">Country (Required):</label>
-                                <select id="country-map" required>
-                                    ${generateOptionsHtml(results.meta.fields)}
-                                </select>
-                            </div>
-                            <div class="mapping-field">
-                                <label for="mint-map">Mint:</label>
-                                <select id="mint-map">
-                                    <option value="">-- Not Mapped --</option>
-                                    ${generateOptionsHtml(results.meta.fields)}
-                                </select>
-                            </div>
-                            <div class="mapping-field">
-                                <label for="mint-mark-map">Mint Mark:</label>
-                                <select id="mint-mark-map">
-                                    <option value="">-- Not Mapped --</option>
-                                    ${generateOptionsHtml(results.meta.fields)}
-                                </select>
-                            </div>
-                            <div class="mapping-field">
-                                <label for="type-map">Type:</label>
-                                <select id="type-map">
-                                    <option value="">-- Not Mapped --</option>
-                                    ${generateOptionsHtml(results.meta.fields)}
-                                </select>
-                            </div>
-                            <div class="mapping-field">
-                                <label for="series-map">Series:</label>
-                                <select id="series-map">
-                                    <option value="">-- Not Mapped --</option>
-                                    ${generateOptionsHtml(results.meta.fields)}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="mapping-actions">
-                            <button id="confirm-mapping" class="primary-button">Import Collection</button>
-                            <button id="cancel-mapping" class="secondary-button">Cancel</button>
-                        </div>
-                    </div>
-                `;
-
-                document.body.appendChild(mappingDialog);
-
-                // Handle mapping confirmation
-                document.getElementById('confirm-mapping').addEventListener('click', () => {
-                    const mapping = {
-                        title: document.getElementById('title-map').value,
-                        date: document.getElementById('date-map').value,
-                        value: document.getElementById('value-map').value,
-                        year: document.getElementById('year-map').value,
-                        country: document.getElementById('country-map').value,
-                        mint: document.getElementById('mint-map').value,
-                        mintMark: document.getElementById('mint-mark-map').value,
-                        type: document.getElementById('type-map').value,
-                        series: document.getElementById('series-map').value
-                    };
-
-                    // Validate required fields
-                    if (!mapping.title || !mapping.year || !mapping.country) {
-                        alert('Please map all required fields (Title, Year, and Country)');
-                        return;
-                    }
-
-                    // Process data with mapping
-                    const processedData = results.data.map(row => ({
-                        title: row[mapping.title],
-                        year: parseInt(row[mapping.year]) || null,
-                        country: row[mapping.country],
-                        value: parseFloat(row[mapping.value]) || null,
-                        mint: mapping.mint ? row[mapping.mint] : null,
-                        mint_mark: mapping.mintMark ? row[mapping.mintMark] : null,
-                        type: mapping.type ? row[mapping.type] : null,
-                        series: mapping.series ? row[mapping.series] : null,
-                        purchase_date: mapping.date ? row[mapping.date] : importDate,
-                        current_value: parseFloat(row[mapping.value]) || null
-                    }));
-
-                    try {
-                        // Add each coin to the database
-                        processedData.forEach(coinData => {
-                            if (!coinData.title || !coinData.year || !coinData.country) {
-                                console.warn('Skipping invalid coin:', coinData);
-                                return;
-                            }
-                            db.addCoin(coinData);
-                        });
-                        
-                        alert('Collection imported successfully!');
-                        document.body.removeChild(mappingDialog);
-                        loadDashboard();
-                    } catch (error) {
-                        console.error('Error importing collection:', error);
-                        alert('Error importing collection: ' + error.message);
-                    }
-                });
-
-                // Handle cancel
-                document.getElementById('cancel-mapping').addEventListener('click', () => {
-                    document.body.removeChild(mappingDialog);
-                });
-            },
-            error: function(error) {
-                console.error('Error parsing CSV:', error);
-                alert('Error parsing file: ' + error.message);
-            }
-        });
-    };
-    
-    reader.readAsText(file);
-}
-
-// Helper function to generate options HTML
-function generateOptionsHtml(fields) {
-    return fields.map(field => 
-        `<option value="${field}">${field}</option>`
-    ).join('');
-}
-
-// Add this function to handle the value distribution table
-function updateValueDistributionTable(coins, groupBy = 'country') {
-    const tableBody = document.querySelector('.value-distribution-table tbody') || 
-                     document.createElement('tbody');
-    
-    // Clear existing content
-    tableBody.innerHTML = '';
-    
-    // Group and calculate statistics
-    const groupedData = {};
-    coins.forEach(coin => {
-        const key = coin[groupBy] || 'Unspecified';
-        const value = parseFloat(coin.current_value || coin.value || 0);
-        
-        if (!groupedData[key]) {
-            groupedData[key] = {
-                count: 0,
-                totalValue: 0,
-                avgValue: 0
-            };
-        }
-        
-        groupedData[key].count++;
-        groupedData[key].totalValue += value;
-        groupedData[key].avgValue = groupedData[key].totalValue / groupedData[key].count;
-    });
-
-    // Calculate total collection value for percentage calculation
-    const totalCollectionValue = Object.values(groupedData)
-        .reduce((sum, group) => sum + group.totalValue, 0);
-
-    // Create table rows
-    Object.entries(groupedData).forEach(([category, data]) => {
-        const row = document.createElement('tr');
-        
-        // Calculate percentage of total collection value
-        const percentage = (data.totalValue / totalCollectionValue * 100).toFixed(1);
-        
-        row.innerHTML = `
-            <td>${category}</td>
-            <td>${data.count}</td>
-            <td>$${data.totalValue.toFixed(2)}</td>
-            <td>$${data.avgValue.toFixed(2)}</td>
-            <td>${percentage}%</td>
-        `;
-        
-        tableBody.appendChild(row);
-    });
-
-    // Find or create table
-    let table = document.querySelector('.value-distribution-table');
-    if (!table) {
-        table = document.createElement('table');
-        table.className = 'value-distribution-table';
-        
-        // Create header
-        const thead = document.createElement('thead');
-        thead.innerHTML = `
-            <tr>
-                <th>Category</th>
-                <th>Count</th>
-                <th>Total Value</th>
-                <th>Avg Value</th>
-                <th>% of Collection</th>
-            </tr>
-        `;
-        table.appendChild(thead);
-    }
-
-    // Update table body
-    const existingTbody = table.querySelector('tbody');
-    if (existingTbody) {
-        table.replaceChild(tableBody, existingTbody);
-    } else {
-        table.appendChild(tableBody);
-    }
-
-    // Find or create container
-    const container = document.querySelector('.value-distribution-container');
-    if (container) {
-        const existingTable = container.querySelector('.value-distribution-table');
-        if (existingTable) {
-            container.replaceChild(table, existingTable);
-        } else {
-            container.appendChild(table);
-        }
-    }
-}
-
-// Add event listeners for the dropdown controls
-function setupDistributionControls(coins) {
-    const groupingSelect = document.querySelector('[data-control="grouping"]');
-    if (groupingSelect) {
-        groupingSelect.addEventListener('change', (e) => {
-            updateValueDistributionTable(coins, e.target.value);
-        });
-    }
-}
-
-function setupActionButtons() {
-    // Edit button handlers
+// Action button setup
+async function setupActionButtons() {
     document.querySelectorAll('.edit-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const coinId = e.currentTarget.dataset.coinId;
-            showEditDialog(coinId);
+        button.addEventListener('click', async () => {
+            const coinId = button.dataset.coinId;
+            await showEditDialog(coinId);
         });
     });
 
-    // Delete button handlers
     document.querySelectorAll('.delete-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const coinId = e.currentTarget.dataset.coinId;
-            if (confirm('Are you sure you want to delete this coin from your collection?')) {
+        button.addEventListener('click', async () => {
+            const coinId = button.dataset.coinId;
+            if (confirm('Are you sure you want to delete this coin?')) {
                 try {
-                    db.deleteCoin(coinId);
-                    loadCollection(); // Refresh the table
-                    alert('Coin deleted successfully!');
+                    await window.electronAPI.deleteCoin(coinId);
+                    await loadCollection();
                 } catch (error) {
                     console.error('Error deleting coin:', error);
-                    alert('Error deleting coin: ' + error.message);
+                    window.electronAPI.reportError(error);
                 }
             }
         });
     });
 }
 
-function showEditDialog(coinId) {
+// Edit dialog
+async function showEditDialog(coinId) {
     try {
-        const coin = db.getCoinById(coinId);
+        const coin = await window.electronAPI.getCoinById(coinId);
         if (!coin) {
             throw new Error('Coin not found');
         }
 
-        // Create edit dialog
-        const editDialog = document.createElement('div');
-        editDialog.className = 'edit-dialog';
-        
-        // Load the add coin form HTML and modify it for editing
-        const formPath = path.join(__dirname, 'src', 'forms', 'add_coin_form.html');
-        let formContent = fs.readFileSync(formPath, 'utf8');
-        
-        // Replace the form title
-        formContent = formContent.replace('Add Coin', 'Edit Coin');
-        
-        // Remove the original form buttons by removing the form-actions div if it exists
-        formContent = formContent.replace(/<div class="form-actions">.*?<\/div>/s, '');
-        
-        editDialog.innerHTML = `
-            <div class="edit-content">
-                <h3>Edit Coin</h3>
-                ${formContent}
-                <div class="form-actions">
-                    <button type="button" id="save-edit" class="primary-button">Save</button>
-                    <button type="button" id="cancel-edit" class="secondary-button">Cancel</button>
-                </div>
-            </div>
-        `;
+        const dialogContent = await window.electronAPI.readFile('src/forms/edit-coin.html');
+        document.getElementById('dialog-container').innerHTML = dialogContent;
 
-        document.body.appendChild(editDialog);
-
-        // Populate form with coin data
+        // Populate form fields
         Object.keys(coin).forEach(key => {
-            const input = editDialog.querySelector(`[name="${key}"]`);
+            const input = document.querySelector(`[name="${key}"]`);
             if (input) {
-                if (key === 'purchase_date') {
-                    // Format date for date input
-                    const date = new Date(coin[key]);
-                    input.value = date.toISOString().split('T')[0];
-                } else {
-                    input.value = coin[key] || '';
-                }
+                input.value = coin[key] || '';
             }
         });
 
-        // Handle save
-        document.getElementById('save-edit').addEventListener('click', () => {
-            const formData = new FormData(editDialog.querySelector('form'));
-            const updatedCoinData = {
-                title: formData.get('title'),
-                year: parseInt(formData.get('year')) || null,
-                country: formData.get('country'),
-                value: parseFloat(formData.get('value')) || null,
-                unit: formData.get('unit'),
-                mint: formData.get('mint'),
-                mint_mark: formData.get('mint_mark'),
-                type: formData.get('type'),
-                format: formData.get('format'),
-                series: formData.get('series'),
-                region: formData.get('region'),
-                storage: formData.get('storage'),
-                status: formData.get('status'),
-                quantity: parseInt(formData.get('quantity')) || 1,
-                purchase_date: formData.get('purchase_date'),
-                purchase_price: parseFloat(formData.get('purchase_price')) || null,
-                current_value: parseFloat(formData.get('value')) || null
-            };
-
+        // Setup form submission
+        document.getElementById('edit-coin-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
             try {
-                db.updateCoin(coinId, updatedCoinData);
-                document.body.removeChild(editDialog);
-                loadCollection(); // Refresh the table
-                alert('Coin updated successfully!');
+                const formData = new FormData(e.target);
+                const updatedCoin = Object.fromEntries(formData);
+                await window.electronAPI.updateCoin(coinId, updatedCoin);
+                await loadCollection();
+                document.getElementById('dialog-container').innerHTML = '';
             } catch (error) {
                 console.error('Error updating coin:', error);
-                alert('Error updating coin: ' + error.message);
+                window.electronAPI.reportError(error);
             }
         });
-
-        // Handle cancel
-        document.getElementById('cancel-edit').addEventListener('click', () => {
-            document.body.removeChild(editDialog);
-        });
-
     } catch (error) {
         console.error('Error showing edit dialog:', error);
-        alert('Error editing coin: ' + error.message);
+        window.electronAPI.reportError(error);
     }
+}
+
+// Event Listeners
+window.electronAPI.on('theme-changed', (theme) => {
+    document.documentElement.setAttribute('data-theme', theme);
+});
+
+window.electronAPI.on('collection-updated', async () => {
+    if (document.querySelector('#collection-table')) {
+        await loadCollection();
+    } else if (document.querySelector('#dashboard')) {
+        await loadDashboard();
+    }
+});
+
+// Function to load the upload collection view
+async function loadUploadCollection() {
+    try {
+        console.log('Loading upload collection view');
+        
+        const uploadContent = await window.electronAPI.readFile('src/forms/upload_collection.html');
+        document.getElementById('main-content').innerHTML = uploadContent;
+        
+        // Set up drag and drop functionality
+        const uploadBox = document.getElementById('upload-box');
+        const fileInput = document.getElementById('file-upload');
+        const fileInfo = document.getElementById('file-info');
+        const fileName = document.getElementById('file-name');
+        const importBtn = document.getElementById('import-button');
+        const cancelBtn = document.getElementById('cancel-upload');
+        const statusEl = document.getElementById('upload-status');
+        
+        // Drag and drop events
+        if (uploadBox) {
+            uploadBox.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadBox.classList.add('drag-over');
+            });
+            
+            uploadBox.addEventListener('dragleave', () => {
+                uploadBox.classList.remove('drag-over');
+            });
+            
+            uploadBox.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadBox.classList.remove('drag-over');
+                
+                if (e.dataTransfer.files.length) {
+                    handleSelectedFile(e.dataTransfer.files[0]);
+                }
+            });
+            
+            // Click to upload
+            uploadBox.addEventListener('click', () => {
+                if (fileInput) fileInput.click();
+            });
+        }
+        
+        // File input change
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    handleSelectedFile(e.target.files[0]);
+                }
+            });
+        }
+        
+        // Cancel button
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                fileInput.value = '';
+                fileInfo.style.display = 'none';
+                statusEl.textContent = '';
+                statusEl.className = 'status-message';
+            });
+        }
+        
+        // Import button
+        if (importBtn) {
+            importBtn.addEventListener('click', async () => {
+                if (fileInput.files.length > 0) {
+                    await importCollectionFile(fileInput.files[0]);
+                }
+            });
+        }
+        
+        // Function to handle selected file
+        function handleSelectedFile(file) {
+            const validTypes = ['.csv', '.json', '.xlsx'];
+            const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            
+            if (validTypes.includes(fileExt)) {
+                fileName.textContent = file.name;
+                fileInfo.style.display = 'flex';
+                importBtn.disabled = false;
+                statusEl.textContent = '';
+                statusEl.className = 'status-message';
+            } else {
+                statusEl.textContent = 'Invalid file type. Please select a CSV, JSON, or Excel file.';
+                statusEl.className = 'status-message error';
+                fileInput.value = '';
+            }
+        }
+        
+        await initializeTheme();
+    } catch (error) {
+        console.error('Error in loadUploadCollection:', error);
+        window.electronAPI.reportError(error);
+        document.getElementById('main-content').innerHTML = `
+            <div class="error-message">
+                <h3>Error Loading Upload View</h3>
+                <p>${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+// Function to handle file import
+async function importCollectionFile(file) {
+    try {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const fileData = event.target.result;
+                
+                // Update status
+                const statusElement = document.getElementById('upload-status');
+                if (statusElement) {
+                    statusElement.textContent = 'Processing file...';
+                }
+                
+                // Process file based on extension
+                const fileName = file.name.toLowerCase();
+                if (fileName.endsWith('.json') || fileName.endsWith('.csv')) {
+                    // Display processing message
+                    document.getElementById('upload-status').textContent = 'Importing data...';
+                    
+                    // Call the API to import the collection
+                    await window.electronAPI.importCollection(fileData);
+                    
+                    // Show success message
+                    document.getElementById('upload-status').textContent = 'Data imported successfully!';
+                    document.getElementById('upload-status').className = 'success-message';
+                    
+                    // Reload dashboard after a short delay
+                    setTimeout(() => loadDashboard(), 2000);
+                } else {
+                    throw new Error('Unsupported file format. Please use JSON or CSV files.');
+                }
+            } catch (error) {
+                console.error('Error importing file:', error);
+                window.electronAPI.reportError(error);
+                
+                // Show error message
+                const statusElement = document.getElementById('upload-status');
+                if (statusElement) {
+                    statusElement.textContent = `Error: ${error.message}`;
+                    statusElement.className = 'error-message';
+                }
+            }
+        };
+        
+        reader.readAsText(file);
+    } catch (error) {
+        console.error('Error reading upload file:', error);
+        window.electronAPI.reportError(error);
+    }
+}
+
+// Function to load the add coin form
+async function loadAddCoin() {
+    try {
+        console.log('Loading add coin form');
+        
+        const addCoinContent = await window.electronAPI.readFile('src/forms/add_coin_form.html');
+        document.getElementById('main-content').innerHTML = addCoinContent;
+        
+        // Set today's date
+        const dateCollectedInput = document.getElementById('date-collected');
+        if (dateCollectedInput) {
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+            dateCollectedInput.value = formattedDate;
+        }
+        
+        // Set up country search
+        setupCountrySearch();
+        
+        // Setup image upload previews
+        setupImageUploadPreviews();
+        
+        // Add event listeners for form actions
+        const coinForm = document.getElementById('coin-form');
+        const cancelButton = document.getElementById('cancel-add');
+        
+        if (coinForm) {
+            coinForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await saveCoin();
+            });
+        }
+        
+        if (cancelButton) {
+            cancelButton.addEventListener('click', () => {
+                loadCollection(); // Return to collection view
+            });
+        }
+        
+        await initializeTheme();
+    } catch (error) {
+        console.error('Error in loadAddCoin:', error);
+        window.electronAPI.reportError(error);
+        document.getElementById('main-content').innerHTML = `
+            <div class="error-message">
+                <h3>Error Loading Add Coin Form</h3>
+                <p>${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+// Function to set up country search
+function setupCountrySearch() {
+    const countrySearch = document.getElementById('country-search');
+    const countryOptions = document.getElementById('country-options');
+    const countryInput = document.getElementById('country');
+    
+    if (!countrySearch || !countryOptions || !countryInput) return;
+    
+    // List of countries (abbreviated list)
+    const countries = [
+        'United States', 'Canada', 'Mexico', 'United Kingdom', 'France', 'Germany', 
+        'Italy', 'Spain', 'Japan', 'China', 'Australia', 'Brazil', 'India', 'Russia',
+        'South Africa', 'Argentina', 'Egypt', 'Greece', 'Israel', 'Netherlands',
+        'Poland', 'Portugal', 'Sweden', 'Switzerland', 'Turkey', 'Ukraine',
+        'Vietnam', 'Thailand', 'Singapore', 'Philippines', 'New Zealand', 'Malaysia',
+        'South Korea', 'North Korea', 'Indonesia', 'Ireland', 'Iceland', 'Denmark',
+        'Norway', 'Finland', 'Belgium', 'Austria', 'Czech Republic', 'Hungary'
+    ];
+    
+    // Populate the options
+    countries.sort().forEach(country => {
+        const option = document.createElement('div');
+        option.className = 'select-option';
+        option.textContent = country;
+        option.addEventListener('click', () => {
+            countryInput.value = country;
+            countrySearch.value = country;
+            countryOptions.classList.remove('visible');
+        });
+        countryOptions.appendChild(option);
+    });
+    
+    // Show options on focus
+    countrySearch.addEventListener('focus', () => {
+        countryOptions.classList.add('visible');
+    });
+    
+    // Filter options when typing
+    countrySearch.addEventListener('input', () => {
+        const searchTerm = countrySearch.value.toLowerCase();
+        Array.from(countryOptions.children).forEach(option => {
+            const optionText = option.textContent.toLowerCase();
+            option.style.display = optionText.includes(searchTerm) ? 'block' : 'none';
+        });
+    });
+    
+    // Hide options when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!countrySearch.contains(e.target) && !countryOptions.contains(e.target)) {
+            countryOptions.classList.remove('visible');
+        }
+    });
+}
+
+// Function to set up image upload previews
+function setupImageUploadPreviews() {
+    setupImageUpload('obverse-image', 'obverse-preview');
+    setupImageUpload('reverse-image', 'reverse-preview');
+}
+
+// Helper function for image upload previews
+function setupImageUpload(inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    
+    if (!input || !preview) return;
+    
+    // Preview when clicking on the preview area
+    preview.addEventListener('click', () => {
+        input.click();
+    });
+    
+    // Update preview when file is selected
+    input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.style.backgroundImage = `url(${e.target.result})`;
+                preview.innerHTML = '';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+// Function to save the coin data
+async function saveCoin() {
+    try {
+        const form = document.getElementById('coin-form');
+        if (!form) return;
+        
+        const formData = new FormData(form);
+        const coinData = {};
+        
+        // Convert FormData to object
+        formData.forEach((value, key) => {
+            coinData[key] = value;
+        });
+        
+        // Handle images (convert to base64 if needed)
+        const obverseImageInput = document.getElementById('obverse-image');
+        const reverseImageInput = document.getElementById('reverse-image');
+        
+        if (obverseImageInput.files.length > 0) {
+            coinData.obverse_image = await readFileAsBase64(obverseImageInput.files[0]);
+        }
+        
+        if (reverseImageInput.files.length > 0) {
+            coinData.reverse_image = await readFileAsBase64(reverseImageInput.files[0]);
+        }
+        
+        // Add current timestamp
+        coinData.created_at = new Date().toISOString();
+        
+        // Save the coin via the Electron API
+        await window.electronAPI.addCoin(coinData);
+        
+        // Navigate back to collection view
+        await loadCollection();
+    } catch (error) {
+        console.error('Error saving coin:', error);
+        window.electronAPI.reportError(error);
+        alert('Error saving coin: ' + error.message);
+    }
+}
+
+// Helper function to read a file as base64
+function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
 }

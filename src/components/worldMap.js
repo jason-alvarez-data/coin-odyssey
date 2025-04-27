@@ -1,13 +1,29 @@
-const path = require('path');
-const fs = require('fs');
+// Remove Node.js require statements
+// const path = require('path');
+// const fs = require('fs');
 
 class WorldMap {
     constructor(containerId, countryData = {}) {
         this.containerId = containerId;
-        this.countryData = countryData;  // Changed from collectionCountries to countryData
+        this.countryData = countryData;
         this.container = null;
         this.tooltip = null;
         this.initialized = false;
+        this.eventListeners = new Map(); // Store event listeners for cleanup
+        
+        // Add country name mapping
+        this.countryNameMapping = {
+            // Common variations
+            'United States of America': 'United States',
+            'USA': 'United States',
+            'US': 'United States',
+            'United Kingdom': 'UK',
+            'Great Britain': 'UK',
+            'Russian Federation': 'Russia',
+            'People\'s Republic of China': 'China',
+            'PRC': 'China',
+            // Add more mappings as needed
+        };
     }
 
     async initialize() {
@@ -16,45 +32,92 @@ class WorldMap {
             if (!this.container) {
                 throw new Error('Map container not found');
             }
-    
+
+            // Clear the container first
+            this.container.innerHTML = '';
+            
+            // Create a wrapper div with proper sizing
+            const mapWrapper = document.createElement('div');
+            mapWrapper.className = 'world-map-wrapper';
+            mapWrapper.style.width = '100%';
+            mapWrapper.style.height = '100%';
+            mapWrapper.style.position = 'relative';
+            mapWrapper.style.overflow = 'hidden';
+            
+            // Fetch and load the SVG content directly
+            try {
+                const response = await fetch('src/assets/world-map.svg');
+                const svgContent = await response.text();
+                
+                // Create a temporary div to parse the SVG content
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = svgContent;
+                
+                // Get the first SVG element
+                const svg = tempDiv.querySelector('svg');
+                if (svg) {
+                    // Set proper SVG attributes for responsive sizing
+                    svg.setAttribute('width', '100%');
+                    svg.setAttribute('height', '100%');
+                    svg.style.display = 'block';
+                    svg.style.maxWidth = '100%';
+                    svg.style.maxHeight = '100%';
+                    
+                    // Only append the SVG element, not the entire content
+                    mapWrapper.appendChild(svg);
+                } else {
+                    throw new Error('No SVG element found in the content');
+                }
+            } catch (error) {
+                console.error('Failed to load SVG:', error);
+                throw error;
+            }
+            
+            // Add the wrapper to the container
+            this.container.appendChild(mapWrapper);
+            
             // Create tooltip element
             this.tooltip = document.createElement('div');
             this.tooltip.className = 'map-tooltip';
+            this.tooltip.style.position = 'absolute';
+            this.tooltip.style.backgroundColor = 'var(--tooltip-bg, rgba(255, 255, 255, 0.95))';
+            this.tooltip.style.color = 'var(--tooltip-text, #000)';
+            this.tooltip.style.padding = '8px 12px';
+            this.tooltip.style.border = '1px solid var(--tooltip-border, rgba(0, 0, 0, 0.1))';
+            this.tooltip.style.borderRadius = '6px';
+            this.tooltip.style.pointerEvents = 'none';
+            this.tooltip.style.display = 'none';
+            this.tooltip.style.zIndex = '1000';
+            this.tooltip.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+            this.tooltip.style.fontSize = '14px';
+            this.tooltip.style.lineHeight = '1.4';
+            this.tooltip.style.minWidth = '150px';
             this.container.appendChild(this.tooltip);
-    
-            // Load SVG map
-            const svgPath = path.join(__dirname, '..', 'assets', 'world-map.svg');
-            const svgContent = fs.readFileSync(svgPath, 'utf8');
-            
-            // Create map container
-            const mapWrapper = document.createElement('div');
-            mapWrapper.className = 'world-map-wrapper';
-            mapWrapper.innerHTML = svgContent;
-    
-            // Add this new code block here ↓
-            // Process SVG paths to add necessary attributes
-            const paths = mapWrapper.querySelectorAll('path');
-            paths.forEach(path => {
-                const countryId = path.getAttribute('id');
-                const countryClass = path.getAttribute('class');
-                const countryName = path.getAttribute('name');
-                
-                // Handle both id and class-based country paths
-                if (countryId || countryClass) {
-                    path.classList.add('country');
-                    // If the path already has a class like "Canada", use that as the country name
-                    const name = countryName || countryClass || countryId;
-                    path.setAttribute('data-name', name);
+
+            // Add CSS variables for theme support
+            const style = document.createElement('style');
+            style.textContent = `
+                :root {
+                    --tooltip-bg: rgba(255, 255, 255, 0.95);
+                    --tooltip-text: #000;
+                    --tooltip-border: rgba(0, 0, 0, 0.1);
                 }
-            });
-    
-            this.container.appendChild(mapWrapper);
-    
-            // Setup event handlers
-            this.setupEventHandlers();
+                
+                [data-theme="dark"] {
+                    --tooltip-bg: rgba(50, 50, 50, 0.95);
+                    --tooltip-text: #fff;
+                    --tooltip-border: rgba(255, 255, 255, 0.1);
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Set the container position to relative for proper tooltip positioning
+            this.container.style.position = 'relative';
+            
+            // Initialize event listeners
+            await this.loadMapData();
             
             this.initialized = true;
-            this.updateCollectionHighlights();
         } catch (error) {
             console.error('Failed to initialize map:', error);
             this.container.innerHTML = `
@@ -64,75 +127,152 @@ class WorldMap {
             `;
         }
     }
-
-    setupEventHandlers() {
-        // Handle country hover events
-        const countries = this.container.querySelectorAll('.country');
-        countries.forEach(country => {
-            country.addEventListener('mouseenter', (e) => this.handleCountryHover(e));
-            country.addEventListener('mouseleave', () => this.hideTooltip());
-            country.addEventListener('click', (e) => this.handleCountryClick(e));
-        });
-
-        // Update tooltip position on mouse move
-        this.container.addEventListener('mousemove', (e) => {
-            if (this.tooltip.style.display === 'block') {
-                const bounds = this.container.getBoundingClientRect();
-                const x = e.clientX - bounds.left + 10;
-                const y = e.clientY - bounds.top + 10;
-                
-                this.tooltip.style.left = `${x}px`;
-                this.tooltip.style.top = `${y}px`;
+    
+    async loadMapData() {
+        try {
+            const svg = this.container.querySelector('svg');
+            if (!svg) {
+                throw new Error('SVG element not found');
             }
-        });
-    }
 
-    handleCountryHover(event) {
-        const country = event.target;
-        const countryName = country.getAttribute('data-name');
-        const coinCount = this.countryData[countryName] || 0;
-        const isCollected = coinCount > 0;
+            // Add event listeners to all country paths
+            const paths = svg.querySelectorAll('path');
+            paths.forEach(path => {
+                // Get country name and check if we have coins from this country
+                let countryName = path.getAttribute('name');
+                if (!countryName) {
+                    const className = path.getAttribute('class');
+                    if (className) {
+                        countryName = className.split(' ')
+                            .filter(c => c !== 'land')
+                            .map(c => c.toUpperCase())
+                            .join(' ');
+                    }
+                }
 
-        this.tooltip.innerHTML = `
-            <strong>${countryName}</strong><br>
-            ${isCollected ? 
-                `<span class="collected-status">${coinCount} coin${coinCount > 1 ? 's' : ''} in collection</span>` : 
-                `<span class="not-collected-status">No coins yet</span>`}
-        `;
-        this.tooltip.style.display = 'block';
+                // Set initial color based on collection
+                if (countryName) {
+                    const standardizedName = this.countryNameMapping[countryName] || countryName;
+                    const coinCount = this.countryData[standardizedName] || 0;
+                    if (coinCount > 0) {
+                        path.style.fill = '#ADD8E6'; // Light blue color
+                    }
+                }
+
+                // Create event listener functions
+                const mousemoveHandler = (e) => {
+                    const countryId = path.getAttribute('id');
+                    let countryName = path.getAttribute('name');
+                    
+                    // If name attribute is not available, try to get it from class
+                    if (!countryName) {
+                        const className = path.getAttribute('class');
+                        if (className) {
+                            countryName = className.split(' ')
+                                .filter(c => c !== 'land')
+                                .map(c => c.toUpperCase())
+                                .join(' ');
+                        }
+                    }
+                    
+                    if (countryName) {
+                        // Try to get the standardized country name
+                        const standardizedName = this.countryNameMapping[countryName] || countryName;
+                        const coinCount = this.countryData[standardizedName] || 0;
+                        
+                        this.tooltip.innerHTML = `
+                            <strong>${countryName}</strong><br>
+                            Coins in collection: ${coinCount}
+                        `;
+                        
+                        const containerBounds = this.container.getBoundingClientRect();
+                        this.tooltip.style.left = `${e.clientX - containerBounds.left + 10}px`;
+                        this.tooltip.style.top = `${e.clientY - containerBounds.top + 10}px`;
+                        this.tooltip.style.display = 'block';
+                    }
+                };
+
+                const mouseleaveHandler = () => {
+                    this.hideTooltip();
+                };
+
+                const mouseenterHandler = () => {
+                    const standardizedName = this.countryNameMapping[countryName] || countryName;
+                    const coinCount = this.countryData[standardizedName] || 0;
+                    // Only change to gray if we don't have coins from this country
+                    if (coinCount === 0) {
+                        path.style.fill = '#ccc';
+                    }
+                };
+
+                const mouseleaveStyleHandler = () => {
+                    const standardizedName = this.countryNameMapping[countryName] || countryName;
+                    const coinCount = this.countryData[standardizedName] || 0;
+                    // Reset to light blue if we have coins, or no fill if we don't
+                    path.style.fill = coinCount > 0 ? '#ADD8E6' : '';
+                };
+
+                // Store event listeners for this path
+                this.eventListeners.set(path, {
+                    mousemove: mousemoveHandler,
+                    mouseleave: mouseleaveHandler,
+                    mouseenter: mouseenterHandler,
+                    mouseleaveStyle: mouseleaveStyleHandler
+                });
+
+                // Add event listeners
+                path.addEventListener('mousemove', mousemoveHandler);
+                path.addEventListener('mouseleave', mouseleaveHandler);
+                path.addEventListener('mouseenter', mouseenterHandler);
+                path.addEventListener('mouseleave', mouseleaveStyleHandler);
+                path.style.cursor = 'pointer';
+            });
+
+        } catch (error) {
+            console.error('Error loading map data:', error);
+        }
     }
 
     hideTooltip() {
-        this.tooltip.style.display = 'none';
-    }
-
-    handleCountryClick(event) {
-        const countryName = event.target.getAttribute('data-name');
-        // Dispatch custom event for country click
-        const clickEvent = new CustomEvent('country-selected', {
-            detail: { country: countryName }
-        });
-        this.container.dispatchEvent(clickEvent);
-    }
-
-    updateCollectionHighlights() {
-        if (!this.initialized) return;
-
-        const countries = this.container.querySelectorAll('.country');
-        countries.forEach(country => {
-            const countryName = country.getAttribute('data-name');
-            if (this.countryData[countryName] > 0) {
-                country.classList.add('collected');
-            } else {
-                country.classList.remove('collected');
-            }
-        });
+        if (this.tooltip) {
+            this.tooltip.style.display = 'none';
+        }
     }
 
     updateCollection(newCountryData) {
         this.countryData = newCountryData;
-        this.updateCollectionHighlights();
+    }
+
+    destroy() {
+        if (this.container) {
+            const svg = this.container.querySelector('svg');
+            if (svg) {
+                const paths = svg.querySelectorAll('path');
+                paths.forEach(path => {
+                    // Remove event listeners using stored references
+                    const listeners = this.eventListeners.get(path);
+                    if (listeners) {
+                        path.removeEventListener('mousemove', listeners.mousemove);
+                        path.removeEventListener('mouseleave', listeners.mouseleave);
+                        path.removeEventListener('mouseenter', listeners.mouseenter);
+                        path.removeEventListener('mouseleave', listeners.mouseleaveStyle);
+                    }
+                });
+            }
+            
+            // Clear the event listeners map
+            this.eventListeners.clear();
+            
+            // Clear the container
+            this.container.innerHTML = '';
+            
+            // Reset instance variables
+            this.container = null;
+            this.tooltip = null;
+            this.initialized = false;
+        }
     }
 }
 
-module.exports = WorldMap;
+// Make WorldMap available globally
+window.WorldMap = WorldMap;

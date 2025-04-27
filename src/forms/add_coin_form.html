@@ -46,17 +46,6 @@
                         <label for="mint">Mint:</label>
                         <input type="text" id="mint" name="mint">
                     </div>
-
-                    <div class="form-group">
-                        <label for="mint-mark">Mark:</label>
-                        <input type="text" id="mint-mark" name="mint_mark">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="date-collected">Date Collected:</label>
-                        <input type="date" id="date-collected" name="purchase_date" readonly>
-                        <small class="field-hint">Automatically set to today's date</small>
-                    </div>
                 </div>
 
                 <!-- Right Column -->
@@ -101,8 +90,6 @@
                             <option value="Clear Coin Bin">Clear Coin Bin</option>
                             <option value="State Collection Volume 1">State Collection Volume 1</option>
                             <option value="State Collection Volume 2">State Collection Volume 2</option>
-                            <option value="American Women Album">American Women Album</option>
-                            <option value="America the Beautiful Map">America the Beautiful Map</option>
                             <option value="Other">Other</option>
                         </select>
                     </div>
@@ -115,13 +102,31 @@
                             <option value="ordered">Ordered</option>
                         </select>
                     </div>
+                </div>
+            </div>
 
+            <div class="form-grid bottom-row">
+                <!-- Bottom left -->
+                <div class="form-column">
+                    <div class="form-group">
+                        <label for="mint-mark">Mark:</label>
+                        <input type="text" id="mint-mark" name="mint_mark">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="date-collected">Date Collected:</label>
+                        <input type="date" id="date-collected" name="purchase_date" readonly>
+                        <small class="field-hint">Automatically set to today's date</small>
+                    </div>
+                </div>
+                
+                <!-- Bottom right -->
+                <div class="form-column">
                     <div class="form-group">
                         <label for="purchase-price">Purchase Price:</label>
-                        <input type="number" id="purchase-price" name="purchase_price" 
-                               step="0.01" min="0" placeholder="0.00">
+                        <input type="number" id="purchase-price" name="purchase_price" step="0.01" min="0" placeholder="0.00">
                     </div>
-
+                    
                     <div class="form-group">
                         <label for="quantity">Quantity:</label>
                         <input type="number" id="quantity" name="quantity" value="1" min="1" max="999">
@@ -135,7 +140,7 @@
                     <div class="image-upload">
                         <label for="obverse-image">Obverse</label>
                         <div class="image-preview" id="obverse-preview">
-                            <span>Click or drag image here</span>
+                            <span>Click to add image</span>
                         </div>
                         <div class="image-upload-button">
                             <input type="file" id="obverse-image" name="obverse_image" accept="image/*">
@@ -144,7 +149,7 @@
                     <div class="image-upload">
                         <label for="reverse-image">Reverse</label>
                         <div class="image-preview" id="reverse-preview">
-                            <span>Click or drag image here</span>
+                            <span>Click to add image</span>
                         </div>
                         <div class="image-upload-button">
                             <input type="file" id="reverse-image" name="reverse_image" accept="image/*">
@@ -153,11 +158,11 @@
                 </div>
             </div>
 
-        <!-- Form Actions -->
-        <div class="form-actions">
-            <button type="button" id="cancel-add" class="cancel-button">Cancel</button>
-            <button type="submit" id="save-coin" class="save-button">Save Coin</button>
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button type="button" id="cancel-add" class="cancel-button">Cancel</button>
+                <button type="submit" id="save-coin" class="save-button">Save Coin</button>
+            </div>
         </div>
-    </div>
-</form>
+    </form>
 </div>

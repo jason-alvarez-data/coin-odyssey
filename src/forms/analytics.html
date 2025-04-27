@@ -1,0 +1,51 @@
+<div class="analytics-container">
+    <h2>Collection Analysis</h2>
+    
+    <div class="analytics-metrics">
+        <div class="metric-card">
+            <h3>Total Value</h3>
+            <p id="total-value">$0.00</p>
+        </div>
+        <div class="metric-card">
+            <h3>Average Value</h3>
+            <p id="average-value">$0.00</p>
+        </div>
+        <div class="metric-card">
+            <h3>Value Change</h3>
+            <p>
+                <span id="value-change">$0.00</span>
+                <span id="change-indicator"></span>
+                <span id="percentage-change">(0%)</span>
+            </p>
+        </div>
+    </div>
+    
+    <div class="analytics-content">
+        <div class="charts-container">
+            <div class="chart-wrapper timeline-chart">
+                <h3>Value Timeline</h3>
+                <div class="chart-container timeline-container">
+                    <canvas id="value-timeline-chart"></canvas>
+                </div>
+            </div>
+            <div class="chart-wrapper geo-chart">
+                <h3>Geographic Distribution</h3>
+                <div class="chart-container geo-container">
+                    <canvas id="geographic-distribution-chart"></canvas>
+                </div>
+            </div>
+            <div class="chart-wrapper year-chart">
+                <h3>Year Distribution</h3>
+                <div class="chart-container year-container">
+                    <canvas id="year-distribution-chart"></canvas>
+                </div>
+            </div>
+            <div class="chart-wrapper composition-chart">
+                <h3>Collection Composition</h3>
+                <div class="chart-container composition-container">
+                    <canvas id="collection-composition-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

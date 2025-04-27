@@ -1,26 +1,20 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Settings</title>
-</head>
-<body>
-    <div class="settings-container">
-        <h1 class="settings-title">Settings</h1>
-        
+<div class="settings-container">
+    <h2 class="settings-title">Settings</h2>
+    
+    <div class="settings-grid">
         <!-- Application Preferences Section -->
         <div class="settings-section">
             <h2>Application Preferences</h2>
             <div class="settings-content">
                 <div class="setting-item">
-                    <label>Theme</label>
-                    <div class="theme-toggle">
-                        <label for="theme-switch-settings">Dark Mode</label>
-                        <input type="checkbox" id="theme-switch-settings">
-                    </div>
+                    <label for="theme-selector">Theme</label>
+                    <select id="theme-selector">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
                 </div>
                 <div class="setting-item">
-                    <label>Default Currency Format</label>
+                    <label for="currency-format">Default Currency Format</label>
                     <select id="currency-format">
                         <option value="USD">USD ($)</option>
                         <option value="EUR">EUR (€)</option>
@@ -28,7 +22,7 @@
                     </select>
                 </div>
                 <div class="setting-item">
-                    <label>Date Format</label>
+                    <label for="date-format">Date Format</label>
                     <select id="date-format">
                         <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                         <option value="DD/MM/YYYY">DD/MM/YYYY</option>
@@ -43,14 +37,14 @@
             <h2>Collection Display</h2>
             <div class="settings-content">
                 <div class="setting-item">
-                    <label>Default Collection View</label>
+                    <label for="default-view">Default Collection View</label>
                     <select id="default-view">
                         <option value="table">Table View</option>
                         <option value="grid">Grid View</option>
                     </select>
                 </div>
                 <div class="setting-item">
-                    <label>Default Sorting</label>
+                    <label for="default-sort">Default Sorting</label>
                     <select id="default-sort">
                         <option value="date-added">Date Added</option>
                         <option value="year">Year</option>
@@ -87,11 +81,20 @@
             <div class="settings-content">
                 <div class="setting-item">
                     <label>Backup Collection</label>
-                    <button id="backup-data" class="settings-button">Export Backup</button>
+                    <div class="setting-controls">
+                        <button id="export-data" class="settings-button primary-button">Export Backup</button>
+                        <select id="export-format">
+                            <option value="json">JSON</option>
+                            <option value="csv">CSV</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="setting-item">
                     <label>Import Backup</label>
-                    <button id="import-backup" class="settings-button">Import Backup</button>
+                    <div class="setting-controls">
+                        <button id="import-data" class="settings-button primary-button">Import Backup</button>
+                        <input type="file" id="import-file" accept=".json,.csv" style="display: none;">
+                    </div>
                 </div>
                 <div class="setting-item danger-zone">
                     <label>Clear Application Data</label>
@@ -100,5 +103,6 @@
             </div>
         </div>
     </div>
-</body>
-</html>
+    
+    <div id="settings-status" class="status-message"></div>
+</div>

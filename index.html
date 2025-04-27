@@ -1,43 +1,204 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'">
     <title>Coin Odyssey</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="node_modules/chart.js/dist/chart.umd.js"></script>
-  </head>
-  <body>
+    <!-- Include the libraries directly -->
+    <script src="./src/assets/color.js"></script>
+    <!-- Replace date-fns with our custom bundle -->
+    <script src="./src/assets/date-fns-bundle.js"></script>
+    <script src="./node_modules/chart.js/dist/chart.umd.js"></script>
+    <!-- Our custom Chart.js date adapter -->
+    <script src="./src/assets/chart-adapter.js"></script>
+    <script src="renderer.js" defer></script>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
     <div id="sidebar">
-      <img src="src/assets/CoinOdyssey_Logo_Final.png" alt="Logo" id="logo">
-      <nav>
-        <button class="sidebar-button add-coin" data-view="add">
-          <span class="icon">+</span> Add Coin
-        </button>
-        <button class="sidebar-button" data-view="dashboard">
-          <span class="icon">🏠</span> Dashboard
-        </button>
-        <button class="sidebar-button" data-view="collection">
-          <span class="icon">🪙</span> Collection
-        <button class="sidebar-button" data-view="analysis">
-          <span class="icon">📊</span> Analysis
-        </button>
-        <button class="sidebar-button" data-view="upload">
-          <span class="icon">📤</span> Upload Collection
-      </button>
-        <button class="sidebar-button" data-view="settings">
-          <span class="icon">⚙️</span> Settings
-        </button>
-      </nav>
-      <div id="toggle">
-        <label for="theme-switch">Light/Dark Mode</label>
-        <input type="checkbox" id="theme-switch">
-      </div>
+        <img src="src/assets/CoinOdyssey_Logo_Final.png" alt="Logo" id="logo">
+        <nav>
+            <button class="sidebar-button add-coin" data-view="add">
+                <span class="icon">+</span> Add Coin
+            </button>
+            <button class="sidebar-button" data-view="dashboard">
+                <span class="icon">🏠</span> Dashboard
+            </button>
+            <button class="sidebar-button" data-view="collection">
+                <span class="icon">🪙</span> Collection
+            </button>
+            <button class="sidebar-button" data-view="analysis">
+                <span class="icon">📊</span> Analysis
+            </button>
+            <button class="sidebar-button" data-view="upload">
+                <span class="icon">📤</span> Upload Collection
+            </button>
+            <button class="sidebar-button" data-view="settings">
+                <span class="icon">⚙️</span> Settings
+            </button>
+        </nav>
+        <div id="theme-toggle">
+            <div class="theme-toggle-label">Light/Dark Mode</div>
+            <label class="switch">
+                <input type="checkbox" id="theme-switch">
+                <span class="slider round"></span>
+            </label>
+        </div>
     </div>
+
+    <!-- Main Content Area -->
     <div id="main-content">
-      <input type="text" id="search-bar" placeholder="Search...">
-      <div id="content-sections">
-        <!-- Individual sections for components -->
-      </div>
+        <!-- Loading Indicator -->
+        <div id="loading-indicator" class="hidden">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+
+        <!-- Search Bar -->
+        <div id="search-container" class="hidden">
+            <input type="text" id="search-input" placeholder="Search coins...">
+            <select id="search-field">
+                <option value="all">All Fields</option>
+                <option value="title">Title</option>
+                <option value="year">Year</option>
+                <option value="country">Country</option>
+                <option value="mint">Mint</option>
+                <option value="type">Type</option>
+                <option value="series">Series</option>
+            </select>
+        </div>
+
+        <!-- Content Sections -->
+        <div id="content-sections">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section hidden">
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <h3>Total Coins</h3>
+                        <p id="total-coins">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Countries</h3>
+                        <p id="unique-countries">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Years Span</h3>
+                        <p id="unique-years">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Value</h3>
+                        <p id="estimated-value">$0.00</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Collection Section -->
+            <section id="collection" class="content-section hidden">
+                <table id="collection-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Title</th>
+                            <th>Year</th>
+                            <th>Country</th>
+                            <th>Value</th>
+                            <th>Unit</th>
+                            <th>Mint</th>
+                            <th>Mark</th>
+                            <th>Status</th>
+                            <th>Type</th>
+                            <th>Series</th>
+                            <th>Storage</th>
+                            <th>Format</th>
+                            <th>Region</th>
+                            <th>Quantity</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+
+            <!-- Analysis Section -->
+            <section id="analysis" class="content-section hidden">
+                <div class="analytics-metrics">
+                    <div class="metric-card">
+                        <h3>Total Value</h3>
+                        <p id="total-value">$0.00</p>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Average Value</h3>
+                        <p id="average-value">$0.00</p>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Value Change</h3>
+                        <p>
+                            <span id="value-change">$0.00</span>
+                            <span id="change-indicator"></span>
+                            <span id="percentage-change">(0%)</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="charts-container">
+                    <div class="chart-wrapper">
+                        <h3>Value Timeline</h3>
+                        <canvas id="value-timeline-chart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <h3>Geographic Distribution</h3>
+                        <canvas id="geographic-distribution-chart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <h3>Year Distribution</h3>
+                        <canvas id="year-distribution-chart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <h3>Collection Composition</h3>
+                        <canvas id="collection-composition-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings" class="content-section hidden">
+                <h2>Settings</h2>
+                <div class="settings-container">
+                    <div class="setting-group">
+                        <h3>Theme</h3>
+                        <select id="theme-selector">
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <h3>Data Management</h3>
+                        <button id="export-data" class="settings-button">Export Collection</button>
+                        <select id="export-format">
+                            <option value="json">JSON</option>
+                            <option value="csv">CSV</option>
+                        </select>
+                        <button id="import-data" class="settings-button">Import Collection</button>
+                        <input type="file" id="import-file" accept=".json,.csv" style="display: none;">
+                    </div>
+                </div>
+                <div id="settings-status" class="status-message"></div>
+            </section>
+        </div>
     </div>
-    <script src="renderer.js"></script>
-  </body>
+
+    <!-- Dialog Container for Modals -->
+    <div id="dialog-container"></div>
+
+    <!-- Error Message Container -->
+    <div id="error-container" class="hidden">
+        <div class="error-message">
+            <span class="error-text"></span>
+            <button class="close-error">×</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="renderer.js"></script>
+</body>
 </html>

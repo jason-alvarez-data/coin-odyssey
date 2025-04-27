@@ -1,73 +1,64 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Coin Collection</title>
-</head>
-<body>
-    <div class="collection-view">
-        <div class="collection-title">My Collection</div>
-        
-        <!-- Search and Filter Section -->
-        <div class="collection-controls">
-            <div class="search-box">
-                <input type="text" id="search-input" placeholder="Search coins...">
-                <select id="search-field">
-                    <option value="All Fields">All Fields</option>
-                    <option value="title">Title</option>
-                    <option value="country">Country</option>
-                    <option value="year">Year</option>
-                </select>
-            </div>
-            
-            <div class="filters">
-                <select id="condition-filter">
-                    <option value="">All Conditions</option>
-                    <option value="Mint">Mint</option>
-                    <option value="Near Mint">Near Mint</option>
-                    <option value="Fine">Fine</option>
-                    <option value="Good">Good</option>
-                </select>
-                
-                <select id="value-filter">
-                    <option value="">All Values</option>
-                    <option value="Under $10">Under $10</option>
-                    <option value="$10 - $50">$10 - $50</option>
-                    <option value="$50 - $100">$50 - $100</option>
-                    <option value="$100 - $500">$100 - $500</option>
-                    <option value="Over $500">Over $500</option>
-                </select>
-            </div>
+<div class="collection-view">
+    <div class="collection-title">My Collection</div>
+    
+    <!-- Search and Filter Section -->
+    <div class="collection-controls">
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search coins...">
+            <select id="search-field">
+                <option value="All Fields">All Fields</option>
+                <option value="title">Title</option>
+                <option value="country">Country</option>
+                <option value="year">Year</option>
+            </select>
         </div>
-
-        <!-- Coin Table Container -->
-        <div id="coin-table" class="coin-table-container">
-            <table id="collection-table">
-                <thead>
-                    <tr>
-                        <th>Date Collected</th>
-                        <th>Title</th>
-                        <th>Year</th>
-                        <th>Country</th>
-                        <th>Value</th>
-                        <th>Unit</th>
-                        <th>Mint</th>
-                        <th>Mint Mark</th>
-                        <th>Status</th>
-                        <th>Type</th>
-                        <th>Series</th>
-                        <th>Storage</th>
-                        <th>Format</th>
-                        <th>Region</th>
-                        <th>Quantity</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Table content will be dynamically populated -->
-                </tbody>
-            </table>
+        
+        <div class="filters">
+            <select id="condition-filter">
+                <option value="">All Conditions</option>
+                <option value="Mint">Mint</option>
+                <option value="Near Mint">Near Mint</option>
+                <option value="Fine">Fine</option>
+                <option value="Good">Good</option>
+            </select>
+            
+            <select id="value-filter">
+                <option value="">All Values</option>
+                <option value="Under $10">Under $10</option>
+                <option value="$10 - $50">$10 - $50</option>
+                <option value="$50 - $100">$50 - $100</option>
+                <option value="$100 - $500">$100 - $500</option>
+                <option value="Over $500">Over $500</option>
+            </select>
         </div>
     </div>
-</body>
-</html>
+
+    <!-- Coin Table Container -->
+    <div id="coin-table" class="coin-table-container">
+        <table id="collection-table">
+            <thead>
+                <tr>
+                    <th>Date Collected</th>
+                    <th>Title</th>
+                    <th>Year</th>
+                    <th>Country</th>
+                    <th>Value</th>
+                    <th>Unit</th>
+                    <th>Mint</th>
+                    <th>Mint Mark</th>
+                    <th>Status</th>
+                    <th>Type</th>
+                    <th>Series</th>
+                    <th>Storage</th>
+                    <th>Format</th>
+                    <th>Region</th>
+                    <th>Quantity</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Table content will be dynamically populated -->
+            </tbody>
+        </table>
+    </div>
+</div>

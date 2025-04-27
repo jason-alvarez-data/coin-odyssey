@@ -73,183 +73,346 @@ initDatabase();
 
 // Database operations
 const dbOperations = {
-    // Replace the existing addCoin function with this one
+    // Basic CRUD Operations
     addCoin: function(coinData) {
-      try {
-        // Ensure all fields exist with default values
-        const defaultCoinData = {
-          title: null,
-          year: null,
-          country: null,
-          value: null,
-          unit: null,
-          mint: null,
-          mint_mark: null,
-          type: null,
-          format: null,
-          series: null,
-          region: null,
-          storage: null,
-          status: null,
-          quantity: null,
-          purchase_date: null,
-          purchase_price: null,
-          current_value: null,
-          notes: null
-        };
-  
-        // Merge provided data with defaults
-        const completeData = { ...defaultCoinData, ...coinData };
-  
-        // Convert empty strings to null
-        Object.keys(completeData).forEach(key => {
-          if (completeData[key] === '') {
-            completeData[key] = null;
-          }
-        });
-  
-        // Convert string numbers to their proper types
-        if (completeData.year) completeData.year = Number(completeData.year);
-        if (completeData.value) completeData.value = Number(completeData.value);
-        if (completeData.quantity) completeData.quantity = Number(completeData.quantity);
-        if (completeData.purchase_price) completeData.purchase_price = Number(completeData.purchase_price);
-        if (completeData.current_value) completeData.current_value = Number(completeData.current_value);
-        
-        const stmt = db.prepare(`
-          INSERT INTO coins (
-            title, year, country, value, unit, mint, mint_mark, 
-            type, format, series, region, storage, status, quantity,
-            purchase_date, purchase_price, current_value, notes
-          ) VALUES (
-            @title, @year, @country, @value, @unit, @mint, @mint_mark,
-            @type, @format, @series, @region, @storage, @status, @quantity,
-            @purchase_date, @purchase_price, @current_value, @notes
-          )
-        `);
-        
-        const result = stmt.run(completeData);
-        console.log(`Coin added with ID: ${result.lastInsertRowid}`);
-        return result.lastInsertRowid;
-      } catch (error) {
-        console.error('Error adding coin:', error);
-        throw error;
-      }
+        try {
+            // Ensure all fields exist with default values
+            const defaultCoinData = {
+                title: null,
+                year: null,
+                country: null,
+                value: null,
+                unit: null,
+                mint: null,
+                mint_mark: null,
+                type: null,
+                format: null,
+                series: null,
+                region: null,
+                storage: null,
+                status: null,
+                quantity: null,
+                purchase_date: null,
+                purchase_price: null,
+                current_value: null,
+                notes: null
+            };
+
+            // Merge provided data with defaults
+            const completeData = { ...defaultCoinData, ...coinData };
+
+            // Convert empty strings to null
+            Object.keys(completeData).forEach(key => {
+                if (completeData[key] === '') {
+                    completeData[key] = null;
+                }
+            });
+
+            // Convert string numbers to their proper types
+            if (completeData.year) completeData.year = Number(completeData.year);
+            if (completeData.value) completeData.value = Number(completeData.value);
+            if (completeData.quantity) completeData.quantity = Number(completeData.quantity);
+            if (completeData.purchase_price) completeData.purchase_price = Number(completeData.purchase_price);
+            if (completeData.current_value) completeData.current_value = Number(completeData.current_value);
+
+            const stmt = db.prepare(`
+                INSERT INTO coins (
+                    title, year, country, value, unit, mint, mint_mark, 
+                    type, format, series, region, storage, status, quantity,
+                    purchase_date, purchase_price, current_value, notes
+                ) VALUES (
+                    @title, @year, @country, @value, @unit, @mint, @mint_mark,
+                    @type, @format, @series, @region, @storage, @status, @quantity,
+                    @purchase_date, @purchase_price, @current_value, @notes
+                )
+            `);
+
+            const result = stmt.run(completeData);
+            console.log(`Coin added with ID: ${result.lastInsertRowid}`);
+            return result.lastInsertRowid;
+        } catch (error) {
+            console.error('Error adding coin:', error);
+            throw error;
+        }
     },
 
-  // Add an image for a coin
-  addCoinImage: function(imageData) {
-    try {
-      const stmt = db.prepare(`
-        INSERT INTO coin_images (coin_id, image_path, image_type)
-        VALUES (@coin_id, @image_path, @image_type)
-      `);
-      
-      const result = stmt.run(imageData);
-      return result.lastInsertRowid;
-    } catch (error) {
-      console.error('Error adding coin image:', error);
-      throw error;
-    }
-  },
+    addCoinImage: function(imageData) {
+        try {
+            const stmt = db.prepare(`
+                INSERT INTO coin_images (coin_id, image_path, image_type)
+                VALUES (@coin_id, @image_path, @image_type)
+            `);
 
-  // Get all coins
-  getAllCoins: function() {
-    try {
-      const stmt = db.prepare('SELECT * FROM coins');
-      return stmt.all();
-    } catch (error) {
-      console.error('Error getting all coins:', error);
-      return [];
-    }
-  },
+            const result = stmt.run(imageData);
+            return result.lastInsertRowid;
+        } catch (error) {
+            console.error('Error adding coin image:', error);
+            throw error;
+        }
+    },
 
-  // Get coin by ID
-  getCoinById: function(id) {
-    try {
-      const stmt = db.prepare('SELECT * FROM coins WHERE id = ?');
-      return stmt.get(id);
-    } catch (error) {
-      console.error(`Error getting coin #${id}:`, error);
-      return null;
-    }
-  },
+    getAllCoins: function() {
+        try {
+            const stmt = db.prepare('SELECT * FROM coins');
+            return stmt.all();
+        } catch (error) {
+            console.error('Error getting all coins:', error);
+            return [];
+        }
+    },
 
-  // Get images for a coin
-  getCoinImages: function(coinId) {
-    try {
-      const stmt = db.prepare('SELECT * FROM coin_images WHERE coin_id = ?');
-      return stmt.all(coinId);
-    } catch (error) {
-      console.error(`Error getting images for coin #${coinId}:`, error);
-      return [];
-    }
-  },
+    getCoinById: function(id) {
+        try {
+            const stmt = db.prepare('SELECT * FROM coins WHERE id = ?');
+            return stmt.get(id);
+        } catch (error) {
+            console.error(`Error getting coin #${id}:`, error);
+            return null;
+        }
+    },
 
-  // Update coin
-  updateCoin: function(id, coinData) {
-    try {
-      // Build SET clause dynamically based on provided data
-      const fields = Object.keys(coinData)
-        .map(key => `${key} = @${key}`)
-        .join(', ');
-      
-      const stmt = db.prepare(`UPDATE coins SET ${fields} WHERE id = @id`);
-      
-      // Add id to the data
-      const dataWithId = { ...coinData, id };
-      
-      const result = stmt.run(dataWithId);
-      return result.changes > 0;
-    } catch (error) {
-      console.error(`Error updating coin #${id}:`, error);
-      throw error;
-    }
-  },
+    getCoinImages: function(coinId) {
+        try {
+            const stmt = db.prepare('SELECT * FROM coin_images WHERE coin_id = ?');
+            return stmt.all(coinId);
+        } catch (error) {
+            console.error(`Error getting images for coin #${coinId}:`, error);
+            return [];
+        }
+    },
 
-  // Delete coin
-  deleteCoin: function(id) {
-    try {
-      const stmt = db.prepare('DELETE FROM coins WHERE id = ?');
-      const result = stmt.run(id);
-      return result.changes > 0;
-    } catch (error) {
-      console.error(`Error deleting coin #${id}:`, error);
-      throw error;
-    }
-  },
+    updateCoin: function(id, coinData) {
+        try {
+            // Build SET clause dynamically based on provided data
+            const fields = Object.keys(coinData)
+                .map(key => `${key} = @${key}`)
+                .join(', ');
 
-  // Get coin count
-  getCoinCount: function() {
-    try {
-      const stmt = db.prepare('SELECT COUNT(*) as count FROM coins');
-      const result = stmt.get();
-      return result.count;
-    } catch (error) {
-      console.error('Error getting coin count:', error);
-      return 0;
-    }
-  },
+            const stmt = db.prepare(`UPDATE coins SET ${fields} WHERE id = @id`);
 
-  // Get unique countries
-  getUniqueCountries: function() {
-    try {
-      const stmt = db.prepare('SELECT DISTINCT country FROM coins WHERE country IS NOT NULL');
-      return stmt.all().map(row => row.country);
-    } catch (error) {
-      console.error('Error getting unique countries:', error);
-      return [];
-    }
-  },
+            // Add id to the data
+            const dataWithId = { ...coinData, id };
 
-  // Close database (for cleanup)
-  close: function() {
-    try {
-      db.close();
-      console.log('Database connection closed');
-    } catch (error) {
-      console.error('Error closing database:', error);
+            const result = stmt.run(dataWithId);
+            return result.changes > 0;
+        } catch (error) {
+            console.error(`Error updating coin #${id}:`, error);
+            throw error;
+        }
+    },
+
+    deleteCoin: function(id) {
+        try {
+            const stmt = db.prepare('DELETE FROM coins WHERE id = ?');
+            const result = stmt.run(id);
+            return result.changes > 0;
+        } catch (error) {
+            console.error(`Error deleting coin #${id}:`, error);
+            throw error;
+        }
+    },
+
+    getCoinCount: function() {
+        try {
+            const stmt = db.prepare('SELECT COUNT(*) as count FROM coins');
+            const result = stmt.get();
+            return result.count;
+        } catch (error) {
+            console.error('Error getting coin count:', error);
+            return 0;
+        }
+    },
+
+    getUniqueCountries: function() {
+        try {
+            const stmt = db.prepare('SELECT DISTINCT country FROM coins WHERE country IS NOT NULL');
+            return stmt.all().map(row => row.country);
+        } catch (error) {
+            console.error('Error getting unique countries:', error);
+            return [];
+        }
+    },
+
+    // Analytics Methods
+    getValueTimeline: function() {
+        try {
+            const stmt = db.prepare(`
+                SELECT 
+                    purchase_date,
+                    SUM(COALESCE(current_value, purchase_price, value, 0)) as total_value
+                FROM coins 
+                WHERE purchase_date IS NOT NULL
+                GROUP BY purchase_date
+                ORDER BY purchase_date ASC
+            `);
+            return stmt.all();
+        } catch (error) {
+            console.error('Error getting value timeline:', error);
+            throw error;
+        }
+    },
+
+    getGeographicDistribution: function() {
+        try {
+            const stmt = db.prepare(`
+                SELECT 
+                    country,
+                    COUNT(*) as coin_count,
+                    SUM(COALESCE(current_value, purchase_price, value, 0)) as total_value
+                FROM coins 
+                WHERE country IS NOT NULL
+                GROUP BY country
+                ORDER BY coin_count DESC
+            `);
+            return stmt.all();
+        } catch (error) {
+            console.error('Error getting geographic distribution:', error);
+            throw error;
+        }
+    },
+
+    getYearDistribution: function() {
+        try {
+            const stmt = db.prepare(`
+                SELECT 
+                    year,
+                    COUNT(*) as coin_count
+                FROM coins 
+                WHERE year IS NOT NULL
+                GROUP BY year
+                ORDER BY year ASC
+            `);
+            return stmt.all();
+        } catch (error) {
+            console.error('Error getting year distribution:', error);
+            throw error;
+        }
+    },
+
+    getCollectionComposition: function() {
+        try {
+            const stmt = db.prepare(`
+                SELECT 
+                    type,
+                    COUNT(*) as count,
+                    SUM(COALESCE(current_value, purchase_price, value, 0)) as total_value
+                FROM coins 
+                WHERE type IS NOT NULL
+                GROUP BY type
+                ORDER BY count DESC
+            `);
+            return stmt.all();
+        } catch (error) {
+            console.error('Error getting collection composition:', error);
+            throw error;
+        }
+    },
+
+    // Search and Filter Methods
+    searchCoins: function(searchText, searchField) {
+        try {
+            let query = 'SELECT * FROM coins WHERE ';
+            const params = {};
+            
+            if (searchField === 'all' || !searchField) {
+                // Search in multiple columns
+                query += `
+                    (title LIKE @search OR
+                    year LIKE @search OR
+                    country LIKE @search OR
+                    mint LIKE @search OR
+                    mint_mark LIKE @search OR
+                    type LIKE @search OR
+                    series LIKE @search OR
+                    status LIKE @search OR
+                    notes LIKE @search)
+                `;
+                params.search = `%${searchText}%`;
+            } else {
+                // Search in specific column
+                query += `${searchField} LIKE @search`;
+                params.search = `%${searchText}%`;
+            }
+            
+            const stmt = db.prepare(query);
+            return stmt.all(params);
+        } catch (error) {
+            console.error('Error searching coins:', error);
+            return [];
+        }
+    },
+
+    filterCoins: function(filters) {
+        try {
+            let query = 'SELECT * FROM coins WHERE 1=1';
+            const params = [];
+
+            // Build query dynamically based on filters
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value !== null && value !== undefined && value !== '') {
+                    query += ` AND ${key} = ?`;
+                    params.push(value);
+                }
+            });
+
+            const stmt = db.prepare(query);
+            return stmt.all(...params);
+        } catch (error) {
+            console.error('Error filtering coins:', error);
+            throw error;
+        }
+    },
+
+    // Import/Export Methods
+    importCoins: function(coins) {
+        try {
+            const insertStmt = db.prepare(`
+                INSERT INTO coins (
+                    title, year, country, value, unit, mint, mint_mark,
+                    type, format, series, region, storage, status, quantity,
+                    purchase_date, purchase_price, current_value, notes
+                ) VALUES (
+                    @title, @year, @country, @value, @unit, @mint, @mint_mark,
+                    @type, @format, @series, @region, @storage, @status, @quantity,
+                    @purchase_date, @purchase_price, @current_value, @notes
+                )
+            `);
+
+            const importTransaction = db.transaction((coinsData) => {
+                coinsData.forEach(coin => {
+                    // Convert empty strings to null and numbers to proper type
+                    const processedCoin = Object.entries(coin).reduce((acc, [key, value]) => {
+                        if (value === '') {
+                            acc[key] = null;
+                        } else if (['year', 'value', 'quantity', 'purchase_price', 'current_value'].includes(key)) {
+                            acc[key] = value ? Number(value) : null;
+                        } else {
+                            acc[key] = value;
+                        }
+                        return acc;
+                    }, {});
+
+                    insertStmt.run(processedCoin);
+                });
+            });
+
+            importTransaction(coins);
+            return true;
+        } catch (error) {
+            console.error('Error importing coins:', error);
+            throw error;
+        }
+    },
+
+    // Cleanup
+    close: function() {
+        try {
+            db.close();
+            console.log('Database connection closed');
+        } catch (error) {
+            console.error('Error closing database:', error);
+        }
     }
-  }
 };
 
 module.exports = dbOperations;
