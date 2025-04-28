@@ -581,15 +581,35 @@ body {
 .primary-button {
     background-color: var(--accent-color);
     color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.primary-button:hover {
+    background-color: var(--accent-color-hover, #3a7fc6);
+    transform: translateY(-2px);
 }
 
 .secondary-button {
-    background-color: var(--bg-primary);
+    background-color: transparent;
     color: var(--text-primary);
+    padding: 0.75rem 1.5rem;
     border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
 }
 
-.primary-button:hover, .secondary-button:hover {
+.secondary-button:hover {
+    background-color: var(--bg-secondary);
+    border-color: var(--text-primary);
     transform: translateY(-2px);
 }
 
@@ -705,10 +725,7 @@ body {
 }
 
 .images-section {
-    margin-top: 8px;
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: center;
+    margin: 20px 0;
 }
 
 .image-upload-container {
@@ -719,44 +736,74 @@ body {
 }
 
 .image-upload {
-    flex: 0 0 140px;
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
+    margin: 10px;
 }
 
 .image-upload label {
     font-weight: 500;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: 15px;
 }
 
 .image-preview {
-    width: 140px;
-    height: 140px;
-    border: 1px dashed var(--border-color);
-    border-radius: 6px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: var(--text-secondary);
+    width: 100%;
+    height: 200px;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
     cursor: pointer;
-    transition: border-color 0.3s ease;
-    background-size: cover;
+    position: relative;
+    overflow: hidden;
+    background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
-    font-size: 12px;
+    transition: border-color 0.3s ease;
+}
+
+.image-preview:hover {
+    border-color: var(--accent-color);
+}
+
+.image-preview.has-image .preview-placeholder {
+    display: none !important;
+}
+
+.preview-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     text-align: center;
-    padding: 5px;
+    color: var(--text-secondary);
+    width: 100%;
+    padding: 0 1rem;
+}
+
+.preview-placeholder i {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.preview-placeholder span {
+    font-size: 0.9rem;
+    display: block;
 }
 
 .form-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    margin-top: auto;
-    padding-top: 8px;
+    gap: 1rem;
+    margin-top: 2rem;
+    position: sticky;
+    bottom: 0;
+    background-color: var(--bg-primary);
+    padding: 1rem 0;
+    z-index: 2;
 }
 
 .searchable-select {
@@ -801,10 +848,6 @@ body {
 .select-option:hover {
     background-color: var(--accent-color);
     color: white;
-}
-
-.image-preview:hover {
-    border-color: var(--accent-color);
 }
 
 .image-upload-button {
@@ -1299,4 +1342,193 @@ input:checked + .slider:before {
 
 .slider.round:before {
     border-radius: 50%;
+}
+
+/* Edit Coin Dialog Styles */
+.edit-coin-dialog {
+    background-color: var(--bg-primary);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    max-width: 1200px;
+    width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+    z-index: 1001;
+    position: relative;
+}
+
+.dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.dialog-header h2 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.close-button:hover {
+    color: var(--text-primary);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.image-upload-section {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    margin: 1.5rem 0;
+}
+
+.image-preview {
+    width: 100%;
+    height: 200px;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: border-color 0.3s ease;
+}
+
+.image-preview:hover {
+    border-color: var(--accent-color);
+}
+
+.preview-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--text-secondary);
+    width: 100%;
+    padding: 0 1rem;
+}
+
+.preview-placeholder i {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.preview-placeholder span {
+    font-size: 0.9rem;
+    display: block;
+}
+
+.image-preview.has-image .preview-placeholder {
+    display: none !important;
+}
+
+.upload-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.upload-text {
+    font-size: 0.9rem;
+}
+
+.image-preview input[type="file"] {
+    display: none;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+    position: sticky;
+    bottom: 0;
+    background-color: var(--bg-primary);
+    padding: 1rem 0;
+    z-index: 2;
+}
+
+.primary-button {
+    background-color: var(--accent-color);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.primary-button:hover {
+    background-color: var(--accent-color-hover, #3a7fc6);
+    transform: translateY(-2px);
+}
+
+.secondary-button {
+    background-color: transparent;
+    color: var(--text-primary);
+    padding: 0.75rem 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.secondary-button:hover {
+    background-color: var(--bg-secondary);
+    border-color: var(--text-primary);
+    transform: translateY(-2px);
+}
+
+/* Modal Overlay Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Update in the renderer.js displayImageInPreview function (line ~852) */
+.image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Update coin image displays for both forms */
+.image-preview.has-image {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
 }

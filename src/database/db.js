@@ -166,8 +166,8 @@ const dbOperations = {
             const stmt = db.prepare('SELECT * FROM coins WHERE id = ?');
             return stmt.get(id);
         } catch (error) {
-            console.error(`Error getting coin #${id}:`, error);
-            return null;
+            console.error('Error getting coin by ID:', error);
+            throw error;
         }
     },
 

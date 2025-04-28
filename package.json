@@ -6,15 +6,13 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
-    "pack": "electron-builder --dir"
+    "pack": "electron-builder --dir",
+    "rebuild": "electron-rebuild",
+    "postinstall": "electron-builder install-app-deps"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jason-alvarez-data/coin-odyssey.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "private": true,
+  "author": "Jason Alvarez",
+  "license": "UNLICENSED",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/jason-alvarez-data/coin-odyssey/issues"
@@ -23,7 +21,8 @@
   "devDependencies": {
     "electron": "^35.1.4",
     "electron-builder": "^24.13.3",
-    "electron-rebuild": "^3.2.9"
+    "electron-rebuild": "^3.2.9",
+    "electron-reloader": "^1.2.3"
   },
   "dependencies": {
     "@kurkle/color": "^0.3.4",
@@ -33,7 +32,8 @@
     "date-fns": "^4.1.0",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^8.1.0",
-    "papaparse": "^5.5.2"
+    "papaparse": "^5.5.2",
+    "uuid": "^9.0.1"
   },
   "build": {
     "appId": "com.modernnumismat.app",
@@ -55,18 +55,21 @@
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "icon": "assets/icons/win/icon.ico"
     },
     "mac": {
       "target": [
         "dmg"
-      ]
+      ],
+      "icon": "assets/icons/mac/icon.icns"
     },
     "linux": {
       "target": [
         "AppImage",
         "deb"
-      ]
+      ],
+      "icon": "assets/icons/png/512x512.png"
     }
   }
 }

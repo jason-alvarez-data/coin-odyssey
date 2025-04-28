@@ -39,7 +39,13 @@ function createWindow() {
         callback({
             responseHeaders: {
                 ...details.responseHeaders,
-                'Content-Security-Policy': ['default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'']
+                'Content-Security-Policy': [
+                    "default-src 'self'; " +
+                    "script-src 'self'; " +
+                    "style-src 'self' 'unsafe-inline'; " +
+                    "img-src 'self' data: blob: file:; " +
+                    "media-src 'self' blob:;"
+                ]
             }
         });
     });
@@ -269,4 +275,14 @@ ipcMain.handle('set-theme', async (event, theme) => {
 ipcMain.handle('report-error', async (event, error) => {
     console.error('Renderer Error:', error);
     return true;
+});
+
+// Add this with the other ipcMain handlers
+ipcMain.handle('get-coin-by-id', async (event, coinId) => {
+    try {
+        return await db.getCoinById(coinId);
+    } catch (error) {
+        console.error('Error getting coin by ID:', error);
+        throw error;
+    }
 });

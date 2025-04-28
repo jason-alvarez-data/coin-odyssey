@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Coin Odyssey</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Existing content -->
+    </div>
+
+    <!-- Edit Coin Modal -->
+    <div class="modal-overlay" id="edit-coin-modal" style="display: none;">
+        <div class="edit-coin-dialog">
+            <div class="dialog-header">
+                <h2>Edit Coin</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            
+            <form id="edit-coin-form" class="form-grid">
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" name="title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="year">Year</label>
+                    <input type="number" id="year" name="year" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="country">Country</label>
+                    <input type="text" id="country" name="country" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="value">Value</label>
+                    <input type="number" id="value" name="value" step="0.01" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="unit">Unit</label>
+                    <input type="text" id="unit" name="unit" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="mint">Mint</label>
+                    <input type="text" id="mint" name="mint">
+                </div>
+                
+                <div class="form-group">
+                    <label for="mint_mark">Mint Mark</label>
+                    <input type="text" id="mint_mark" name="mint_mark">
+                </div>
+                
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status" name="status">
+                        <option value="uncirculated">Uncirculated</option>
+                        <option value="circulated">Circulated</option>
+                        <option value="proof">Proof</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="type">Type</label>
+                    <input type="text" id="type" name="type">
+                </div>
+                
+                <div class="form-group">
+                    <label for="series">Series</label>
+                    <input type="text" id="series" name="series">
+                </div>
+                
+                <div class="form-group">
+                    <label for="storage">Storage Location</label>
+                    <input type="text" id="storage" name="storage">
+                </div>
+                
+                <div class="form-group">
+                    <label for="format">Format</label>
+                    <input type="text" id="format" name="format">
+                </div>
+                
+                <div class="form-group">
+                    <label for="region">Region</label>
+                    <input type="text" id="region" name="region">
+                </div>
+                
+                <div class="form-group">
+                    <label for="quantity">Quantity</label>
+                    <input type="number" id="quantity" name="quantity" value="1" min="1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="purchase_date">Date Collected</label>
+                    <input type="date" id="purchase_date" name="purchase_date">
+                </div>
+
+                <div class="image-upload-section">
+                    <div class="form-group">
+                        <label>Obverse (Front)</label>
+                        <div class="image-preview" id="obverse-preview">
+                            <div class="preview-placeholder">
+                                <i class="fas fa-camera"></i>
+                                <span>Click to upload image</span>
+                            </div>
+                            <input type="file" class="file-input" id="obverse-input" name="obverse_image" accept="image/*">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Reverse (Back)</label>
+                        <div class="image-preview" id="reverse-preview">
+                            <div class="preview-placeholder">
+                                <i class="fas fa-camera"></i>
+                                <span>Click to upload image</span>
+                            </div>
+                            <input type="file" class="file-input" id="reverse-input" name="reverse_image" accept="image/*">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="secondary-button">Cancel</button>
+                    <button type="submit" class="primary-button">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="forms/edit-coin.js"></script>
+    <script src="renderer.js"></script>
+</body>
+</html> 

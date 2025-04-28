@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob: file:; style-src 'self' 'unsafe-inline'; script-src 'self';">
     <title>Coin Odyssey</title>
     <link rel="stylesheet" href="styles.css">
     <!-- Include the libraries directly -->
@@ -199,6 +199,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="src/forms/edit-coin.js"></script>
     <script type="module" src="renderer.js"></script>
 </body>
 </html>

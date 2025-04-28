@@ -17,6 +17,7 @@ class WorldMap {
             'United States of America': 'United States',
             'USA': 'United States',
             'US': 'United States',
+            'UNITED STATES': 'United States',
             'United Kingdom': 'UK',
             'Great Britain': 'UK',
             'Russian Federation': 'Russia',
@@ -139,7 +140,7 @@ class WorldMap {
             const paths = svg.querySelectorAll('path');
             paths.forEach(path => {
                 // Get country name and check if we have coins from this country
-                let countryName = path.getAttribute('name');
+                let countryName = path.getAttribute('name') || path.getAttribute('id');
                 if (!countryName) {
                     const className = path.getAttribute('class');
                     if (className) {
@@ -155,14 +156,15 @@ class WorldMap {
                     const standardizedName = this.countryNameMapping[countryName] || countryName;
                     const coinCount = this.countryData[standardizedName] || 0;
                     if (coinCount > 0) {
-                        path.style.fill = '#ADD8E6'; // Light blue color
+                        path.style.fill = '#4A90E2'; // Brighter blue color for better visibility
+                        path.style.transition = 'fill 0.3s ease'; // Smooth transition for hover effects
                     }
                 }
 
                 // Create event listener functions
                 const mousemoveHandler = (e) => {
                     const countryId = path.getAttribute('id');
-                    let countryName = path.getAttribute('name');
+                    let countryName = path.getAttribute('name') || path.getAttribute('id');
                     
                     // If name attribute is not available, try to get it from class
                     if (!countryName) {
@@ -181,13 +183,21 @@ class WorldMap {
                         const coinCount = this.countryData[standardizedName] || 0;
                         
                         this.tooltip.innerHTML = `
-                            <strong>${countryName}</strong><br>
+                            <strong>${standardizedName}</strong><br>
                             Coins in collection: ${coinCount}
                         `;
                         
                         const containerBounds = this.container.getBoundingClientRect();
-                        this.tooltip.style.left = `${e.clientX - containerBounds.left + 10}px`;
-                        this.tooltip.style.top = `${e.clientY - containerBounds.top + 10}px`;
+                        const tooltipX = e.clientX - containerBounds.left + 10;
+                        const tooltipY = e.clientY - containerBounds.top + 10;
+                        
+                        // Keep tooltip within container bounds
+                        const tooltipBounds = this.tooltip.getBoundingClientRect();
+                        const maxX = containerBounds.width - tooltipBounds.width - 10;
+                        const maxY = containerBounds.height - tooltipBounds.height - 10;
+                        
+                        this.tooltip.style.left = `${Math.min(tooltipX, maxX)}px`;
+                        this.tooltip.style.top = `${Math.min(tooltipY, maxY)}px`;
                         this.tooltip.style.display = 'block';
                     }
                 };
@@ -209,7 +219,7 @@ class WorldMap {
                     const standardizedName = this.countryNameMapping[countryName] || countryName;
                     const coinCount = this.countryData[standardizedName] || 0;
                     // Reset to light blue if we have coins, or no fill if we don't
-                    path.style.fill = coinCount > 0 ? '#ADD8E6' : '';
+                    path.style.fill = coinCount > 0 ? '#4A90E2' : '';
                 };
 
                 // Store event listeners for this path

@@ -138,21 +138,23 @@
             <div class="images-section">
                 <div class="image-upload-container">
                     <div class="image-upload">
-                        <label for="obverse-image">Obverse</label>
+                        <label for="obverse-image">Obverse (Front)</label>
                         <div class="image-preview" id="obverse-preview">
-                            <span>Click to add image</span>
-                        </div>
-                        <div class="image-upload-button">
-                            <input type="file" id="obverse-image" name="obverse_image" accept="image/*">
+                            <div class="preview-placeholder">
+                                <i class="fas fa-camera"></i>
+                                <span>Click to upload image</span>
+                            </div>
+                            <input type="file" id="obverse-image" name="obverse_image" accept="image/*" style="display: none;">
                         </div>
                     </div>
                     <div class="image-upload">
-                        <label for="reverse-image">Reverse</label>
+                        <label for="reverse-image">Reverse (Back)</label>
                         <div class="image-preview" id="reverse-preview">
-                            <span>Click to add image</span>
-                        </div>
-                        <div class="image-upload-button">
-                            <input type="file" id="reverse-image" name="reverse_image" accept="image/*">
+                            <div class="preview-placeholder">
+                                <i class="fas fa-camera"></i>
+                                <span>Click to upload image</span>
+                            </div>
+                            <input type="file" id="reverse-image" name="reverse_image" accept="image/*" style="display: none;">
                         </div>
                     </div>
                 </div>

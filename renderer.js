@@ -512,7 +512,12 @@ async function initializeYearDistribution(yearData) {
                 datasets: [{
                     label: 'Coins per Year',
                     data: processedData.values,
-                    backgroundColor: 'var(--accent-color)'
+                    backgroundColor: 'rgba(74, 144, 226, 0.8)',
+                    borderColor: 'rgba(74, 144, 226, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    barThickness: 'flex',
+                    maxBarThickness: 50
                 }]
             },
             options: {
@@ -522,7 +527,26 @@ async function initializeYearDistribution(yearData) {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            stepSize: 1
+                            stepSize: 1,
+                            color: 'var(--text-color)'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: 'var(--text-color)'
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: 'var(--text-color)'
                         }
                     }
                 }
@@ -786,14 +810,14 @@ async function initializeTheme() {
 async function setupActionButtons() {
     document.querySelectorAll('.edit-button').forEach(button => {
         button.addEventListener('click', async () => {
-            const coinId = button.dataset.coinId;
+            const coinId = button.getAttribute('data-coin-id');
             await showEditDialog(coinId);
         });
     });
 
     document.querySelectorAll('.delete-button').forEach(button => {
         button.addEventListener('click', async () => {
-            const coinId = button.dataset.coinId;
+            const coinId = button.getAttribute('data-coin-id');
             if (confirm('Are you sure you want to delete this coin?')) {
                 try {
                     await window.electronAPI.deleteCoin(coinId);
@@ -807,7 +831,44 @@ async function setupActionButtons() {
     });
 }
 
-// Edit dialog
+// Function to display image in preview
+function displayImageInPreview(preview, imageData) {
+    if (!preview) return;
+    
+    // Find placeholder
+    const placeholderElement = preview.querySelector('.preview-placeholder') || preview.querySelector('span');
+    if (!placeholderElement) return;
+    
+    // Remove any existing image
+    const existingImage = preview.querySelector('img');
+    if (existingImage) {
+        existingImage.remove();
+    }
+    
+    // Reset class and show placeholder if no image
+    if (!imageData) {
+        preview.classList.remove('has-image');
+        placeholderElement.style.display = 'block';
+        return;
+    }
+    
+    // Create and append image
+    const img = document.createElement('img');
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'contain';
+    img.style.position = 'absolute';
+    img.style.top = '0';
+    img.style.left = '0';
+    img.src = imageData;
+    
+    // Hide placeholder and show image
+    placeholderElement.style.display = 'none';
+    preview.appendChild(img);
+    preview.classList.add('has-image');
+}
+
+// Function to show edit dialog
 async function showEditDialog(coinId) {
     try {
         const coin = await window.electronAPI.getCoinById(coinId);
@@ -815,35 +876,176 @@ async function showEditDialog(coinId) {
             throw new Error('Coin not found');
         }
 
-        const dialogContent = await window.electronAPI.readFile('src/forms/edit-coin.html');
-        document.getElementById('dialog-container').innerHTML = dialogContent;
+        let editModal = document.getElementById('edit-coin-modal');
+        let isNewModal = false;
 
-        // Populate form fields
-        Object.keys(coin).forEach(key => {
-            const input = document.querySelector(`[name="${key}"]`);
-            if (input) {
-                input.value = coin[key] || '';
-            }
-        });
+        // Load modal HTML if it doesn't exist
+        if (!editModal) {
+            isNewModal = true; // Flag that we loaded new HTML
+            editModal = document.createElement('div');
+            editModal.id = 'edit-coin-modal';
+            editModal.className = 'modal-overlay';
+            const editFormContent = await window.electronAPI.readFile('src/forms/edit-coin.html');
+            editModal.innerHTML = editFormContent;
+            const dialogContainer = document.getElementById('dialog-container') || document.body;
+            dialogContainer.appendChild(editModal);
+            console.log('Edit modal element created and HTML loaded.');
+        }
+        
+        const form = document.getElementById('edit-coin-form');
+        if (!form) {
+             console.error('Edit form element (#edit-coin-form) not found in the DOM.');
+             // Attempt to find it again after a small delay if it was newly added
+             await new Promise(resolve => setTimeout(resolve, 50)); // Small delay
+             form = document.getElementById('edit-coin-form');
+             if (!form) {
+                 throw new Error('Edit form element (#edit-coin-form) still not found after delay.');
+             }
+        }
+        
+        // Use requestAnimationFrame to wait for DOM updates after innerHTML
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                // --- Form Initialization (Runs after two animation frames) --- 
+                let editFormInstance = null;
+                try {
+                    // Instantiate EditCoinForm
+                    editFormInstance = new EditCoinForm(); 
+                    editModal.formInstance = editFormInstance; // Store instance on the modal
+                    console.log('EditCoinForm instance created (after rAF).');
 
-        // Setup form submission
-        document.getElementById('edit-coin-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const formData = new FormData(e.target);
-                const updatedCoin = Object.fromEntries(formData);
-                await window.electronAPI.updateCoin(coinId, updatedCoin);
-                await loadCollection();
-                document.getElementById('dialog-container').innerHTML = '';
-            } catch (error) {
-                console.error('Error updating coin:', error);
-                window.electronAPI.reportError(error);
-            }
-        });
+                    // Explicitly check for elements in the global scope *before* initializing
+                    console.log('Checking elements globally before init:', {
+                        form: !!document.getElementById('edit-coin-form'),
+                        obvPreview: !!document.getElementById('edit-obverse-preview'),
+                        obvInput: !!document.getElementById('edit-obverse-image'),
+                        revPreview: !!document.getElementById('edit-reverse-preview'),
+                        revInput: !!document.getElementById('edit-reverse-image')
+                    });
+                    
+                    // Initialize elements and listeners AFTER instantiation, passing the modal element
+                    editFormInstance.initializeElementsAndListeners(editModal);
+                    
+                    // Check if initialization failed (elements not found - check form as basic guard)
+                    if (!editFormInstance.form) {
+                        console.error('Form initialization failed - elements likely not found by initializeElementsAndListeners within modal.');
+                        // Log modal structure if init failed
+                        console.log('Modal element structure at init failure:', editModal.outerHTML);
+                        editModal.style.display = 'none';
+                        return; 
+                    }
+                    console.log('EditCoinForm initializeElementsAndListeners called successfully.'); // Changed log message
+                    
+                    // Populate form fields (using direct value setting or instance method)
+                    // Using direct seems safer given init issues, but could use instance:
+                    // editFormInstance.populateForm(coin);
+                    Object.keys(coin).forEach(key => {
+                        // Use editFormInstance.form which was queried within the modal
+                        const input = editFormInstance.form.querySelector(`[name="${key}"]`); 
+                        if (input) {
+                            if (input.type === 'date' && coin[key]) {
+                                try { input.value = new Date(coin[key]).toISOString().split('T')[0]; } catch (e) { input.value = ''; }
+                            } else {
+                                input.value = coin[key] ?? '';
+                            }
+                        }
+                    });
+
+                    // Display images (using instance properties)
+                    displayImageInPreview(editFormInstance.obversePreview, coin.obverse_image);
+                    displayImageInPreview(editFormInstance.reversePreview, coin.reverse_image);
+
+                    // Setup form submission 
+                    editFormInstance.form.onsubmit = async (e) => { // Use instance's form reference
+                       // ... (submit logic remains largely the same, using instance properties for inputs) ...
+                        e.preventDefault();
+                        const obverseInput = editFormInstance.obverseInput;
+                        const reverseInput = editFormInstance.reverseInput;
+                        try {
+                            const formData = new FormData(editFormInstance.form);
+                            const updatedCoin = {};
+                            formData.forEach((value, key) => {
+                                if (key !== 'obverse_image' && key !== 'reverse_image') {
+                                    updatedCoin[key] = value;
+                                }
+                            });
+                            if (obverseInput && obverseInput.files.length > 0) {
+                                updatedCoin.obverse_image = await readFileAsBase64(obverseInput.files[0]);
+                            } else {
+                                updatedCoin.obverse_image = coin.obverse_image; 
+                            }
+                            if (reverseInput && reverseInput.files.length > 0) {
+                                updatedCoin.reverse_image = await readFileAsBase64(reverseInput.files[0]);
+                            } else {
+                                updatedCoin.reverse_image = coin.reverse_image; 
+                            }
+                            await window.electronAPI.updateCoin(coinId, updatedCoin);
+                            editModal.style.display = 'none';
+                            document.body.style.overflow = '';
+                            await loadCollection();
+                        } catch (error) {
+                            console.error('Error updating coin:', error);
+                            window.electronAPI.reportError(error);
+                        }
+                    };
+
+                    // Setup close/cancel actions
+                    const closeButton = editModal.querySelector('.close-button');
+                    const cancelButton = editModal.querySelector('#cancel-edit') || editModal.querySelector('.secondary-button');
+                    const closeDialog = () => {
+                        // ... (close dialog logic remains the same, using editFormInstance) ...
+                        editModal.style.display = 'none';
+                        document.body.style.overflow = '';
+                        if (editFormInstance && typeof editFormInstance.clearForm === 'function') {
+                            editFormInstance.clearForm();
+                        } else {
+                            console.warn('Could not find form instance or clearForm method on close.');
+                            if(editFormInstance.form) editFormInstance.form.reset(); // Use instance form
+                             displayImageInPreview(editFormInstance.obversePreview, null); // Use instance previews
+                             displayImageInPreview(editFormInstance.reversePreview, null);
+                        }
+                    };
+                    if (closeButton) closeButton.onclick = closeDialog;
+                    if (cancelButton) cancelButton.onclick = closeDialog;
+
+                    // Show the modal now that it's ready
+                    editModal.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+
+                } catch (err) {
+                    console.error('Error during form initialization (post-rAF):', err);
+                    window.electronAPI.reportError(err);
+                    if (editModal) editModal.style.display = 'none'; 
+                }
+                // --- End Form Initialization ---
+            }); // End inner rAF
+        }); // End outer rAF
+
     } catch (error) {
-        console.error('Error showing edit dialog:', error);
+        console.error('Error showing edit dialog (outer try/catch): ', error);
         window.electronAPI.reportError(error);
     }
+}
+
+// Helper function to read a file as base64
+function readFileAsBase64(file) {
+    console.log('Reading file as base64:', file.name, file.type, file.size);
+    
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = (event) => {
+            console.log('File read successful, data length:', event.target.result.length);
+            resolve(event.target.result);
+        };
+        
+        reader.onerror = (error) => {
+            console.error('Error reading file as base64:', error);
+            reject(error);
+        };
+        
+        reader.readAsDataURL(file);
+    });
 }
 
 // Event Listeners
@@ -1119,36 +1321,89 @@ function setupCountrySearch() {
     });
 }
 
-// Function to set up image upload previews
-function setupImageUploadPreviews() {
-    setupImageUpload('obverse-image', 'obverse-preview');
-    setupImageUpload('reverse-image', 'reverse-preview');
-}
-
-// Helper function for image upload previews
+// Function to setup image upload previews
 function setupImageUpload(inputId, previewId) {
     const input = document.getElementById(inputId);
     const preview = document.getElementById(previewId);
     
-    if (!input || !preview) return;
+    if (!input || !preview) {
+        console.error(`Could not find elements: input=${inputId}, preview=${previewId}`);
+        return;
+    }
+
+    // Check if listeners are already attached
+    if (preview.dataset.imageUploadInitialized === 'true') {
+        console.log(`Image upload already initialized for ${previewId}`);
+        return; // Don't attach listeners again
+    }
+    
+    console.log(`Setting up image upload for ${inputId}`);
+    
+    const placeholderElement = preview.querySelector('.preview-placeholder') || preview.querySelector('span');
+    
+    if (!placeholderElement) {
+        console.error(`Could not find placeholder in preview element: ${previewId}`);
+        return;
+    }
     
     // Preview when clicking on the preview area
     preview.addEventListener('click', () => {
+        console.log(`Preview clicked for ${inputId}`);
         input.click();
     });
     
     // Update preview when file is selected
     input.addEventListener('change', (e) => {
         const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                preview.style.backgroundImage = `url(${e.target.result})`;
-                preview.innerHTML = '';
-            };
-            reader.readAsDataURL(file);
+        if (!file) return;
+        
+        console.log(`File selected for ${inputId}:`, file.name);
+        
+        const existingImage = preview.querySelector('img');
+        if (existingImage) {
+            existingImage.remove();
         }
+        
+        const img = document.createElement('img');
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'contain';
+        img.style.position = 'absolute';
+        img.style.top = '0';
+        img.style.left = '0';
+        
+        placeholderElement.style.display = 'none';
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            img.src = event.target.result;
+            preview.appendChild(img);
+            preview.classList.add('has-image');
+            console.log(`Image preview updated for ${inputId}`);
+        };
+        
+        reader.onerror = (error) => {
+            console.error(`Error reading file:`, error);
+            placeholderElement.style.display = 'block';
+        };
+        
+        reader.readAsDataURL(file);
     });
+
+    // Mark as initialized
+    preview.dataset.imageUploadInitialized = 'true';
+}
+
+// Function to setup image upload previews for add coin form
+function setupImageUploadPreviews() {
+    // For Add Coin form
+    const addFormObverseInput = document.getElementById('obverse-image');
+    const addFormReverseInput = document.getElementById('reverse-image');
+    
+    if (addFormObverseInput && addFormReverseInput) {
+        setupImageUpload('obverse-image', 'obverse-preview');
+        setupImageUpload('reverse-image', 'reverse-preview');
+    }
 }
 
 // Function to save the coin data
@@ -1162,23 +1417,41 @@ async function saveCoin() {
         
         // Convert FormData to object
         formData.forEach((value, key) => {
-            coinData[key] = value;
+            if (key !== 'obverse_image' && key !== 'reverse_image') {
+                coinData[key] = value;
+            }
         });
         
         // Handle images (convert to base64 if needed)
         const obverseImageInput = document.getElementById('obverse-image');
         const reverseImageInput = document.getElementById('reverse-image');
         
-        if (obverseImageInput.files.length > 0) {
-            coinData.obverse_image = await readFileAsBase64(obverseImageInput.files[0]);
+        if (obverseImageInput && obverseImageInput.files.length > 0) {
+            try {
+                console.log(`Processing obverse image: ${obverseImageInput.files[0].name}`);
+                coinData.obverse_image = await readFileAsBase64(obverseImageInput.files[0]);
+            } catch (error) {
+                console.error('Error processing obverse image:', error);
+            }
         }
         
-        if (reverseImageInput.files.length > 0) {
-            coinData.reverse_image = await readFileAsBase64(reverseImageInput.files[0]);
+        if (reverseImageInput && reverseImageInput.files.length > 0) {
+            try {
+                console.log(`Processing reverse image: ${reverseImageInput.files[0].name}`);
+                coinData.reverse_image = await readFileAsBase64(reverseImageInput.files[0]);
+            } catch (error) {
+                console.error('Error processing reverse image:', error);
+            }
         }
         
         // Add current timestamp
         coinData.created_at = new Date().toISOString();
+        
+        console.log('Saving coin data', {
+            hasObverse: !!coinData.obverse_image,
+            hasReverse: !!coinData.reverse_image,
+            dataKeys: Object.keys(coinData)
+        });
         
         // Save the coin via the Electron API
         await window.electronAPI.addCoin(coinData);
@@ -1190,14 +1463,4 @@ async function saveCoin() {
         window.electronAPI.reportError(error);
         alert('Error saving coin: ' + error.message);
     }
-}
-
-// Helper function to read a file as base64
-function readFileAsBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
 }

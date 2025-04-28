@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     addCoin: (coinData) => ipcRenderer.invoke('add-coin', coinData),
     updateCoin: (coinId, coinData) => ipcRenderer.invoke('update-coin', coinId, coinData),
     deleteCoin: (coinId) => ipcRenderer.invoke('delete-coin', coinId),
+    getCoinById: (coinId) => ipcRenderer.invoke('get-coin-by-id', coinId),
     
     // Analytics Operations
     getValueTimeline: () => ipcRenderer.invoke('get-value-timeline'),
