@@ -1,0 +1,35 @@
+<!-- This content will be dynamically loaded into the right column of the upload page -->
+<div id="mapping-section">
+    <h3>Map CSV Columns to Database Fields</h3>
+    
+    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">
+        Select the corresponding database field for each column found in your CSV file. 
+        Choose '-- Ignore --' for columns you don't want to import.
+        Required fields (Title, Year, Country) must be mapped.
+    </p>
+
+    <div id="mapping-rows-container">
+        <!-- Mapping rows will be dynamically generated here -->
+        <!-- Example Row Structure (for reference):
+        <div class="mapping-row">
+            <span class="csv-header" title="Original Header Name">CSV Header Name</span>
+            <select data-csv-header="Original Header Name">
+                <option value="-- Select --">-- Select --</option>
+                <option value="-- Ignore --">-- Ignore --</option>
+                <option value="title">Title (Required)</option>
+                <option value="year">Year (Required)</option>
+                <option value="country">Country (Required)</option>
+                <option value="value">Value</option>
+                 Add other DB columns here 
+            </select>
+        </div> 
+        -->
+    </div>
+
+    <div class="mapping-actions">
+        <button id="cancel-mapping-btn" class="secondary-button">Cancel Upload</button>
+        <button id="confirm-mapping-btn" class="primary-button">Confirm & Import</button>
+    </div>
+
+    <div id="mapping-status"></div>
+</div> 

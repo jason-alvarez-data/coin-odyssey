@@ -787,11 +787,12 @@ async function importBackup(file) {
                     document.getElementById('upload-status').textContent = 'Importing data...';
                     
                     // Call the API to import the collection
-                    await window.electronAPI.importCollection(fileData);
+                    // NOTE: Main process handles parsing now for validation
+                    const result = await window.electronAPI.importCollection(fileData);
                     
                     // Show success message
-                    document.getElementById('upload-status').textContent = 'Data imported successfully!';
-                    document.getElementById('upload-status').className = 'success-message';
+                    document.getElementById('upload-status').textContent = `Data imported successfully! Processed ${result.count} records.`;
+                    document.getElementById('upload-status').className = 'status-message success';
                     
                     // Reload dashboard after a short delay
                     setTimeout(() => loadDashboard(), 2000);
@@ -806,7 +807,7 @@ async function importBackup(file) {
                 const statusElement = document.getElementById('upload-status');
                 if (statusElement) {
                     statusElement.textContent = `Error: ${error.message}`;
-                    statusElement.className = 'error-message';
+                    statusElement.className = 'error-message'; // Corrected class name
                 }
             }
         };
@@ -1099,57 +1100,50 @@ async function loadUploadCollection() {
     try {
         console.log('Loading upload collection view');
         
-        const uploadContent = await window.electronAPI.readFile('src/forms/upload_collection.html');
-        document.getElementById('main-content').innerHTML = uploadContent;
+        const uploadContentHTML = await window.electronAPI.readFile('src/forms/upload_collection.html');
+        const mainContent = document.getElementById('main-content');
+        mainContent.innerHTML = uploadContentHTML;
         
-        // Set up drag and drop functionality
+        // Get references AFTER loading HTML
+        const uploadForm = mainContent.querySelector('.upload-collection-form'); // Container for dynamic layout
+        const uploadSection = mainContent.querySelector('.upload-section'); // The initial content
         const uploadBox = document.getElementById('upload-box');
         const fileInput = document.getElementById('file-upload');
         const fileInfo = document.getElementById('file-info');
-        const fileName = document.getElementById('file-name');
-        const importBtn = document.getElementById('import-button');
-        const cancelBtn = document.getElementById('cancel-upload');
+        const fileNameEl = document.getElementById('file-name'); 
+        const importBtn = document.getElementById('import-button'); // In file-info initially
+        const cancelBtn = document.getElementById('cancel-upload'); // In file-info initially
         const statusEl = document.getElementById('upload-status');
-        
-        // Drag and drop events
+
+        // --- Event Listeners Setup --- 
+        if (!uploadForm || !uploadSection || !uploadBox || !fileInput || !fileInfo || !fileNameEl || !importBtn || !cancelBtn || !statusEl) {
+            console.error('One or more elements missing in upload_collection.html');
+            mainContent.innerHTML = '<p class="error-message">Error loading upload UI components.</p>';
+            return; // Stop execution if essential elements are missing
+        }
+
         if (uploadBox) {
-            uploadBox.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadBox.classList.add('drag-over');
-            });
-            
-            uploadBox.addEventListener('dragleave', () => {
-                uploadBox.classList.remove('drag-over');
-            });
-            
+            uploadBox.addEventListener('dragover', (e) => { e.preventDefault(); uploadBox.classList.add('drag-over'); });
+            uploadBox.addEventListener('dragleave', () => { uploadBox.classList.remove('drag-over'); });
             uploadBox.addEventListener('drop', (e) => {
                 e.preventDefault();
                 uploadBox.classList.remove('drag-over');
-                
                 if (e.dataTransfer.files.length) {
                     handleSelectedFile(e.dataTransfer.files[0]);
                 }
             });
-            
-            // Click to upload
+            // Click listener refined to prevent double trigger
             uploadBox.addEventListener('click', (e) => {
-                // Only trigger if the click wasn't on the label/button itself
-                if (e.target.tagName !== 'LABEL' && !e.target.closest('.upload-button')) {
-                    if (fileInput) fileInput.click();
+                if (!e.target.closest('.upload-button')) { 
+                    fileInput?.click(); 
                 }
             });
-
-            // Prevent double-trigger from label click bubbling
             const chooseFileButton = uploadBox.querySelector('.upload-button');
             if (chooseFileButton) {
-                chooseFileButton.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Stop the click from reaching the uploadBox listener
-                    // The label's default behavior will trigger the file input
-                });
+                chooseFileButton.addEventListener('click', (e) => { e.stopPropagation(); });
             }
         }
-        
-        // File input change
+
         if (fileInput) {
             fileInput.addEventListener('change', (e) => {
                 if (e.target.files.length) {
@@ -1157,54 +1151,160 @@ async function loadUploadCollection() {
                 }
             });
         }
-        
-        // Cancel button
+
+        // Cancel button in the initial file-info section
+        // This button is reused by the mapping UI cancel action via resetUploadView
         if (cancelBtn) {
             cancelBtn.addEventListener('click', () => {
-                fileInput.value = '';
-                fileInfo.style.display = 'none';
-                statusEl.textContent = '';
-                statusEl.className = 'status-message';
+                resetUploadView(); 
             });
         }
-        
-        // Import button
+
+        // Import button in the initial file-info section (for non-CSV)
         if (importBtn) {
             importBtn.addEventListener('click', async () => {
                 if (fileInput.files.length > 0) {
-                    await importCollectionFile(fileInput.files[0]);
+                   // This button is now only for non-CSV direct imports
+                   // We use importCollectionFile directly here as it handles non-mapping imports
+                   await importCollectionFile(fileInput.files[0]); 
                 }
             });
         }
-        
-        // Function to handle selected file
-        function handleSelectedFile(file) {
-            const validTypes = ['.csv', '.json', '.xlsx'];
+
+        // --- handleSelectedFile Function (Modified for Dynamic UI) --- 
+        async function handleSelectedFile(file) {
+            // 1. Reset UI to initial state first
+            resetUploadView(); 
+            
+            // 2. Validate file type
+            const validTypes = ['.csv', '.json']; // Removed .xlsx for now
             const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
             
-            if (validTypes.includes(fileExt)) {
-                fileName.textContent = file.name;
-                fileInfo.style.display = 'flex';
-                importBtn.disabled = false;
-                statusEl.textContent = '';
-                statusEl.className = 'status-message';
-            } else {
-                statusEl.textContent = 'Invalid file type. Please select a CSV, JSON, or Excel file.';
+            if (!validTypes.includes(fileExt)) {
+                statusEl.textContent = 'Invalid file type. Please select a CSV or JSON file.';
                 statusEl.className = 'status-message error';
-                fileInput.value = '';
+                fileInput.value = ''; // Clear the invalid selection
+                return;
             }
-        }
+
+            // 3. Display basic file info
+            fileNameEl.textContent = file.name;
+            fileInfo.style.display = 'flex';
+            statusEl.textContent = ''; 
+            statusEl.className = 'status-message';
+
+            // 4. Handle based on type
+            if (fileExt === '.csv') {
+                console.log('CSV file detected, preparing mapping UI...');
+                // Hide the direct import button, show cancel
+                importBtn.style.display = 'none'; 
+                cancelBtn.style.display = 'inline-block';
+                cancelBtn.textContent = 'Cancel Upload'; // Explicitly set text
+
+                // 5. Dynamically restructure layout for mapping
+                if (uploadForm && uploadSection) {
+                    const h2Title = uploadForm.querySelector('h2'); // Find the H2 title
+                    
+                    uploadForm.classList.add('two-column'); 
+
+                    // Create left column wrapper if needed
+                    let leftCol = uploadForm.querySelector('.upload-content-original');
+                    if (!leftCol) {
+                        leftCol = document.createElement('div');
+                        leftCol.className = 'upload-content-original';
+                        // Insert wrapper before the H2 (or first element if H2 is missing)
+                        uploadForm.insertBefore(leftCol, h2Title || uploadForm.firstChild); 
+                        // Move H2 and upload section into the wrapper
+                        if (h2Title) leftCol.appendChild(h2Title); 
+                        leftCol.appendChild(uploadSection); 
+                    } else {
+                         leftCol.style.display = 'block'; // Ensure visible if reset previously
+                    }
+                    
+                    // Create/clear right column for mapping
+                    let rightCol = uploadForm.querySelector('.upload-mapping-area');
+                    if (!rightCol) {
+                        rightCol = document.createElement('div');
+                        rightCol.className = 'upload-mapping-area';
+                        uploadForm.appendChild(rightCol);
+                    } else {
+                        rightCol.innerHTML = ''; // Clear previous mapping UI
+                        rightCol.style.display = 'block'; // Ensure visible
+                    }
+                    
+                    // 6. Load mapping UI & Parse Headers
+                    statusEl.textContent = 'Loading mapping interface...';
+                    statusEl.className = 'status-message processing';
+                    try {
+                        const mappingHTML = await window.electronAPI.readFile('src/forms/upload_mapping_section.html');
+                        rightCol.innerHTML = mappingHTML;
+                        
+                        statusEl.textContent = 'Reading CSV headers...';
+                        Papa.parse(file, {
+                            header: false, // Parse rows as arrays, not objects yet
+                            skipEmptyLines: true,
+                            complete: function(results) {
+                                console.log('PapaParse header results:', results); // Log the results
+                                
+                                if (results.errors && results.errors.length > 0) {
+                                    console.error('PapaParse header parsing errors:', results.errors);
+                                    throw new Error(`Error parsing CSV headers: ${results.errors[0].message}`);
+                                }
+
+                                // Get headers from the first row of data
+                                const headers = results.data?.[0]; 
+                                
+                                // Validate the extracted headers
+                                if (Array.isArray(headers) && headers.length > 0 && headers.some(h => h && String(h).trim() !== '')) {
+                                    // Ensure headers are strings
+                                    const stringHeaders = headers.map(h => String(h).trim()); 
+                                    statusEl.textContent = ''; 
+                                    statusEl.className = '';
+                                    displayMappingUI(stringHeaders, file); // Pass validated string headers
+                                } else {
+                                    console.error('No valid headers found in the first row of the CSV.', results.data);
+                                    throw new Error('Could not parse CSV headers. Check file format, encoding, and ensure a non-empty header row exists.');
+                                }
+                            },
+                            error: function(error) { // Renamed variable
+                                console.error('Error during PapaParse header reading execution:', error);
+                                throw new Error(`Error reading CSV headers: ${error.message}`);
+                            }
+                        });
+                    } catch(err) {
+                        console.error('Error loading or processing mapping UI:', err);
+                        statusEl.textContent = `Error setting up mapping: ${err.message}`;
+                        statusEl.className = 'status-message error';
+                        resetUploadView(); // Reset on error
+                    }
+                } else {
+                     console.error('Cannot find uploadForm or uploadSection to modify layout.');
+                }
+            } else {
+                // Handle non-CSV (e.g., JSON) - show direct import controls
+                console.log('Non-CSV file detected, enabling direct import.');
+                importBtn.style.display = 'inline-block'; // Show direct import button
+                importBtn.disabled = false;
+                cancelBtn.style.display = 'inline-block'; // Ensure cancel is visible
+                cancelBtn.textContent = 'Cancel';
+                 
+                // Ensure mapping area is hidden if it exists from a previous CSV attempt
+                 const mappingArea = uploadForm.querySelector('.upload-mapping-area');
+                 if(mappingArea) mappingArea.style.display = 'none';
+            }
+        } // End handleSelectedFile
         
         await initializeTheme();
+
     } catch (error) {
-        console.error('Error in loadUploadCollection:', error);
-        window.electronAPI.reportError(error);
-        document.getElementById('main-content').innerHTML = `
-            <div class="error-message">
-                <h3>Error Loading Upload View</h3>
-                <p>${error.message}</p>
-            </div>
-        `;
+       console.error('Error in loadUploadCollection:', error);
+       window.electronAPI.reportError(error);
+       document.getElementById('main-content').innerHTML = `
+           <div class="error-message">
+               <h3>Error Loading Upload View</h3>
+               <p>${error.message}</p>
+           </div>
+       `;
     }
 }
 
@@ -1229,11 +1329,12 @@ async function importCollectionFile(file) {
                     document.getElementById('upload-status').textContent = 'Importing data...';
                     
                     // Call the API to import the collection
-                    await window.electronAPI.importCollection(fileData);
+                    // NOTE: Main process handles parsing now for validation
+                    const result = await window.electronAPI.importCollection(fileData);
                     
                     // Show success message
-                    document.getElementById('upload-status').textContent = 'Data imported successfully!';
-                    document.getElementById('upload-status').className = 'success-message';
+                    document.getElementById('upload-status').textContent = `Data imported successfully! Processed ${result.count} records.`;
+                    document.getElementById('upload-status').className = 'status-message success';
                     
                     // Reload dashboard after a short delay
                     setTimeout(() => loadDashboard(), 2000);
@@ -1248,7 +1349,7 @@ async function importCollectionFile(file) {
                 const statusElement = document.getElementById('upload-status');
                 if (statusElement) {
                     statusElement.textContent = `Error: ${error.message}`;
-                    statusElement.className = 'error-message';
+                    statusElement.className = 'error-message'; // Corrected class name
                 }
             }
         };
@@ -1258,6 +1359,345 @@ async function importCollectionFile(file) {
         console.error('Error reading upload file:', error);
         window.electronAPI.reportError(error);
     }
+}
+
+// Helper to read file as text
+function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => resolve(event.target.result);
+        reader.onerror = (error) => reject(error);
+        reader.readAsText(file);
+    });
+}
+
+const DB_COLUMNS = [
+    { value: 'title', text: 'Title (Required)', required: true },
+    { value: 'year', text: 'Year (Required)', required: true },
+    { value: 'country', text: 'Country (Required)', required: true },
+    { value: 'value', text: 'Value', required: false },
+    { value: 'unit', text: 'Unit', required: false },
+    { value: 'mint', text: 'Mint', required: false },
+    { value: 'mint_mark', text: 'Mint Mark', required: false },
+    { value: 'status', text: 'Status', required: false },
+    { value: 'type', text: 'Type', required: false },
+    { value: 'series', text: 'Series', required: false },
+    { value: 'format', text: 'Format', required: false },
+    { value: 'region', text: 'Region', required: false },
+    { value: 'storage', text: 'Storage', required: false },
+    { value: 'quantity', text: 'Quantity', required: false },
+    { value: 'purchase_price', text: 'Purchase Price', required: false },
+    { value: 'purchase_date', text: 'Purchase Date', required: false },
+    // Add others like notes, condition, etc. if they exist in your DB schema
+];
+
+async function displayMappingUI(headers, file) {
+    console.log("Displaying mapping UI for headers:", headers);
+    const mappingArea = document.querySelector('.upload-mapping-area');
+    if (!mappingArea) {
+        console.error('Mapping area not found in the DOM.');
+        return;
+    }
+
+    // Find the specific container for rows *within* the mapping area
+    const rowsContainer = mappingArea.querySelector('#mapping-rows-container');
+    if (!rowsContainer) {
+        console.error('Mapping rows container (#mapping-rows-container) not found within the mapping area.');
+        return;
+    }
+    rowsContainer.innerHTML = ''; // Clear previous rows from the container
+
+    const dbFields = ["Don't Import", 'title', 'year', 'value', 'grade', 'currency', 'country', 'composition', 'weight', 'diameter', 'thickness', 'obverse_description', 'reverse_description', 'notes', 'serial_number', 'purchase_date', 'purchase_price', 'quantity']; // Added Quantity
+    const requiredDbFields = ['title', 'year', 'country'];
+
+    // Fuzzy matching setup
+    const options = {
+        includeScore: true,
+        threshold: 0.4, // Adjust threshold for stricter/looser matching
+        keys: ['name'] // Assuming dbFields are just strings
+    };
+    const fuse = new Fuse(dbFields.map(name => ({ name })), options);
+
+    headers.forEach(header => {
+        const mappingRow = document.createElement('div');
+        mappingRow.className = 'mapping-row';
+
+        const headerLabel = document.createElement('span');
+        headerLabel.className = 'csv-header';
+        headerLabel.textContent = header;
+        headerLabel.title = header; // Tooltip for long headers
+
+        const select = document.createElement('select');
+        select.dataset.csvHeader = header;
+
+        // Pre-selection logic using fuzzy matching
+        let bestMatch = "Don't Import";
+        const results = fuse.search(header);
+        if (results.length > 0) {
+            // Basic check for common ignore patterns
+            const lowerHeader = header.toLowerCase();
+            if (!lowerHeader.includes('image') && !lowerHeader.includes('photo') && !lowerHeader.includes('picture')) {
+                bestMatch = results[0].item.name;
+            }
+        }
+
+        dbFields.forEach(field => {
+            const option = document.createElement('option');
+            option.value = field;
+            option.textContent = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()); // Format for display
+            if (field === bestMatch) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+
+        mappingRow.appendChild(headerLabel);
+        mappingRow.appendChild(select);
+        
+        // Append the row to the dedicated container
+        rowsContainer.appendChild(mappingRow);
+    });
+
+    // Add event listeners for the buttons within the mapping area
+    const confirmBtn = mappingArea.querySelector('#confirm-mapping-btn');
+    const cancelMapBtn = mappingArea.querySelector('#cancel-mapping-btn');
+    const mappingStatus = mappingArea.querySelector('#mapping-status');
+
+    if (confirmBtn) {
+        confirmBtn.onclick = () => handleConfirmMapping(file, mappingStatus);
+        confirmBtn.disabled = false; // Ensure enabled
+    } else {
+        console.error('Confirm mapping button (#confirm-mapping-btn) not found');
+    }
+    
+    if (cancelMapBtn) {
+        cancelMapBtn.onclick = handleCancelMapping;
+    } else {
+        console.error('Cancel mapping button (#cancel-mapping-btn) not found');
+    }
+}
+
+async function handleConfirmMapping(file, mappingStatus) {
+    console.log('Confirm mapping clicked for file:', file.name);
+    const mappingArea = document.querySelector('.upload-mapping-area');
+    const statusEl = mappingArea?.querySelector('#mapping-status');
+    const confirmBtn = mappingArea?.querySelector('#confirm-mapping-btn');
+    const cancelBtn = mappingArea?.querySelector('#cancel-mapping-btn');
+
+    if (!mappingArea || !statusEl || !confirmBtn || !cancelBtn) {
+        console.error('Cannot confirm mapping, UI elements missing (confirmBtn, cancelBtn, statusEl).');
+        // Add more specific logging if needed:
+        console.error(`Debug: mappingArea=${!!mappingArea}, statusEl=${!!statusEl}, confirmBtn=${!!confirmBtn}, cancelBtn=${!!cancelBtn}`);
+        return;
+    }
+
+    confirmBtn.disabled = true;
+    cancelBtn.disabled = true;
+    statusEl.textContent = 'Validating mapping...';
+    statusEl.className = 'status-message processing';
+
+    // --- 1. Read mapping from UI --- 
+    const mapping = {};
+    const selects = mappingArea.querySelectorAll('#mapping-rows-container select');
+    let isValidMapping = true;
+    const mappedDbFields = new Set();
+    const requiredFieldsMapped = new Set();
+
+    selects.forEach(select => {
+        const csvHeader = select.dataset.csvHeader;
+        const dbField = select.value;
+
+        if (dbField !== '-- Select --' && dbField !== '-- Ignore --') {
+            mapping[csvHeader] = dbField;
+            if (mappedDbFields.has(dbField)) {
+                statusEl.textContent = `Error: Database field '${dbField}' is mapped multiple times.`;
+                isValidMapping = false;
+            }
+            mappedDbFields.add(dbField);
+            const requiredCol = DB_COLUMNS.find(c => c.value === dbField && c.required);
+            if (requiredCol) {
+                requiredFieldsMapped.add(dbField);
+            }
+        } else {
+             mapping[csvHeader] = null; // Mark as not mapped or ignored
+        }
+    });
+
+    // --- 2. Validate Mapping --- 
+    const missingRequired = DB_COLUMNS.filter(c => c.required && !requiredFieldsMapped.has(c.value));
+    if (missingRequired.length > 0) {
+        const missingNames = missingRequired.map(c => c.text.replace(' (Required)','')).join(', ');
+        statusEl.textContent = `Error: Required database fields not mapped: ${missingNames}.`;
+        isValidMapping = false;
+    }
+
+    if (!isValidMapping) {
+        statusEl.className = 'status-message error';
+        confirmBtn.disabled = false;
+        cancelBtn.disabled = false;
+        return;
+    }
+    
+    // --- 3. Read full file & Parse --- 
+    statusEl.textContent = 'Reading and parsing file...';
+    try {
+        const fileContent = await readFileAsText(file);
+        
+        Papa.parse(fileContent, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async function(results) {
+                if (results.errors.length > 0) {
+                    console.warn('CSV Parsing warnings/errors (full file):', results.errors);
+                    // Depending on severity, might want to stop here
+                    // For now, we proceed but the main process validation might catch issues
+                }
+                
+                const originalData = results.data;
+                if (!originalData || originalData.length === 0) {
+                     throw new Error('No data rows found in the CSV file after parsing headers.');
+                }
+                console.log(`Parsed full CSV: ${originalData.length} data rows.`);
+
+                // --- 4. Transform Data based on Mapping --- 
+                statusEl.textContent = 'Transforming data based on mapping...';
+                const transformedData = [];
+                originalData.forEach((row, index) => {
+                    const newCoin = {};
+                    let skipRow = false;
+                    for (const csvHeader in mapping) {
+                        const dbField = mapping[csvHeader];
+                        if (dbField) { // Only process mapped fields
+                           // Trim whitespace from incoming data
+                           const rawValue = row[csvHeader] !== undefined && row[csvHeader] !== null ? String(row[csvHeader]).trim() : null;
+                           newCoin[dbField] = rawValue; 
+                        }
+                    }
+                    // Add timestamp (optional, main process might do this)
+                    newCoin.created_at = new Date().toISOString(); 
+                    transformedData.push(newCoin);
+                });
+
+                if (transformedData.length === 0) {
+                   throw new Error('No data rows were processed after mapping.');
+                }
+
+                // --- 5. Send Transformed Data to Main Process --- 
+                statusEl.textContent = `Importing ${transformedData.length} records...`;
+                const jsonData = JSON.stringify(transformedData);
+                try {
+                    // Call main process (which now expects pre-mapped JSON string)
+                    const result = await window.electronAPI.importCollection(jsonData);
+                    console.log('Import result from main process:', result);
+                    
+                    if (result.success) {
+                        statusEl.textContent = `Successfully imported ${result.count} coins!`;
+                        statusEl.className = 'status-message success';
+                        setTimeout(resetUploadView, 2500); // Reset view after success message
+                    } else {
+                        // Error came from main process validation/DB insert
+                        throw new Error(result.error || 'Unknown error during database import.');
+                    }
+                } catch (ipcError) {
+                    // Error related to the IPC call itself or re-thrown from main
+                    console.error('Error calling/handling importCollection IPC:', ipcError);
+                    throw new Error(`Import Failed: ${ipcError.message}`); 
+                }
+            },
+            error: function(error) {
+                 // Error during PapaParse itself
+                 console.error('Error parsing full CSV file:', error);
+                 throw new Error(`Error reading CSV file data: ${error.message}`);
+            }
+        });
+    } catch (error) {
+        // Catch errors from file reading, parsing setup, or thrown from callbacks
+        console.error('Error in handleConfirmMapping:', error);
+        statusEl.textContent = `Error: ${error.message}`;
+        statusEl.className = 'status-message error';
+        confirmBtn.disabled = false;
+        cancelBtn.disabled = false;
+    }
+}
+
+function handleCancelMapping() {
+    console.log('Cancel mapping clicked');
+    resetUploadView();
+}
+
+function resetUploadView() {
+    console.log('Resetting upload view to initial state.');
+    
+    const uploadForm = document.querySelector('.upload-collection-form');
+    const uploadSection = uploadForm?.querySelector('.upload-section'); // Original content container
+    const leftCol = uploadForm?.querySelector('.upload-content-original');
+    const rightCol = uploadForm?.querySelector('.upload-mapping-area');
+    const fileInput = document.getElementById('file-upload');
+    const fileInfo = document.getElementById('file-info');
+    const fileNameEl = document.getElementById('file-name'); 
+    const importBtn = document.getElementById('import-button');
+    const cancelBtn = document.getElementById('cancel-upload');
+    const statusEl = document.getElementById('upload-status'); // Main status
+    const mappingStatusEl = rightCol?.querySelector('#mapping-status'); // Status in mapping area
+
+    const h2Title = leftCol?.querySelector('h2'); // Find H2 within leftCol before removing
+
+    // 1. Remove dynamic layout classes and elements
+    if (uploadForm) {
+        uploadForm.classList.remove('two-column');
+    }
+    if (rightCol) {
+        rightCol.remove(); // Remove the mapping area completely
+    }
+    if (leftCol && uploadSection) {
+        // Move H2 and uploadSection back out before removing leftCol
+        if (h2Title) uploadForm.insertBefore(h2Title, leftCol);
+        uploadForm.insertBefore(uploadSection, leftCol); 
+        leftCol.remove(); // Remove the wrapper div
+    }
+
+    // 2. Reset file input and related UI
+    if (fileInput) {
+        fileInput.value = ''; // Clear selected file
+    }
+    if (fileInfo) {
+        fileInfo.style.display = 'none'; // Hide file info display
+    }
+    if (fileNameEl) {
+        fileNameEl.textContent = '';
+    }
+    if (importBtn) {
+        importBtn.style.display = 'inline-block'; // Ensure direct import button is visible by default
+        importBtn.disabled = true; // Disabled until a file is selected
+    }
+     if (cancelBtn) {
+        cancelBtn.style.display = 'inline-block'; // Ensure cancel button is visible
+        cancelBtn.textContent = 'Cancel'; // Reset button text
+    }
+    if (statusEl) {
+        statusEl.textContent = ''; // Clear main status message
+        statusEl.className = 'status-message';
+    }
+    // No need to clear mappingStatusEl as its parent (rightCol) is removed
+}
+
+// Simple Levenshtein distance function (for fuzzy matching)
+function levenshteinDistance(a, b) {
+    if (a.length === 0) return b.length; 
+    if (b.length === 0) return a.length; 
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) { matrix[i] = [i]; }
+    for (let j = 0; j <= a.length; j++) { matrix[0][j] = j; }
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1));
+            }
+        }
+    }
+    return matrix[b.length][a.length];
 }
 
 // Function to load the add coin form

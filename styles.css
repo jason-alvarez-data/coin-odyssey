@@ -101,8 +101,10 @@ body {
     background-color: var(--bg-primary);
     transition: background-color 0.3s ease;
     height: 100%;
+    max-height: 100vh;
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 /* Search Container Styles */
@@ -456,10 +458,8 @@ body {
 .upload-collection-form {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    max-width: 1000px;
-    margin: 0 auto;
     padding: 20px;
+    flex-grow: 1;
 }
 
 .upload-collection-form h2 {
@@ -1532,3 +1532,161 @@ input:checked + .slider:before {
     background-repeat: no-repeat;
     background-position: center;
 }
+
+/* Dynamic Upload View Styles */
+.upload-collection-form.two-column {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: stretch;
+    flex-grow: 1;
+    height: 100%;
+    overflow: hidden;
+    max-height: calc(100vh - 100px); /* Account for potential padding/margins */
+}
+
+.upload-content-original {
+    flex: 1;
+    min-width: 300px; /* Prevent from getting too narrow */
+    max-width: 35%; /* Limit width to prevent squeezing mapping area */
+    overflow-y: visible; /* Remove scrolling from left column */
+}
+
+.upload-content-original .upload-section {
+    max-width: 100%;
+    margin: 0;
+}
+
+.upload-mapping-area {
+    flex: 3;
+    background-color: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px var(--shadow-color);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; /* Enable vertical scrolling here */
+    min-width: 0; /* Ensure it can shrink below min-content width */
+    max-height: 100%;
+}
+
+.upload-mapping-area h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--text-primary);
+    flex-shrink: 0;
+}
+
+#mapping-rows-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+    overflow-y: visible; /* Remove duplicate scrolling */
+    padding-right: 10px;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 100px;
+}
+
+/* Media query for smaller screens */
+@media (max-width: 900px) {
+    .upload-collection-form.two-column {
+        flex-direction: column;
+        max-height: none;
+    }
+    
+    .upload-content-original {
+        max-width: 100%;
+        margin-bottom: 20px;
+        overflow-y: visible;
+    }
+    
+    .upload-mapping-area {
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    
+    #mapping-rows-container {
+        overflow-y: visible;
+    }
+}
+
+/* Use Grid for layout within the row */
+.mapping-row {
+    display: grid;
+    grid-template-columns: minmax(100px, 1fr) minmax(150px, 2fr); /* More responsive column sizing */
+    gap: 15px;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: var(--bg-primary);
+    border-radius: 6px;
+    flex-shrink: 0;
+    border: 1px solid var(--border-color);
+    transition: background-color 0.15s ease;
+}
+
+.mapping-row:hover {
+    background-color: var(--bg-secondary);
+}
+
+.mapping-row .csv-header {
+    font-weight: bold;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 14px;
+    padding: 4px 0;
+}
+
+.mapping-row select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 13px;
+    line-height: 1.3;
+    appearance: menulist;
+    cursor: pointer;
+}
+
+.mapping-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+    padding-right: 10px;
+}
+
+#mapping-status {
+    margin-top: 15px;
+    font-size: 14px;
+    text-align: center;
+    padding: 12px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    min-height: 40px;
+    margin-bottom: 5px;
+}
+
+#mapping-status.success {
+    color: white;
+    background-color: var(--success-color);
+}
+
+#mapping-status.error {
+    color: white;
+    background-color: var(--error-color);
+}
+
+#mapping-status.processing {
+    color: var(--text-primary);
+    background-color: var(--bg-secondary);
+}
+
+/* --- End Added Styles --- */

@@ -175,92 +175,70 @@ ipcMain.handle('search-coins', async (event, searchText, searchField) => {
 
 // Import/Export Operations
 ipcMain.handle('import-collection', async (event, fileData) => {
+    // NOTE: fileData is now expected to be a JSON string of PRE-MAPPED coin objects
     try {
-        console.log('Received file data for import. Attempting to parse...');
+        console.log('Received mapped data string for import. Length:', fileData?.length);
         let coinsData;
-        let parseError = null;
 
-        // Try parsing CSV first (more common for user uploads)
+        // 1. Parse the incoming JSON string
         try {
-            const parseResult = Papa.parse(fileData, { 
-                header: true, 
-                skipEmptyLines: true, // Skip empty lines
-                transformHeader: header => header.trim() // Trim header whitespace
-            });
-            if (parseResult.errors.length > 0) {
-                console.warn('CSV parsing errors:', parseResult.errors);
-                // Take the first error as the primary issue
-                parseError = new Error(`CSV Parsing Error: ${parseResult.errors[0].message} on row ${parseResult.errors[0].row}`);
-            }
-            coinsData = parseResult.data;
-            console.log(`Parsed CSV: ${coinsData.length} rows.`);
-        } catch(csvError) {
-            console.warn('CSV Parsing failed, trying JSON.', csvError);
-            parseError = csvError; // Store CSV error in case JSON also fails
+            coinsData = JSON.parse(fileData);
+            console.log(`Parsed mapped JSON: ${Array.isArray(coinsData) ? coinsData.length : 'Invalid format'} items.`);
+        } catch (jsonError) {
+            console.error('JSON Parsing failed for mapped data:', jsonError);
+            throw new Error('Invalid data format received after mapping.');
         }
 
-        // If CSV parsing failed or resulted in no data, try JSON
-        if (!coinsData || coinsData.length === 0) {
-            try {
-                console.log('Attempting JSON parse...');
-                coinsData = JSON.parse(fileData);
-                parseError = null; // JSON parsed successfully, clear previous error
-                console.log(`Parsed JSON: ${Array.isArray(coinsData) ? coinsData.length : 'Invalid format'} items.`);
-            } catch (jsonError) {
-                console.error('JSON Parsing failed:', jsonError);
-                // If CSV parsing also failed, throw that error, otherwise throw JSON error
-                throw parseError || jsonError;
-            }
-        }
-
-        // Validate data structure and content
+        // 2. Validate data structure and content
         if (!Array.isArray(coinsData)) {
             throw new Error('Invalid data format. Expected an array of coin objects.');
         }
 
         const validationErrors = [];
-        const requiredFields = ['title', 'year', 'country']; // Add other required fields based on schema
+        const requiredDbFields = DB_COLUMNS.filter(c => c.required).map(c => c.value);
 
         for (let i = 0; i < coinsData.length; i++) {
             const coin = coinsData[i];
-            // Basic check if it's a valid object
             if (typeof coin !== 'object' || coin === null) {
-                validationErrors.push(`Row ${i + 1}: Invalid data format (not an object).`);
-                continue; // Skip further checks for this row
+                validationErrors.push(`Record ${i + 1}: Invalid data format (not an object).`);
+                continue; 
             }
 
-            for (const field of requiredFields) {
-                // Check if the field exists and is not null/empty string
-                // PapaParse might map headers like 'Title' to 'Title', check case-insensitively if needed
-                const key = Object.keys(coin).find(k => k.toLowerCase() === field.toLowerCase());
-                if (!key || coin[key] === null || coin[key] === '') {
-                    validationErrors.push(`Row ${i + 1}: Missing or empty required field '${field}'.`);
+            for (const field of requiredDbFields) {
+                // Check if the required field exists and is not null/empty string
+                if (coin[field] === null || coin[field] === '' || coin[field] === undefined) {
+                    validationErrors.push(`Record ${i + 1}: Missing or empty required field '${field}'.`);
                 }
             }
             // Add more specific validation (e.g., year is a number) if necessary
         }
 
         if (validationErrors.length > 0) {
-            console.error('Import validation failed:', validationErrors);
-            // Join errors for a clearer message back to the user
-            throw new Error(`Validation Failed: ${validationErrors.join('; ')}`);
+            console.error('Import validation failed after mapping:', validationErrors);
+            // Consider sending back only the first few errors for brevity
+            const errorMsg = `Validation Failed: ${validationErrors.slice(0, 5).join('; ')}${validationErrors.length > 5 ? ' (and more...)' : ''}`;
+            throw new Error(errorMsg);
         }
 
+        // 3. Insert into Database
         console.log('Validation successful. Proceeding with database insertion...');
-        // Consider using a bulk insert function in db.js if available for performance
+        // Use a bulk insert function in db.js if possible!
+        // Example: await db.addMultipleCoins(coinsData);
+        // Fallback to individual inserts:
         for (const coin of coinsData) {
-            // Map headers potentially? Or assume mapping happened earlier?
-            // For now, assuming headers match db columns (potentially case-insensitive handled by db.addCoin)
-            await db.addCoin(coin);
+            // Ensure data types are correct if necessary before insert (e.g., numbers)
+            // Example: coin.year = parseInt(coin.year, 10) || null;
+            // Example: coin.value = parseFloat(coin.value) || 0;
+            await db.addCoin(coin); 
         }
 
         console.log(`Successfully imported ${coinsData.length} coins.`);
         return { success: true, count: coinsData.length };
 
     } catch (error) {
-        console.error('Error during import-collection handling:', error);
-        // Rethrow the error so it's propagated back to the renderer
-        throw error;
+        console.error('Error during import-collection handling (main process):', error);
+        // Return error message to renderer
+        return { success: false, error: error.message }; 
     }
 });
 
