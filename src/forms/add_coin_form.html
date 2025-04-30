@@ -3,134 +3,126 @@
         <div class="form-content">
             <div class="form-grid">
                 <!-- Left Column -->
-                <div class="form-column">
-                    <div class="form-group">
-                        <label for="title">Title:</label>
-                        <input type="text" id="title" name="title" required>
-                    </div>
+                <div class="form-group">
+                    <label for="title">Title:</label>
+                    <input type="text" id="title" name="title" required>
+                </div>
 
-                    <div class="form-group">
-                        <label for="year">Year:</label>
-                        <input type="number" id="year" name="year" value="2024" min="1" max="9999">
-                    </div>
+                <div class="form-group">
+                    <label for="year">Year:</label>
+                    <input type="number" id="year" name="year" value="2024" min="1" max="9999">
+                </div>
 
-                    <div class="form-group">
-                        <label for="country">Country:</label>
-                        <div class="searchable-select">
-                            <input type="text" id="country-search" placeholder="Search country..." class="select-search">
-                            <div class="select-options" id="country-options">
-                                <!-- Options will be populated by JavaScript -->
-                            </div>
-                            <input type="hidden" id="country" name="country" required>
+                <div class="form-group">
+                    <label for="country">Country:</label>
+                    <div class="searchable-select">
+                        <input type="text" id="country-search" placeholder="Search country..." class="select-search">
+                        <div class="select-options" id="country-options">
+                            <!-- Options will be populated by JavaScript -->
                         </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="value">Value:</label>
-                        <input type="number" id="value" name="value" step="0.01" min="0">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="unit">Unit:</label>
-                        <select id="unit" name="unit">
-                            <option value="Cent">Cent</option>
-                            <option value="Dollar">Dollar</option>
-                            <option value="Euro">Euro</option>
-                            <option value="Peso">Peso</option>
-                            <option value="CAD">CAD</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="mint">Mint:</label>
-                        <input type="text" id="mint" name="mint">
+                        <input type="hidden" id="country" name="country" required>
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label for="value">Value:</label>
+                    <input type="number" id="value" name="value" step="0.01" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label for="unit">Unit:</label>
+                    <select id="unit" name="unit">
+                        <option value="Cent">Cent</option>
+                        <option value="Dollar">Dollar</option>
+                        <option value="Euro">Euro</option>
+                        <option value="Peso">Peso</option>
+                        <option value="CAD">CAD</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="mint">Mint:</label>
+                    <input type="text" id="mint" name="mint">
+                </div>
+
                 <!-- Right Column -->
-                <div class="form-column">
-                    <div class="form-group">
-                        <label for="type">Type:</label>
-                        <select id="type" name="type">
-                            <option value="Regular Issue">Regular Issue</option>
-                            <option value="Commemorative">Commemorative</option>
-                            <option value="Bullion">Bullion</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label for="type">Type:</label>
+                    <select id="type" name="type">
+                        <option value="Regular Issue">Regular Issue</option>
+                        <option value="Commemorative">Commemorative</option>
+                        <option value="Bullion">Bullion</option>
+                    </select>
+                </div>
 
-                    <div class="form-group">
-                        <label for="format">Format:</label>
-                        <select id="format" name="format">
-                            <option value="Single">Single</option>
-                            <option value="Proof">Proof</option>
-                            <option value="Set">Set</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label for="format">Format:</label>
+                    <select id="format" name="format">
+                        <option value="Single">Single</option>
+                        <option value="Proof">Proof</option>
+                        <option value="Set">Set</option>
+                    </select>
+                </div>
 
-                    <div class="form-group">
-                        <label for="series">Series:</label>
-                        <input type="text" id="series" name="series">
-                    </div>
+                <div class="form-group">
+                    <label for="series">Series:</label>
+                    <input type="text" id="series" name="series">
+                </div>
 
-                    <div class="form-group">
-                        <label for="region">Region:</label>
-                        <select id="region" name="region">
-                            <option value="Americas">Americas</option>
-                            <option value="Europe">Europe</option>
-                            <option value="Asia">Asia</option>
-                            <option value="Africa">Africa</option>
-                            <option value="Oceania">Oceania</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label for="region">Region:</label>
+                    <select id="region" name="region">
+                        <option value="Americas">Americas</option>
+                        <option value="Europe">Europe</option>
+                        <option value="Asia">Asia</option>
+                        <option value="Africa">Africa</option>
+                        <option value="Oceania">Oceania</option>
+                    </select>
+                </div>
 
-                    <div class="form-group">
-                        <label for="storage">Storage:</label>
-                        <select id="storage" name="storage">
-                            <option value="Clear Coin Bin">Clear Coin Bin</option>
-                            <option value="State Collection Volume 1">State Collection Volume 1</option>
-                            <option value="State Collection Volume 2">State Collection Volume 2</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label for="storage">Storage:</label>
+                    <select id="storage" name="storage">
+                        <option value="Clear Coin Bin">Clear Coin Bin</option>
+                        <option value="State Collection Volume 1">State Collection Volume 1</option>
+                        <option value="State Collection Volume 2">State Collection Volume 2</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
 
-                    <div class="form-group">
-                        <label for="status">Status:</label>
-                        <select id="status" name="status">
-                            <option value="owned">Owned</option>
-                            <option value="wanted">Wanted</option>
-                            <option value="ordered">Ordered</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label for="status">Status:</label>
+                    <select id="status" name="status">
+                        <option value="owned">Owned</option>
+                        <option value="wanted">Wanted</option>
+                        <option value="ordered">Ordered</option>
+                    </select>
                 </div>
             </div>
 
             <div class="form-grid bottom-row">
                 <!-- Bottom left -->
-                <div class="form-column">
-                    <div class="form-group">
-                        <label for="mint-mark">Mark:</label>
-                        <input type="text" id="mint-mark" name="mint_mark">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="date-collected">Date Collected:</label>
-                        <input type="date" id="date-collected" name="purchase_date" readonly>
-                        <small class="field-hint">Automatically set to today's date</small>
-                    </div>
+                <div class="form-group">
+                    <label for="mint-mark">Mark:</label>
+                    <input type="text" id="mint-mark" name="mint_mark">
+                </div>
+                
+                <div class="form-group">
+                    <label for="date-collected">Date Collected:</label>
+                    <input type="date" id="date-collected" name="purchase_date" readonly>
+                    <small class="field-hint">Automatically set to today's date</small>
                 </div>
                 
                 <!-- Bottom right -->
-                <div class="form-column">
-                    <div class="form-group">
-                        <label for="purchase-price">Purchase Price:</label>
-                        <input type="number" id="purchase-price" name="purchase_price" step="0.01" min="0" placeholder="0.00">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="quantity">Quantity:</label>
-                        <input type="number" id="quantity" name="quantity" value="1" min="1" max="999">
-                    </div>
+                <div class="form-group">
+                    <label for="purchase-price">Purchase Price:</label>
+                    <input type="number" id="purchase-price" name="purchase_price" step="0.01" min="0" placeholder="0.00">
+                </div>
+                
+                <div class="form-group">
+                    <label for="quantity">Quantity:</label>
+                    <input type="number" id="quantity" name="quantity" value="1" min="1" max="999">
                 </div>
             </div>
 

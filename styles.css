@@ -674,7 +674,7 @@ body {
     overflow: hidden;
 }
 
-.form-grid {
+.add-coin-form .form-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;

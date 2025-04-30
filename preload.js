@@ -30,6 +30,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Search Operations
     searchCoins: (searchText, searchField) => ipcRenderer.invoke('search-coins', searchText, searchField),
     
+    // Add Import/Export Operations here
+    importCollection: (fileData) => ipcRenderer.invoke('import-collection', fileData),
+    exportCollection: (format) => ipcRenderer.invoke('export-collection', format),
+    
     // Error Handling
     reportError: (error) => ipcRenderer.invoke('report-error', error),
     

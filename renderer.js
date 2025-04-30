@@ -5,6 +5,7 @@ const LIGHT_THEME = 'light';
 
 // Global variables
 let worldMap = null;
+let currentView = 'dashboard'; // Track the current view, default to dashboard
 // Store chart references for cleanup
 let charts = {};
 
@@ -49,6 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Add active class to clicked button
             button.classList.add('active');
             
+            // Store previous view before navigating to add coin
+            if (view === 'add') {
+                sessionStorage.setItem('previousView', currentView);
+            }
+
             // Load the appropriate view
             try {
                 switch (view) {
@@ -96,8 +102,31 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDashboard();
 });
 
+// Helper function to navigate back to the previous view or a default
+async function navigateBack(defaultView = 'dashboard') {
+    const previousView = sessionStorage.getItem('previousView') || defaultView;
+    console.log(`Navigating back to: ${previousView}`);
+    sessionStorage.removeItem('previousView'); // Clear after use
+
+    // Find the corresponding button and click it to load the view
+    const button = document.querySelector(`.sidebar-button[data-view="${previousView}"]`);
+    if (button) {
+        button.click(); // Simulate click to ensure active state and loading logic run
+    } else {
+        console.warn(`Could not find button for view: ${previousView}. Loading default: ${defaultView}`);
+        // Fallback to loading directly if button not found (shouldn't happen ideally)
+        switch (defaultView) {
+            case 'dashboard': await loadDashboard(); break;
+            case 'collection': await loadCollection(); break;
+            // Add other cases if needed
+            default: await loadDashboard();
+        }
+    }
+}
+
 // Function to load the dashboard
 async function loadDashboard() {
+    currentView = 'dashboard'; // Set current view
     try {
         console.log('Starting dashboard load');
         
@@ -162,6 +191,7 @@ async function loadDashboard() {
 
 // Function to load the collection view
 async function loadCollection() {
+    currentView = 'collection'; // Set current view
     try {
         console.log('Loading collection view');
         
@@ -263,6 +293,7 @@ function setupCollectionFilters() {
 
 // Function to load analysis view
 async function loadAnalysis() {
+    currentView = 'analysis'; // Set current view
     try {
         // Clear chart instances before changing the DOM
         Object.keys(charts).forEach(key => {
@@ -645,6 +676,7 @@ function generateColors(count) {
 
 // Settings functions
 async function loadSettings() {
+    currentView = 'settings'; // Set current view
     try {
         const settingsContent = await window.electronAPI.readFile('src/forms/settings.html');
         document.getElementById('main-content').innerHTML = settingsContent;
@@ -1063,6 +1095,7 @@ window.electronAPI.on('collection-updated', async () => {
 
 // Function to load the upload collection view
 async function loadUploadCollection() {
+    currentView = 'upload'; // Set current view
     try {
         console.log('Loading upload collection view');
         
@@ -1099,9 +1132,21 @@ async function loadUploadCollection() {
             });
             
             // Click to upload
-            uploadBox.addEventListener('click', () => {
-                if (fileInput) fileInput.click();
+            uploadBox.addEventListener('click', (e) => {
+                // Only trigger if the click wasn't on the label/button itself
+                if (e.target.tagName !== 'LABEL' && !e.target.closest('.upload-button')) {
+                    if (fileInput) fileInput.click();
+                }
             });
+
+            // Prevent double-trigger from label click bubbling
+            const chooseFileButton = uploadBox.querySelector('.upload-button');
+            if (chooseFileButton) {
+                chooseFileButton.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Stop the click from reaching the uploadBox listener
+                    // The label's default behavior will trigger the file input
+                });
+            }
         }
         
         // File input change
@@ -1217,6 +1262,7 @@ async function importCollectionFile(file) {
 
 // Function to load the add coin form
 async function loadAddCoin() {
+    // Don't set currentView here, as it's a temporary form page
     try {
         console.log('Loading add coin form');
         
@@ -1250,7 +1296,8 @@ async function loadAddCoin() {
         
         if (cancelButton) {
             cancelButton.addEventListener('click', () => {
-                loadCollection(); // Return to collection view
+                console.log('Cancel add coin clicked');
+                navigateBack('collection');
             });
         }
         
@@ -1456,8 +1503,8 @@ async function saveCoin() {
         // Save the coin via the Electron API
         await window.electronAPI.addCoin(coinData);
         
-        // Navigate back to collection view
-        await loadCollection();
+        // Navigate back to the previous page or collection page
+        navigateBack('collection');
     } catch (error) {
         console.error('Error saving coin:', error);
         window.electronAPI.reportError(error);
