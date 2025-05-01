@@ -364,16 +364,17 @@ body {
 
 @media (max-width: 768px) {
     body {
-        flex-direction: column;
-    }
-
-    #sidebar {
-        width: 100%;
-        height: auto;
         padding: 10px;
     }
 
+    #sidebar {
+        position: static;
+        width: 100%;
+        height: auto;
+    }
+
     #main-content {
+        margin-left: 0;
         padding: 10px;
     }
 
@@ -383,16 +384,41 @@ body {
     }
 
     #collection-table {
+        font-size: 12px;
         display: block;
         overflow-x: auto;
     }
-
-    .chart-wrapper {
-        min-height: 300px;
+    
+    #collection-table th,
+    #collection-table td {
+        padding: 8px;
+    }
+    
+    .actions-cell {
+        min-width: 80px;
     }
 
+    .coin-actions {
+        flex-direction: row;
+        gap: 4px;
+        padding: 4px;
+    }
+    
+    .edit-button,
+    .delete-button {
+        min-width: 30px;
+        min-height: 30px;
+        padding: 4px;
+    }
+
+    .chart-wrapper {
+        grid-column: span 2;
+        min-height: 300px;
+    }
+    
     .settings-section {
         max-width: 100%;
+        flex: 1 1 100%;
     }
     
     .upload-box {
@@ -400,16 +426,15 @@ body {
     }
     
     .checkbox-group {
-        grid-template-columns: 1fr;
+        flex-direction: column;
     }
-
+    
     .form-grid {
         grid-template-columns: 1fr;
     }
     
     .image-upload-container {
-        flex-direction: column;
-        align-items: center;
+        grid-template-columns: 1fr;
     }
 }
 
@@ -977,23 +1002,32 @@ body {
     background-color: var(--bg-primary);
 }
 
+.actions-cell {
+    padding: 0 !important;
+    vertical-align: middle;
+    min-width: 90px;
+}
+
 .coin-actions {
     display: flex;
     gap: 8px;
-    justify-content: flex-end;
+    justify-content: center;
+    padding: 8px;
+    white-space: nowrap;
 }
 
 .edit-button,
 .delete-button {
-    padding: 6px 12px;
+    padding: 6px;
+    min-width: 36px;
+    min-height: 36px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 14px;
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
 }
 
 .edit-button {

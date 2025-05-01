@@ -8,6 +8,32 @@
 
 Coin Odyssey is an Electron-based desktop application designed to help numismatists manage their coin collections with ease. The application provides an intuitive interface for tracking coins, managing collections, and visualizing collection data through an interactive world map.
 
+## Screenshots
+
+### Light Mode
+<div align="center">
+  <h4>Dashboard</h4>
+  <img src="src/assets/screenshots/dashboard_light.png" alt="Dashboard in Light Mode" width="800"/>
+  
+  <h4>Collection View</h4>
+  <img src="src/assets/screenshots/collection_light.png" alt="Collection in Light Mode" width="800"/>
+  
+  <h4>Analysis</h4>
+  <img src="src/assets/screenshots/analysis_light.png" alt="Analysis in Light Mode" width="800"/>
+</div>
+
+### Dark Mode
+<div align="center">
+  <h4>Dashboard</h4>
+  <img src="src/assets/screenshots/dashboard_dark.png" alt="Dashboard in Dark Mode" width="800"/>
+  
+  <h4>Collection View</h4>
+  <img src="src/assets/screenshots/collection_dark.png" alt="Collection in Dark Mode" width="800"/>
+  
+  <h4>Analysis</h4>
+  <img src="src/assets/screenshots/analysis_dark.png" alt="Analysis in Dark Mode" width="800"/>
+</div>
+
 ## Features
 
 - **Interactive World Map**: Visualize your collection's geographic distribution with an interactive SVG map
@@ -23,6 +49,11 @@ Coin Odyssey is an Electron-based desktop application designed to help numismati
   - View collection statistics at a glance
   - Track total collection value
   - Monitor collection growth over time
+- **Data Analysis**:
+  - Geographic distribution charts
+  - Collection composition breakdown
+  - Value timeline tracking
+  - Year distribution visualization
 - **Modern UI**:
   - Clean, intuitive interface
   - Dark/Light mode support
@@ -71,6 +102,11 @@ Coin Odyssey is an Electron-based desktop application designed to help numismati
    - Organize coins by storage location
    - Export collection data as needed
 
+5. **Data Import/Export**:
+   - Backup your collection data
+   - Import from CSV, Excel, or JSON files
+   - Export your collection for safekeeping
+
 ## Technologies Used
 
 - Electron.js
@@ -78,6 +114,7 @@ Coin Odyssey is an Electron-based desktop application designed to help numismati
 - SQLite
 - HTML/CSS/JavaScript
 - SVG for interactive mapping
+- Chart.js for data visualization
 
 ## Using This Project
 

@@ -253,14 +253,16 @@ async function populateCollectionTable(coins) {
         });
 
         const actionsCell = document.createElement('td');
-        actionsCell.className = 'coin-actions';
+        actionsCell.className = 'actions-cell';
         actionsCell.innerHTML = `
-            <button class="edit-button" data-coin-id="${coin.id}">
-                <span class="icon">✏️</span>
-            </button>
-            <button class="delete-button" data-coin-id="${coin.id}">
-                <span class="icon">🗑️</span>
-            </button>
+            <div class="coin-actions">
+                <button class="edit-button" data-coin-id="${coin.id}" title="Edit">
+                    <span class="icon">✏️</span>
+                </button>
+                <button class="delete-button" data-coin-id="${coin.id}" title="Delete">
+                    <span class="icon">🗑️</span>
+                </button>
+            </div>
         `;
         row.appendChild(actionsCell);
         
