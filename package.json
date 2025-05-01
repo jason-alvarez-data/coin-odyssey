@@ -58,12 +58,6 @@
       ],
       "icon": "assets/icons/win/icon.ico"
     },
-    "mac": {
-      "target": [
-        "dmg"
-      ],
-      "icon": "assets/icons/mac/icon.icns"
-    },
     "linux": {
       "target": [
         "AppImage",
