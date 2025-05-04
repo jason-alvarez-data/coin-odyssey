@@ -116,9 +116,10 @@ try {
     dbPath = getDbPath();
     log.info(`Using database path: ${dbPath}`);
     
-    initializeDatabase(dbPath); // Ensure directory and template are handled first
+    // initializeDatabase(dbPath); // <<< Temporarily comment out initialization
+    log.warn('[DEBUG] Skipping initializeDatabase call for testing.'); // Add warning
 
-    log.info('Attempting to create database connection...');
+    log.info('Attempting to create database connection (without pre-initialization)...');
     // Normalize the path to handle potential issues
     const normalizedPath = path.normalize(dbPath);
     log.info(`Normalized database path for connection: ${normalizedPath}`);
