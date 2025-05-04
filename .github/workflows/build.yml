@@ -44,40 +44,57 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20.10.0'
           cache: 'npm'
 
       - name: Install system dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libsqlite3-dev python3-pip
+          sudo apt-get install -y libsqlite3-dev python3-pip build-essential
 
-      - name: Install dependencies
+      - name: Clean install
         run: |
-          npm ci
-          npm run rebuild
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "Cleaning previous installations..."
+          rm -rf node_modules || true
+          rm -f package-lock.json || true
+          echo "Installing dependencies..."
+          npm install
+        shell: bash
 
-      - name: Initialize database template
+      - name: Rebuild native modules
         run: |
+          echo "Rebuilding native modules..."
+          npm rebuild
           if [ "$RUNNER_OS" == "Windows" ]; then
-            npm run init-db
-            if [ ! -f "template.db" ]; then
-              echo "Error: template.db was not created on Windows"
-              exit 1
-            fi
+            echo "Running electron-builder install-app-deps on Windows..."
+            ./node_modules/.bin/electron-builder install-app-deps
           else
-            npm run init-db
-            if [ ! -f "template.db" ]; then
-              echo "Error: template.db was not created on Unix"
-              exit 1
-            fi
+            echo "Running electron-builder install-app-deps on Unix..."
+            node_modules/.bin/electron-builder install-app-deps
           fi
         shell: bash
         env:
           RUNNER_OS: ${{ runner.os }}
+
+      - name: Initialize database template
+        run: |
+          echo "Current directory contents:"
+          ls -la
+          echo "Running database initialization..."
+          node src/database/init-db.js
+          if [ ! -f "template.db" ]; then
+            echo "Error: template.db was not created"
+            echo "Current directory contents after attempt:"
+            ls -la
+            echo "Node.js version:"
+            node --version
+            echo "NPM version:"
+            npm --version
+            exit 1
+          fi
+          echo "Database initialization successful"
+        shell: bash
 
       - name: Verify template.db
         run: |
@@ -92,12 +109,20 @@ jobs:
         shell: bash
 
       - name: Build application
+        run: |
+          echo "Starting application build..."
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Running build command: npm run ${{ matrix.build_command }}"
+          npm run ${{ matrix.build_command }}
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run ${{ matrix.build_command }}
+          DEBUG: electron-builder
 
       - name: List dist directory
         run: |
+          echo "Build output contents:"
           ls -la dist/
         shell: bash
 
