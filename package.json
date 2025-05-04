@@ -64,6 +64,12 @@
         "deb"
       ],
       "icon": "assets/icons/png/512x512.png"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "src/assets/icons/mac/AnyConv.com__Coin Odyssey_favicon_16x16.icns"
     }
   }
 }
