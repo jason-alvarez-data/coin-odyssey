@@ -24,14 +24,14 @@
   },
   "homepage": "https://github.com/jason-alvarez-data/coin-odyssey#readme",
   "devDependencies": {
+    "@electron/rebuild": "^3.6.0",
     "electron": "^28.1.0",
     "electron-builder": "^24.9.1",
-    "electron-rebuild": "^3.2.9",
     "electron-reloader": "^1.2.3"
   },
   "dependencies": {
     "@kurkle/color": "^0.3.4",
-    "better-sqlite3": "^8.6.0",
+    "better-sqlite3": "^9.6.0",
     "chart.js": "^4.4.9",
     "chartjs-adapter-date-fns": "^3.0.0",
     "date-fns": "^4.1.0",
@@ -43,7 +43,7 @@
     "uuid": "^9.0.1"
   },
   "engines": {
-    "node": ">=20.10.0"
+    "node": ">=20.10.0 <=22.14.0"
   },
   "build": {
     "appId": "com.modernnumismat.app",
@@ -75,18 +75,24 @@
       {
         "from": "template.db",
         "to": "template.db",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "src/assets/icons/png/CoinOdyssey_favicon_512x512.png"
@@ -95,11 +101,15 @@
       "target": [
         {
           "target": "AppImage",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "deb",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "src/assets/icons/png/CoinOdyssey_favicon_512x512.png",
@@ -111,7 +121,9 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "src/assets/icons/mac/AnyConv.com__Coin Odyssey_favicon_16x16.icns",
