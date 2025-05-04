@@ -63,7 +63,7 @@
       "!coins.db"
     ],
     "asarUnpack": [
-      "**/node_modules/better-sqlite3/build/Release/better_sqlite3.node",
+      "**/node_modules/better-sqlite3/**",
       "**/node_modules/node-gyp-build/**"
     ],
     "extraResources": [
