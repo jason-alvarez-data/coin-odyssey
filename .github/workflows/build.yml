@@ -132,12 +132,18 @@ jobs:
           echo "Starting application build..."
           echo "Node version: $(node --version)"
           echo "NPM version: $(npm --version)"
+          echo "Environment:"
+          env
+          echo "Directory contents:"
+          ls -la
+          echo "better-sqlite3 build files:"
+          ls -la node_modules/better-sqlite3/build/Release/ || true
           echo "Running build command: npm run ${{ matrix.build_command }}"
-          npm run ${{ matrix.build_command }}
+          npm run ${{ matrix.build_command }} --verbose
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEBUG: electron-builder
+          DEBUG: electron-builder,electron-builder:*
 
       - name: List dist directory
         run: |
