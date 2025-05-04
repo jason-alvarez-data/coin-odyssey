@@ -74,7 +74,21 @@ initializeDatabase(dbPath);
 let db;
 try {
     console.log('Creating database connection...');
-    db = new Database(dbPath);
+    // Normalize the path to handle spaces and unexpected characters
+    const normalizedPath = path.normalize(dbPath);
+    console.log(`Normalized database path: ${normalizedPath}`);
+    
+    // Try with various configurations
+    try {
+        db = new Database(normalizedPath, { verbose: console.log });
+    } catch (innerError) {
+        console.error('First attempt failed:', innerError);
+        // Try URI format which handles spaces better
+        db = new Database(`file:${normalizedPath.replace(/\\/g, '/')}`, { 
+            verbose: console.log,
+            fileMustExist: false
+        });
+    }
     console.log('Successfully created database connection');
 } catch (error) {
     console.error('Error creating database connection:', error);

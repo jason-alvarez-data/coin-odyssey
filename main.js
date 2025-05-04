@@ -13,10 +13,31 @@ let mainWindow;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 try {
-    require('electron-squirrel-startup') && app.quit();
+    // Check if this is a squirrel event and quit if needed
+    if (require('electron-squirrel-startup')) {
+        app.quit();
+        process.exit(0);
+    }
 } catch (e) {
     console.log('electron-squirrel-startup not found, skipping...');
 }
+
+// Make sure only one instance of the app runs
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+    console.log('Another instance is already running. Quitting.');
+    app.quit();
+    process.exit(0);
+}
+
+// Handle second instance
+app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, focus our window instead
+    if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+    }
+});
 
 // Configure auto updater
 autoUpdater.logger = require('electron-log');
