@@ -30,6 +30,7 @@ env/
 *.db
 *.sqlite
 *.sqlite3
+!template.db
 
 # IDE specific files
 .idea/

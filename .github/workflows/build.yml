@@ -62,20 +62,33 @@ jobs:
 
       - name: Initialize database template
         run: |
-          npm run init-db
-          if [ ! -f "template.db" ]; then
-            echo "Error: template.db was not created"
-            exit 1
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            npm run init-db
+            if [ ! -f "template.db" ]; then
+              echo "Error: template.db was not created on Windows"
+              exit 1
+            fi
+          else
+            npm run init-db
+            if [ ! -f "template.db" ]; then
+              echo "Error: template.db was not created on Unix"
+              exit 1
+            fi
           fi
         shell: bash
+        env:
+          RUNNER_OS: ${{ runner.os }}
 
       - name: Verify template.db
         run: |
           if [ ! -f "template.db" ]; then
             echo "Error: template.db not found"
+            ls -la
+            pwd
             exit 1
           fi
           echo "template.db exists and is ready for packaging"
+          ls -la template.db
         shell: bash
 
       - name: Build application
