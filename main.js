@@ -4,6 +4,7 @@ const fs = require('fs').promises;
 const db = require('./src/database/db.js');
 const Papa = require('papaparse');
 const Store = require('electron-store');
+const { autoUpdater } = require('electron-updater');
 
 // Initialize electron-store
 const store = new Store();
@@ -16,6 +17,11 @@ try {
 } catch (e) {
     console.log('electron-squirrel-startup not found, skipping...');
 }
+
+// Configure auto updater
+autoUpdater.logger = require('electron-log');
+autoUpdater.logger.transports.file.level = 'info';
+autoUpdater.autoDownload = false;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -72,6 +78,69 @@ app.whenReady().then(() => {
     if (savedTheme) {
         mainWindow.webContents.send('theme-changed', savedTheme);
     }
+    
+    // Check for updates after app starts
+    setTimeout(() => {
+        checkForUpdates();
+    }, 3000);
+});
+
+// Function to check for updates
+function checkForUpdates() {
+    autoUpdater.checkForUpdates().catch(err => {
+        console.error('Error checking for updates:', err);
+    });
+}
+
+// Auto updater events
+autoUpdater.on('checking-for-update', () => {
+    console.log('Checking for updates...');
+});
+
+autoUpdater.on('update-available', (info) => {
+    console.log('Update available:', info);
+    // Notify the user that an update is available
+    if (mainWindow) {
+        mainWindow.webContents.send('update-available', info);
+    }
+});
+
+autoUpdater.on('update-not-available', (info) => {
+    console.log('Update not available:', info);
+});
+
+autoUpdater.on('error', (err) => {
+    console.error('Error in auto-updater:', err);
+    if (mainWindow) {
+        mainWindow.webContents.send('update-error', err.message);
+    }
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+    if (mainWindow) {
+        mainWindow.webContents.send('update-progress', progressObj);
+    }
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+    console.log('Update downloaded:', info);
+    if (mainWindow) {
+        mainWindow.webContents.send('update-downloaded', info);
+    }
+});
+
+// Handle IPC for updates
+ipcMain.handle('start-update-download', async () => {
+    autoUpdater.downloadUpdate().catch(err => {
+        console.error('Error downloading update:', err);
+        return { success: false, error: err.message };
+    });
+    return { success: true };
+});
+
+ipcMain.handle('install-update', async () => {
+    autoUpdater.quitAndInstall();
+    return { success: true };
 });
 
 app.on('window-all-closed', () => {

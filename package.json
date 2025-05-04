@@ -30,8 +30,10 @@
     "chart.js": "^4.4.9",
     "chartjs-adapter-date-fns": "^3.0.0",
     "date-fns": "^4.1.0",
+    "electron-log": "^5.1.1",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.8",
     "papaparse": "^5.5.2",
     "uuid": "^9.0.1"
   },
@@ -56,20 +58,24 @@
         "nsis",
         "portable"
       ],
-      "icon": "assets/icons/win/icon.ico"
+      "icon": "src/assets/icons/png/CoinOdyssey_favicon_512x512.png"
     },
     "linux": {
       "target": [
         "AppImage",
         "deb"
       ],
-      "icon": "assets/icons/png/512x512.png"
+      "icon": "src/assets/icons/png/CoinOdyssey_favicon_512x512.png"
     },
     "mac": {
       "target": [
         "dmg"
       ],
       "icon": "src/assets/icons/mac/AnyConv.com__Coin Odyssey_favicon_16x16.icns"
+    },
+    "publish": {
+      "provider": "generic",
+      "url": "https://your-website.com/download/"
     }
   }
 }

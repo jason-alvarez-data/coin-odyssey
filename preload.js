@@ -34,12 +34,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
     importCollection: (fileData) => ipcRenderer.invoke('import-collection', fileData),
     exportCollection: (format) => ipcRenderer.invoke('export-collection', format),
     
+    // Update Operations
+    startUpdateDownload: () => ipcRenderer.invoke('start-update-download'),
+    installUpdate: () => ipcRenderer.invoke('install-update'),
+    
     // Error Handling
     reportError: (error) => ipcRenderer.invoke('report-error', error),
     
     // Event Handling
     on: (channel, callback) => {
-        const validChannels = ['theme-changed', 'collection-updated'];
+        const validChannels = [
+            'theme-changed', 
+            'collection-updated',
+            'update-available',
+            'update-downloaded',
+            'update-progress',
+            'update-error'
+        ];
         if (validChannels.includes(channel)) {
             ipcRenderer.on(channel, (event, ...args) => callback(...args));
         }

@@ -53,6 +53,27 @@
 
     <!-- Main Content Area -->
     <div id="main-content">
+        <!-- Update Notification Banner -->
+        <div id="update-notification" class="hidden">
+            <div class="update-message">
+                <span>A new version is available!</span>
+                <div class="update-actions">
+                    <button id="download-update" class="update-button">Download Update</button>
+                    <button id="dismiss-update" class="update-button secondary">Dismiss</button>
+                </div>
+            </div>
+            <div id="update-progress" class="hidden">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <span class="progress-text">Downloading: 0%</span>
+            </div>
+            <div id="update-complete" class="hidden">
+                <span>Update downloaded. Restart to install?</span>
+                <button id="restart-app" class="update-button">Restart Now</button>
+            </div>
+        </div>
+
         <!-- Loading Indicator -->
         <div id="loading-indicator" class="hidden">
             <div class="spinner"></div>

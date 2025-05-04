@@ -11,6 +11,8 @@
     --error-color: #f44336;
     --chart-colors: #4a90e2, #4caf50, #f44336, #ff9800, #9c27b0;
     --shadow-color: rgba(0, 0, 0, 0.1);
+    --update-bg: #e8f4ff;
+    --update-text: #0062cc;
 }
 
 /* Dark Theme */
@@ -25,6 +27,8 @@
     --error-color: #e57373;
     --chart-colors: #64b5f6, #81c784, #e57373, #ffb74d, #ba68c8;
     --shadow-color: rgba(0, 0, 0, 0.3);
+    --update-bg: #1e3a5f;
+    --update-text: #64b5f6;
 }
 
 /* Global Styles */
@@ -1721,6 +1725,107 @@ input:checked + .slider:before {
 #mapping-status.processing {
     color: var(--text-primary);
     background-color: var(--bg-secondary);
+}
+
+/* Update notification styles */
+#update-notification {
+    width: 100%;
+    padding: 15px;
+    background-color: var(--update-bg);
+    color: var(--update-text);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px var(--shadow-color);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.update-message {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.update-message span {
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.update-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.update-button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.update-button:not(.secondary) {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.update-button:not(.secondary):hover {
+    background-color: #3a7bc8;
+    transform: translateY(-2px);
+}
+
+.update-button.secondary {
+    background-color: transparent;
+    color: var(--update-text);
+    border: 1px solid var(--update-text);
+}
+
+.update-button.secondary:hover {
+    background-color: rgba(74, 144, 226, 0.1);
+}
+
+#update-progress {
+    margin-top: 15px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 10px;
+    background-color: var(--bg-secondary);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: var(--accent-color);
+    width: 0;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 14px;
+    color: var(--update-text);
+}
+
+#update-complete {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
 }
 
 /* --- End Added Styles --- */

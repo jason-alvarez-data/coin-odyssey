@@ -100,7 +100,93 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the application
     initializeTheme();
     loadDashboard();
+    
+    // Setup update notification handlers
+    setupUpdateHandlers();
 });
+
+// Setup handlers for auto-updates
+function setupUpdateHandlers() {
+    const updateNotification = document.getElementById('update-notification');
+    const updateMessage = document.querySelector('.update-message');
+    const updateProgress = document.getElementById('update-progress');
+    const updateComplete = document.getElementById('update-complete');
+    const downloadBtn = document.getElementById('download-update');
+    const dismissBtn = document.getElementById('dismiss-update');
+    const restartBtn = document.getElementById('restart-app');
+    const progressFill = document.querySelector('.progress-fill');
+    const progressText = document.querySelector('.progress-text');
+    
+    // Listen for update available notification
+    window.electronAPI.on('update-available', (info) => {
+        console.log('Update available event received:', info);
+        updateNotification.classList.remove('hidden');
+        updateMessage.classList.remove('hidden');
+        updateProgress.classList.add('hidden');
+        updateComplete.classList.add('hidden');
+    });
+    
+    // Listen for update downloaded notification
+    window.electronAPI.on('update-downloaded', (info) => {
+        console.log('Update downloaded event received:', info);
+        updateMessage.classList.add('hidden');
+        updateProgress.classList.add('hidden');
+        updateComplete.classList.remove('hidden');
+    });
+    
+    // Listen for download progress
+    window.electronAPI.on('update-progress', (progressObj) => {
+        console.log('Update progress:', progressObj);
+        updateMessage.classList.add('hidden');
+        updateProgress.classList.remove('hidden');
+        
+        const percent = Math.round(progressObj.percent);
+        progressFill.style.width = `${percent}%`;
+        progressText.textContent = `Downloading: ${percent}%`;
+    });
+    
+    // Listen for update errors
+    window.electronAPI.on('update-error', (error) => {
+        console.error('Update error:', error);
+        // Show error in the notification
+        updateNotification.classList.remove('hidden');
+        updateMessage.innerHTML = `
+            <span>Error checking for updates: ${error}</span>
+            <div class="update-actions">
+                <button id="dismiss-update-error" class="update-button secondary">Dismiss</button>
+            </div>
+        `;
+        
+        // Add event listener to dismiss error
+        document.getElementById('dismiss-update-error')?.addEventListener('click', () => {
+            updateNotification.classList.add('hidden');
+        });
+    });
+    
+    // Setup download button click
+    downloadBtn?.addEventListener('click', async () => {
+        try {
+            await window.electronAPI.startUpdateDownload();
+            // UI changes will be handled by progress events
+        } catch (error) {
+            console.error('Error starting update download:', error);
+        }
+    });
+    
+    // Setup dismiss button click
+    dismissBtn?.addEventListener('click', () => {
+        updateNotification.classList.add('hidden');
+    });
+    
+    // Setup restart button click
+    restartBtn?.addEventListener('click', async () => {
+        try {
+            await window.electronAPI.installUpdate();
+        } catch (error) {
+            console.error('Error installing update:', error);
+        }
+    });
+}
 
 // Helper function to navigate back to the previous view or a default
 async function navigateBack(defaultView = 'dashboard') {
