@@ -60,6 +60,10 @@
       "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
       "!coins.db"
     ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3",
+      "node_modules/bindings"
+    ],
     "extraResources": [
       {
         "from": "coins.db",

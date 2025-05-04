@@ -1,25 +1,44 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
-const { app } = require('electron');
+const electron = require('electron');
 
 // Get the correct path for the database file
 const getDbPath = () => {
-    if (app.isPackaged) {
+    // Get app from either the main process or the remote
+    const app = electron.app || (electron.remote && electron.remote.app);
+    
+    if (app && app.isPackaged) {
         // In production, use the resources path
-        return path.join(process.resourcesPath, 'coins.db');
+        return path.join(app.getPath('userData'), 'coins.db');
     } else {
         // In development, use the current directory
         return path.join(process.cwd(), 'coins.db');
     }
 };
 
+// Make sure the database directory exists
+const ensureDatabaseDirectory = (dbPath) => {
+    const dbDir = path.dirname(dbPath);
+    if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+    }
+};
+
 // Make sure the database path is consistent
 const dbPath = getDbPath();
+ensureDatabaseDirectory(dbPath);
 console.log(`Using database at: ${dbPath}`);
 
 // Create database instance
-const db = new Database(dbPath);
+let db;
+try {
+    db = new Database(dbPath);
+    console.log('Successfully created database connection');
+} catch (error) {
+    console.error('Error creating database connection:', error);
+    throw error;
+}
 
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
