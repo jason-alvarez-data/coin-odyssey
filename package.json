@@ -11,7 +11,7 @@
     "build:linux": "electron-builder --linux",
     "pack": "electron-builder --dir",
     "rebuild": "electron-rebuild",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "electron-builder install-app-deps && npm run rebuild",
     "init-db": "node src/database/init-db.js",
     "prebuild": "npm run init-db"
   },
@@ -24,14 +24,14 @@
   },
   "homepage": "https://github.com/jason-alvarez-data/coin-odyssey#readme",
   "devDependencies": {
-    "electron": "^35.1.4",
+    "electron": "^28.0.0",
     "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9",
     "electron-reloader": "^1.2.3"
   },
   "dependencies": {
     "@kurkle/color": "^0.3.4",
-    "better-sqlite3": "^11.9.1",
+    "better-sqlite3": "^8.7.0",
     "chart.js": "^4.4.9",
     "chartjs-adapter-date-fns": "^3.0.0",
     "date-fns": "^4.1.0",
