@@ -1,9 +1,21 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const { app } = require('electron');
+
+// Get the correct path for the database file
+const getDbPath = () => {
+    if (app.isPackaged) {
+        // In production, use the resources path
+        return path.join(process.resourcesPath, 'coins.db');
+    } else {
+        // In development, use the current directory
+        return path.join(process.cwd(), 'coins.db');
+    }
+};
 
 // Make sure the database path is consistent
-const dbPath = path.join(process.cwd(), 'coins.db');
+const dbPath = getDbPath();
 console.log(`Using database at: ${dbPath}`);
 
 // Create database instance
