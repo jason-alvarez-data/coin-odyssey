@@ -103,6 +103,26 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Setup update notification handlers
     setupUpdateHandlers();
+    
+    // Setup database error handler
+    window.electronAPI.on('database-error', (errorMessage) => {
+        console.error('Database error received:', errorMessage);
+        document.getElementById('main-content').innerHTML = `
+            <div class="error-message">
+                <h3>Database Error</h3>
+                <p>${errorMessage}</p>
+                <p>This may be due to file permissions or a corrupted database file.</p>
+                <div>
+                    <p>Suggestions:</p>
+                    <ul>
+                        <li>Try running the application as administrator</li>
+                        <li>Make sure your antivirus isn't blocking the application</li>
+                        <li>If you previously installed the application, try uninstalling it completely and reinstalling</li>
+                    </ul>
+                </div>
+            </div>
+        `;
+    });
 });
 
 // Setup handlers for auto-updates

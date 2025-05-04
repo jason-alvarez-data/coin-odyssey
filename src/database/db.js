@@ -10,7 +10,9 @@ const getDbPath = () => {
     
     if (app && app.isPackaged) {
         // In production, use the user data directory
-        return path.join(app.getPath('userData'), 'coins.db');
+        const userDataPath = app.getPath('userData');
+        console.log('User data path:', userDataPath);
+        return path.join(userDataPath, 'coins.db');
     } else {
         // In development, use the current directory
         return path.join(process.cwd(), 'coins.db');
@@ -21,44 +23,62 @@ const getDbPath = () => {
 const getTemplateDbPath = () => {
     const app = electron.app || (electron.remote && electron.remote.app);
     if (app && app.isPackaged) {
-        return path.join(process.resourcesPath, 'template.db');
+        const resourcePath = process.resourcesPath;
+        console.log('Resource path:', resourcePath);
+        return path.join(resourcePath, 'template.db');
     }
     return path.join(process.cwd(), 'template.db');
 };
 
 // Make sure the database directory exists and copy template if needed
 const initializeDatabase = (dbPath) => {
-    const dbDir = path.dirname(dbPath);
-    
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(dbDir)) {
-        fs.mkdirSync(dbDir, { recursive: true });
-    }
-    
-    // If database doesn't exist, copy from template
-    if (!fs.existsSync(dbPath)) {
-        const templatePath = getTemplateDbPath();
-        if (fs.existsSync(templatePath)) {
-            fs.copyFileSync(templatePath, dbPath);
-            console.log('Initialized database from template');
-        } else {
-            console.log('Template database not found, will create new database');
+    try {
+        const dbDir = path.dirname(dbPath);
+        console.log('Database directory:', dbDir);
+        
+        // Create directory if it doesn't exist
+        if (!fs.existsSync(dbDir)) {
+            console.log('Creating database directory...');
+            fs.mkdirSync(dbDir, { recursive: true });
         }
+        
+        // If database doesn't exist, copy from template
+        if (!fs.existsSync(dbPath)) {
+            console.log('Database does not exist, initializing...');
+            const templatePath = getTemplateDbPath();
+            console.log('Template path:', templatePath);
+            
+            if (fs.existsSync(templatePath)) {
+                console.log('Template exists, copying...');
+                fs.copyFileSync(templatePath, dbPath);
+                console.log('Initialized database from template');
+            } else {
+                console.log('Template database not found at:', templatePath);
+                console.log('Will create new database');
+            }
+        } else {
+            console.log('Database already exists at:', dbPath);
+        }
+    } catch (error) {
+        console.error('Error initializing database:', error);
+        throw error;
     }
 };
 
 // Make sure the database path is consistent
 const dbPath = getDbPath();
-initializeDatabase(dbPath);
 console.log(`Using database at: ${dbPath}`);
+initializeDatabase(dbPath);
 
 // Create database instance
 let db;
 try {
+    console.log('Creating database connection...');
     db = new Database(dbPath);
     console.log('Successfully created database connection');
 } catch (error) {
     console.error('Error creating database connection:', error);
+    console.error('Error details:', error.stack);
     throw error;
 }
 

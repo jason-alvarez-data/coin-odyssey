@@ -23,6 +23,18 @@ autoUpdater.logger = require('electron-log');
 autoUpdater.logger.transports.file.level = 'info';
 autoUpdater.autoDownload = false;
 
+// Configure electron-log for application logging
+const log = require('electron-log');
+log.transports.file.level = 'debug';
+log.info('Application starting...');
+log.info(`Electron version: ${process.versions.electron}`);
+log.info(`Chrome version: ${process.versions.chrome}`);
+log.info(`Node version: ${process.versions.node}`);
+log.info(`Platform: ${process.platform}`);
+log.info(`Architecture: ${process.arch}`);
+log.info(`App path: ${app.getAppPath()}`);
+log.info(`User data path: ${app.getPath('userData')}`);
+
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
@@ -157,7 +169,22 @@ app.on('activate', () => {
 
 // Error Handling
 process.on('uncaughtException', (error) => {
+    log.error('Uncaught Exception during startup:', error);
     console.error('Uncaught Exception:', error);
+    
+    if (error.message && error.message.includes('SQLiteError')) {
+        if (mainWindow) {
+            mainWindow.webContents.send('database-error', error.message);
+        } else {
+            // Show error dialog if the window isn't ready yet
+            const { dialog } = require('electron');
+            dialog.showErrorBox(
+                'Database Error',
+                `There was an error opening the database: ${error.message}\n\n` +
+                `Please make sure the application has proper permissions.`
+            );
+        }
+    }
 });
 
 process.on('unhandledRejection', (error) => {
