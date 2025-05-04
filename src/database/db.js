@@ -2,117 +2,165 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 const electron = require('electron');
+const log = require('electron-log');
 
 // Get the correct path for the database file
 const getDbPath = () => {
-    // Get app from either the main process or the remote
-    const app = electron.app || (electron.remote && electron.remote.app);
-    
-    if (app && app.isPackaged) {
-        // In production, use the user data directory
-        const userDataPath = app.getPath('userData');
-        console.log('User data path:', userDataPath);
-        return path.join(userDataPath, 'coins.db');
-    } else {
-        // In development, use the current directory
-        return path.join(process.cwd(), 'coins.db');
+    try {
+        const app = electron.app || (electron.remote && electron.remote.app);
+        log.info(`[getDbPath] Is packaged: ${app?.isPackaged}`);
+        
+        if (app && app.isPackaged) {
+            const userDataPath = app.getPath('userData');
+            if (!userDataPath) {
+                 log.error('[getDbPath] Failed to get userData path.');
+                 throw new Error('Could not determine userData path.');
+            }
+            const dbPath = path.join(userDataPath, 'coins.db');
+            log.info(`[getDbPath] Production DB path: ${dbPath}`);
+            return dbPath;
+        } else {
+            const dbPath = path.join(process.cwd(), 'coins.db');
+            log.info(`[getDbPath] Development DB path: ${dbPath}`);
+            return dbPath;
+        }
+    } catch (error) {
+        log.error(`[getDbPath] Error: ${error.message}`, error.stack);
+        throw error;
     }
 };
 
 // Get the template database path
 const getTemplateDbPath = () => {
-    const app = electron.app || (electron.remote && electron.remote.app);
-    if (app && app.isPackaged) {
-        const resourcePath = process.resourcesPath;
-        console.log('Resource path:', resourcePath);
-        return path.join(resourcePath, 'template.db');
-    }
-    return path.join(process.cwd(), 'template.db');
-};
-
-// Make sure the database directory exists and copy template if needed
-const initializeDatabase = (dbPath) => {
     try {
-        const dbDir = path.dirname(dbPath);
-        console.log('Database directory:', dbDir);
+        const app = electron.app || (electron.remote && electron.remote.app);
+        log.info(`[getTemplateDbPath] Is packaged: ${app?.isPackaged}`);
         
-        // Create directory if it doesn't exist
-        if (!fs.existsSync(dbDir)) {
-            console.log('Creating database directory...');
-            fs.mkdirSync(dbDir, { recursive: true });
-        }
-        
-        // If database doesn't exist, copy from template
-        if (!fs.existsSync(dbPath)) {
-            console.log('Database does not exist, initializing...');
-            const templatePath = getTemplateDbPath();
-            console.log('Template path:', templatePath);
-            
-            if (fs.existsSync(templatePath)) {
-                console.log('Template exists, copying...');
-                fs.copyFileSync(templatePath, dbPath);
-                console.log('Initialized database from template');
-            } else {
-                console.log('Template database not found at:', templatePath);
-                console.log('Will create new database');
+        if (app && app.isPackaged) {
+            const resourcePath = process.resourcesPath;
+             if (!resourcePath) {
+                 log.error('[getTemplateDbPath] Failed to get resourcesPath.');
+                 throw new Error('Could not determine resources path.');
             }
+            const templatePath = path.join(resourcePath, 'template.db');
+            log.info(`[getTemplateDbPath] Production template path: ${templatePath}`);
+            return templatePath;
         } else {
-            console.log('Database already exists at:', dbPath);
+            const templatePath = path.join(process.cwd(), 'template.db');
+            log.info(`[getTemplateDbPath] Development template path: ${templatePath}`);
+            return templatePath;
         }
-    } catch (error) {
-        console.error('Error initializing database:', error);
+     } catch (error) {
+        log.error(`[getTemplateDbPath] Error: ${error.message}`, error.stack);
         throw error;
     }
 };
 
-// Make sure the database path is consistent
-const dbPath = getDbPath();
-console.log(`Using database at: ${dbPath}`);
-initializeDatabase(dbPath);
-
-// Create database instance
-let db;
-try {
-    console.log('Creating database connection...');
-    // Normalize the path to handle spaces and unexpected characters
-    const normalizedPath = path.normalize(dbPath);
-    console.log(`Normalized database path: ${normalizedPath}`);
-    
-    // Try with various configurations
+// Make sure the database directory exists and copy template if needed
+const initializeDatabase = (targetDbPath) => {
+    log.info(`[initializeDatabase] Initializing for target: ${targetDbPath}`);
     try {
-        db = new Database(normalizedPath, { verbose: console.log });
-    } catch (innerError) {
-        console.error('First attempt failed:', innerError);
-        // Try URI format which handles spaces better
-        db = new Database(`file:${normalizedPath.replace(/\\/g, '/')}`, { 
-            verbose: console.log,
-            fileMustExist: false
-        });
+        const dbDir = path.dirname(targetDbPath);
+        log.info(`[initializeDatabase] Database directory: ${dbDir}`);
+        
+        // Create directory if it doesn't exist
+        if (!fs.existsSync(dbDir)) {
+            log.info(`[initializeDatabase] Creating database directory: ${dbDir}`);
+            try {
+                fs.mkdirSync(dbDir, { recursive: true });
+                log.info(`[initializeDatabase] Directory created successfully.`);
+            } catch (mkdirError) {
+                 log.error(`[initializeDatabase] FAILED to create directory ${dbDir}: ${mkdirError.message}`, mkdirError.stack);
+                 throw new Error(`Failed to create database directory: ${mkdirError.message}`);
+            }
+        } else {
+             log.info(`[initializeDatabase] Directory already exists: ${dbDir}`);
+        }
+        
+        // If database doesn't exist, copy from template
+        if (!fs.existsSync(targetDbPath)) {
+            log.info(`[initializeDatabase] Database does not exist at ${targetDbPath}, attempting to initialize...`);
+            const templatePath = getTemplateDbPath();
+            log.info(`[initializeDatabase] Source template path: ${templatePath}`);
+            
+            if (fs.existsSync(templatePath)) {
+                log.info(`[initializeDatabase] Template exists at ${templatePath}, attempting copy...`);
+                 try {
+                    fs.copyFileSync(templatePath, targetDbPath);
+                    log.info(`[initializeDatabase] Successfully copied template from ${templatePath} to ${targetDbPath}`);
+                 } catch (copyError) {
+                     log.error(`[initializeDatabase] FAILED to copy template from ${templatePath} to ${targetDbPath}: ${copyError.message}`, copyError.stack);
+                     throw new Error(`Failed to copy template database: ${copyError.message}`);
+                 }
+            } else {
+                log.warn(`[initializeDatabase] Template database NOT FOUND at: ${templatePath}`);
+                // Decide: either throw an error or try creating an empty DB later
+                 throw new Error(`Template database not found at ${templatePath}. Cannot initialize.`);
+                // console.log('[initializeDatabase] Will attempt to create a new empty database'); 
+            }
+        } else {
+            log.info(`[initializeDatabase] Database file already exists at: ${targetDbPath}`);
+        }
+    } catch (error) {
+        log.error(`[initializeDatabase] Error during initialization: ${error.message}`, error.stack);
+        throw error; // Re-throw to be caught by the main startup sequence
     }
-    console.log('Successfully created database connection');
-} catch (error) {
-    console.error('Error creating database connection:', error);
-    console.error('Error details:', error.stack);
-    throw error;
-}
+};
 
-// Enable foreign keys
-db.pragma('foreign_keys = ON');
+// --- Database Initialization Sequence ---
+let db;
+let dbPath;
 
-// Test database connection
 try {
-    const testQuery = db.prepare('SELECT COUNT(*) as count FROM coins').get();
-    console.log(`Database connection test: ${testQuery.count} coins found`);
+    log.info('--- Starting Database Setup ---');
+    dbPath = getDbPath();
+    log.info(`Using database path: ${dbPath}`);
+    
+    initializeDatabase(dbPath); // Ensure directory and template are handled first
+
+    log.info('Attempting to create database connection...');
+    // Normalize the path to handle potential issues
+    const normalizedPath = path.normalize(dbPath);
+    log.info(`Normalized database path for connection: ${normalizedPath}`);
+    
+    // Try connecting with verbose logging from better-sqlite3
+    db = new Database(normalizedPath, { verbose: (message) => log.info(`[better-sqlite3] ${message}`) });
+    
+    log.info('--- Database Connection Successful ---');
+    
+    // Enable foreign keys
+    db.pragma('foreign_keys = ON');
+    log.info('Foreign keys enabled.');
+
+    // Test database connection (optional, but good for confirmation)
+    try {
+        const testQuery = db.prepare('SELECT COUNT(*) as count FROM coins').get();
+        log.info(`Database connection test successful: ${testQuery.count} coins found (or table exists).`);
+    } catch (testError) {
+        log.warn(`Database connection test failed (might be first run): ${testError.message}`);
+        // Don't throw, as initDatabase below will create tables
+    }
+
 } catch (error) {
-    console.error('Database initialization error:', error);
-    // Don't throw the error, just log it as this might be first run
-    console.log('If this is the first run, tables will be created below');
+    log.error('--- DATABASE SETUP FAILED ---');
+    log.error(`Error during database connection/initialization for path "${dbPath}": ${error.message}`, error.stack);
+    
+    // Propagate the error to be caught by the main process uncaught exception handler
+    // This will trigger the dialog box or renderer error message
+    throw error; 
 }
 
-// Create tables if they don't exist
+// --- Rest of your db.js (initDatabase function, dbOperations, module.exports) ---
+// Ensure the initDatabase function uses the global 'db' variable defined above
+// Ensure dbOperations methods also use the global 'db' variable
+
 function initDatabase() {
+    if (!db) {
+        log.error("[initDatabase] Cannot initialize tables, DB connection is not available.");
+        return;
+    }
     try {
-        // Coins table - only creates if it doesn't exist
+        log.info("[initDatabase] Ensuring tables exist...");
         db.exec(`
             CREATE TABLE IF NOT EXISTS coins (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,8 +184,6 @@ function initDatabase() {
                 notes TEXT DEFAULT NULL
             )
         `);
-
-        // Coin images table - only creates if it doesn't exist
         db.exec(`
             CREATE TABLE IF NOT EXISTS coin_images (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -147,21 +193,32 @@ function initDatabase() {
                 FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE CASCADE
             )
         `);
-
-        console.log('Database initialized');
+        log.info('[initDatabase] Table initialization check complete.');
     } catch (error) {
-        console.error('Error initializing database:', error);
-        throw error;
+        log.error(`[initDatabase] Error initializing tables: ${error.message}`, error.stack);
+        throw error; // Or handle differently if needed
     }
 }
 
-// Initialize database on module load
+// Initialize database tables on module load
 initDatabase();
 
-// Database operations
+// Database operations object (ensure it uses the global 'db')
 const dbOperations = {
-    // Basic CRUD Operations
+    // ... your existing CRUD, Analytics, Search methods ...
+    // Make sure all methods reference the 'db' variable from the outer scope, e.g.:
+    getAllCoins: function() {
+        if (!db) { log.error("getAllCoins: DB not connected"); return []; }
+        try {
+            const stmt = db.prepare('SELECT * FROM coins');
+            return stmt.all();
+        } catch (error) {
+            log.error('Error getting all coins:', error);
+            return [];
+        }
+    },
     addCoin: function(coinData) {
+        if (!db) { log.error("addCoin: DB not connected"); throw new Error('Database not connected'); }
         try {
             // Ensure all fields exist with default values
             const defaultCoinData = {
@@ -215,15 +272,15 @@ const dbOperations = {
             `);
 
             const result = stmt.run(completeData);
-            console.log(`Coin added with ID: ${result.lastInsertRowid}`);
+            log.info(`Coin added with ID: ${result.lastInsertRowid}`);
             return result.lastInsertRowid;
         } catch (error) {
-            console.error('Error adding coin:', error);
+            log.error('Error adding coin:', error);
             throw error;
         }
     },
-
     addCoinImage: function(imageData) {
+        if (!db) { log.error("addCoinImage: DB not connected"); throw new Error('Database not connected'); }
         try {
             const stmt = db.prepare(`
                 INSERT INTO coin_images (coin_id, image_path, image_type)
@@ -233,42 +290,32 @@ const dbOperations = {
             const result = stmt.run(imageData);
             return result.lastInsertRowid;
         } catch (error) {
-            console.error('Error adding coin image:', error);
+            log.error('Error adding coin image:', error);
             throw error;
         }
     },
-
-    getAllCoins: function() {
-        try {
-            const stmt = db.prepare('SELECT * FROM coins');
-            return stmt.all();
-        } catch (error) {
-            console.error('Error getting all coins:', error);
-            return [];
-        }
-    },
-
     getCoinById: function(id) {
+        if (!db) { log.error(`getCoinById(${id}): DB not connected`); return null; }
         try {
             const stmt = db.prepare('SELECT * FROM coins WHERE id = ?');
             return stmt.get(id);
         } catch (error) {
-            console.error('Error getting coin by ID:', error);
+            log.error(`Error getting coin by ID (${id}):`, error);
             throw error;
         }
     },
-
     getCoinImages: function(coinId) {
+         if (!db) { log.error(`getCoinImages(${coinId}): DB not connected`); return []; }
         try {
             const stmt = db.prepare('SELECT * FROM coin_images WHERE coin_id = ?');
             return stmt.all(coinId);
         } catch (error) {
-            console.error(`Error getting images for coin #${coinId}:`, error);
+            log.error(`Error getting images for coin #${coinId}:`, error);
             return [];
         }
     },
-
     updateCoin: function(id, coinData) {
+         if (!db) { log.error(`updateCoin(${id}): DB not connected`); throw new Error('Database not connected'); }
         try {
             // Build SET clause dynamically based on provided data
             const fields = Object.keys(coinData)
@@ -283,45 +330,44 @@ const dbOperations = {
             const result = stmt.run(dataWithId);
             return result.changes > 0;
         } catch (error) {
-            console.error(`Error updating coin #${id}:`, error);
+            log.error(`Error updating coin #${id}:`, error);
             throw error;
         }
     },
-
     deleteCoin: function(id) {
+         if (!db) { log.error(`deleteCoin(${id}): DB not connected`); throw new Error('Database not connected'); }
         try {
             const stmt = db.prepare('DELETE FROM coins WHERE id = ?');
             const result = stmt.run(id);
             return result.changes > 0;
         } catch (error) {
-            console.error(`Error deleting coin #${id}:`, error);
+            log.error(`Error deleting coin #${id}:`, error);
             throw error;
         }
     },
-
     getCoinCount: function() {
+         if (!db) { log.error("getCoinCount: DB not connected"); return 0; }
         try {
             const stmt = db.prepare('SELECT COUNT(*) as count FROM coins');
             const result = stmt.get();
             return result.count;
         } catch (error) {
-            console.error('Error getting coin count:', error);
+            log.error('Error getting coin count:', error);
             return 0;
         }
     },
-
     getUniqueCountries: function() {
+         if (!db) { log.error("getUniqueCountries: DB not connected"); return []; }
         try {
             const stmt = db.prepare('SELECT DISTINCT country FROM coins WHERE country IS NOT NULL');
             return stmt.all().map(row => row.country);
         } catch (error) {
-            console.error('Error getting unique countries:', error);
+            log.error('Error getting unique countries:', error);
             return [];
         }
     },
-
-    // Analytics Methods
     getValueTimeline: function() {
+         if (!db) { log.error("getValueTimeline: DB not connected"); throw new Error('Database not connected'); }
         try {
             const stmt = db.prepare(`
                 SELECT 
@@ -334,12 +380,12 @@ const dbOperations = {
             `);
             return stmt.all();
         } catch (error) {
-            console.error('Error getting value timeline:', error);
+            log.error('Error getting value timeline:', error);
             throw error;
         }
     },
-
     getGeographicDistribution: function() {
+         if (!db) { log.error("getGeographicDistribution: DB not connected"); throw new Error('Database not connected'); }
         try {
             const stmt = db.prepare(`
                 SELECT 
@@ -353,12 +399,12 @@ const dbOperations = {
             `);
             return stmt.all();
         } catch (error) {
-            console.error('Error getting geographic distribution:', error);
+            log.error('Error getting geographic distribution:', error);
             throw error;
         }
     },
-
     getYearDistribution: function() {
+         if (!db) { log.error("getYearDistribution: DB not connected"); throw new Error('Database not connected'); }
         try {
             const stmt = db.prepare(`
                 SELECT 
@@ -371,12 +417,12 @@ const dbOperations = {
             `);
             return stmt.all();
         } catch (error) {
-            console.error('Error getting year distribution:', error);
+            log.error('Error getting year distribution:', error);
             throw error;
         }
     },
-
     getCollectionComposition: function() {
+         if (!db) { log.error("getCollectionComposition: DB not connected"); throw new Error('Database not connected'); }
         try {
             const stmt = db.prepare(`
                 SELECT 
@@ -390,13 +436,12 @@ const dbOperations = {
             `);
             return stmt.all();
         } catch (error) {
-            console.error('Error getting collection composition:', error);
+            log.error('Error getting collection composition:', error);
             throw error;
         }
     },
-
-    // Search and Filter Methods
     searchCoins: function(searchText, searchField) {
+         if (!db) { log.error("searchCoins: DB not connected"); return []; }
         try {
             let query = 'SELECT * FROM coins WHERE ';
             const params = {};
@@ -424,12 +469,12 @@ const dbOperations = {
             const stmt = db.prepare(query);
             return stmt.all(params);
         } catch (error) {
-            console.error('Error searching coins:', error);
+            log.error('Error searching coins:', error);
             return [];
         }
     },
-
     filterCoins: function(filters) {
+         if (!db) { log.error("filterCoins: DB not connected"); throw new Error('Database not connected'); }
         try {
             let query = 'SELECT * FROM coins WHERE 1=1';
             const params = [];
@@ -445,13 +490,12 @@ const dbOperations = {
             const stmt = db.prepare(query);
             return stmt.all(...params);
         } catch (error) {
-            console.error('Error filtering coins:', error);
+            log.error('Error filtering coins:', error);
             throw error;
         }
     },
-
-    // Import/Export Methods
     importCoins: function(coins) {
+         if (!db) { log.error("importCoins: DB not connected"); throw new Error('Database not connected'); }
         try {
             const insertStmt = db.prepare(`
                 INSERT INTO coins (
@@ -486,20 +530,24 @@ const dbOperations = {
             importTransaction(coins);
             return true;
         } catch (error) {
-            console.error('Error importing coins:', error);
+            log.error('Error importing coins:', error);
             throw error;
         }
     },
-
-    // Cleanup
+    // Add the close method referenced in main.js
     close: function() {
-        try {
-            db.close();
-            console.log('Database connection closed');
-        } catch (error) {
-            console.error('Error closing database:', error);
+        if (db) {
+            try {
+                db.close();
+                log.info('Database connection closed successfully.');
+                db = null; // Ensure db is nullified after closing
+            } catch (error) {
+                log.error('Error closing database connection:', error);
+            }
+        } else {
+            log.warn('Attempted to close database, but connection was already closed or not established.');
         }
     }
 };
 
-module.exports = dbOperations;
+module.exports = dbOperations; // Export the operations object

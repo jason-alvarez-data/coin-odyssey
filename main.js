@@ -188,6 +188,19 @@ app.on('activate', () => {
     }
 });
 
+// Explicitly close the database connection before quitting
+app.on('before-quit', () => {
+    console.log('Closing database connection before quit...');
+    log.info('Closing database connection before quit...');
+    try {
+        // Access the close method from the exported dbOperations object
+        db.close(); 
+    } catch (err) {
+        console.error('Error closing database:', err);
+        log.error('Error closing database:', err);
+    }
+});
+
 // Error Handling
 process.on('uncaughtException', (error) => {
     log.error('Uncaught Exception during startup:', error);
