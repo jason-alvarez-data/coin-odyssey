@@ -37,20 +37,29 @@ const getTemplateDbPath = () => {
         log.info(`[getTemplateDbPath] Is packaged: ${app?.isPackaged}`);
         
         if (app && app.isPackaged) {
-            const resourcePath = process.resourcesPath;
-             if (!resourcePath) {
-                 log.error('[getTemplateDbPath] Failed to get resourcesPath.');
-                 throw new Error('Could not determine resources path.');
-            }
-            const templatePath = path.join(resourcePath, 'template.db');
+            // In production, template.db is in the resources directory
+            const templatePath = path.join(process.resourcesPath, 'template.db');
             log.info(`[getTemplateDbPath] Production template path: ${templatePath}`);
+            
+            if (!fs.existsSync(templatePath)) {
+                log.error(`[getTemplateDbPath] Template database not found at: ${templatePath}`);
+                throw new Error(`Template database not found at: ${templatePath}`);
+            }
+            
             return templatePath;
         } else {
+            // In development, template.db is in the project root
             const templatePath = path.join(process.cwd(), 'template.db');
             log.info(`[getTemplateDbPath] Development template path: ${templatePath}`);
+            
+            if (!fs.existsSync(templatePath)) {
+                log.error(`[getTemplateDbPath] Template database not found at: ${templatePath}`);
+                throw new Error(`Template database not found at: ${templatePath}`);
+            }
+            
             return templatePath;
         }
-     } catch (error) {
+    } catch (error) {
         log.error(`[getTemplateDbPath] Error: ${error.message}`, error.stack);
         throw error;
     }
@@ -116,10 +125,11 @@ try {
     dbPath = getDbPath();
     log.info(`Using database path: ${dbPath}`);
     
-    // initializeDatabase(dbPath); // <<< Temporarily comment out initialization
-    log.warn('[DEBUG] Skipping initializeDatabase call for testing.'); // Add warning
+    // Initialize database (create directory and copy template if needed)
+    initializeDatabase(dbPath);
+    log.info('Database initialization completed.');
 
-    log.info('Attempting to create database connection (without pre-initialization)...');
+    log.info('Attempting to create database connection...');
     // Normalize the path to handle potential issues
     const normalizedPath = path.normalize(dbPath);
     log.info(`Normalized database path for connection: ${normalizedPath}`);
@@ -133,22 +143,19 @@ try {
     db.pragma('foreign_keys = ON');
     log.info('Foreign keys enabled.');
 
-    // Test database connection (optional, but good for confirmation)
+    // Test database connection
     try {
         const testQuery = db.prepare('SELECT COUNT(*) as count FROM coins').get();
-        log.info(`Database connection test successful: ${testQuery.count} coins found (or table exists).`);
+        log.info(`Database connection test successful: ${testQuery.count} coins found.`);
     } catch (testError) {
         log.warn(`Database connection test failed (might be first run): ${testError.message}`);
-        // Don't throw, as initDatabase below will create tables
+        // Don't throw, as tables will be created below
     }
 
 } catch (error) {
     log.error('--- DATABASE SETUP FAILED ---');
     log.error(`Error during database connection/initialization for path "${dbPath}": ${error.message}`, error.stack);
-    
-    // Propagate the error to be caught by the main process uncaught exception handler
-    // This will trigger the dialog box or renderer error message
-    throw error; 
+    throw error;
 }
 
 // --- Rest of your db.js (initDatabase function, dbOperations, module.exports) ---

@@ -60,16 +60,19 @@
       "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
       "!**/{appveyor.yml,.travis.yml,circle.yml}",
       "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
-      "!coins.db"
+      "!coins.db",
+      "template.db"
     ],
     "asarUnpack": [
       "**/node_modules/better-sqlite3/**",
-      "**/node_modules/node-gyp-build/**"
+      "**/node_modules/node-gyp-build/**",
+      "template.db"
     ],
     "extraResources": [
       {
         "from": "template.db",
-        "to": "template.db"
+        "to": "template.db",
+        "filter": ["**/*"]
       }
     ],
     "win": {
