@@ -11,7 +11,9 @@
     "build:linux": "electron-builder --linux",
     "pack": "electron-builder --dir",
     "rebuild": "electron-rebuild",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "init-db": "node src/database/init-db.js",
+    "prebuild": "npm run init-db"
   },
   "private": true,
   "author": "Jason Alvarez",
@@ -66,8 +68,8 @@
     ],
     "extraResources": [
       {
-        "from": "coins.db",
-        "to": "coins.db"
+        "from": "template.db",
+        "to": "template.db"
       }
     ],
     "win": {

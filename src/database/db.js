@@ -9,7 +9,7 @@ const getDbPath = () => {
     const app = electron.app || (electron.remote && electron.remote.app);
     
     if (app && app.isPackaged) {
-        // In production, use the resources path
+        // In production, use the user data directory
         return path.join(app.getPath('userData'), 'coins.db');
     } else {
         // In development, use the current directory
@@ -17,17 +17,39 @@ const getDbPath = () => {
     }
 };
 
-// Make sure the database directory exists
-const ensureDatabaseDirectory = (dbPath) => {
+// Get the template database path
+const getTemplateDbPath = () => {
+    const app = electron.app || (electron.remote && electron.remote.app);
+    if (app && app.isPackaged) {
+        return path.join(process.resourcesPath, 'template.db');
+    }
+    return path.join(process.cwd(), 'template.db');
+};
+
+// Make sure the database directory exists and copy template if needed
+const initializeDatabase = (dbPath) => {
     const dbDir = path.dirname(dbPath);
+    
+    // Create directory if it doesn't exist
     if (!fs.existsSync(dbDir)) {
         fs.mkdirSync(dbDir, { recursive: true });
+    }
+    
+    // If database doesn't exist, copy from template
+    if (!fs.existsSync(dbPath)) {
+        const templatePath = getTemplateDbPath();
+        if (fs.existsSync(templatePath)) {
+            fs.copyFileSync(templatePath, dbPath);
+            console.log('Initialized database from template');
+        } else {
+            console.log('Template database not found, will create new database');
+        }
     }
 };
 
 // Make sure the database path is consistent
 const dbPath = getDbPath();
-ensureDatabaseDirectory(dbPath);
+initializeDatabase(dbPath);
 console.log(`Using database at: ${dbPath}`);
 
 // Create database instance
