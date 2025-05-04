@@ -5,7 +5,10 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder",
+    "build": "electron-builder -mwl",
+    "build:win": "electron-builder --windows",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
     "pack": "electron-builder --dir",
     "rebuild": "electron-rebuild",
     "postinstall": "electron-builder install-app-deps"
@@ -65,13 +68,16 @@
         "AppImage",
         "deb"
       ],
-      "icon": "src/assets/icons/png/CoinOdyssey_favicon_512x512.png"
+      "icon": "src/assets/icons/png/CoinOdyssey_favicon_512x512.png",
+      "category": "Office"
     },
     "mac": {
       "target": [
-        "dmg"
+        "dmg",
+        "zip"
       ],
-      "icon": "src/assets/icons/mac/AnyConv.com__Coin Odyssey_favicon_16x16.icns"
+      "icon": "src/assets/icons/mac/AnyConv.com__Coin Odyssey_favicon_16x16.icns",
+      "category": "public.app-category.finance"
     },
     "publish": {
       "provider": "generic",
