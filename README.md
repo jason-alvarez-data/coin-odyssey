@@ -137,3 +137,53 @@ Created and maintained by Jason Alvarez
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+# Modern Numismat Database Fix Utility
+
+This utility helps resolve the SQLite database error "SQLiteError: unable to open database file" that can occur when running Modern Numismat.
+
+## Quick Fix Instructions
+
+1. Run `fix-database.bat` as administrator
+2. Try running the Modern Numismat application again
+
+## Detailed Troubleshooting
+
+If the above quick fix doesn't work, follow these detailed steps:
+
+### Option 1: Create a fresh database
+
+1. Run `create-template.bat` as administrator
+   - This will create a new template.db file in the current directory
+2. Copy the created template.db file to `%APPDATA%\Modern Numismat\coins.db`
+   - You can navigate to this location by pressing Win+R and typing `%APPDATA%\Modern Numismat`
+   - If the folder doesn't exist, create it first
+
+### Option 2: Manual permission fix
+
+1. Go to the application installation directory (typically `C:\Users\[YourUsername]\AppData\Local\Programs\coin-collecting-app`)
+2. Right-click on the installation folder → Properties → Security → Edit
+3. Ensure your user account has Full control permissions
+4. Click Apply and OK
+
+### Option 3: Reinstall to a path without spaces
+
+The error may occur because your username contains a space ("Jason Code"). Try installing the application to a location without spaces in the path:
+
+1. Uninstall the current version of Modern Numismat
+2. Reinstall the application but choose a custom installation directory like `C:\ModernNumismat`
+
+## Technical Details
+
+The SQLite error occurs because the application cannot access or create the database file. This can happen due to:
+
+1. Permission issues with the application directory
+2. Path issues when the directory names contain spaces
+3. Missing template database file
+4. Antivirus software blocking database creation
+
+The fix scripts attempt to create a valid database in the correct location with proper permissions.
+
+## Contact Support
+
+If you continue to experience issues, please contact support with the error details.

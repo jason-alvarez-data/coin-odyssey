@@ -70,7 +70,7 @@ function createWindow() {
         show: false,
         minWidth: 800,
         minHeight: 600,
-        icon: path.join(__dirname, 'src', 'assets', 'Coin Odyssey_favicon_16x16.png')
+        icon: path.join(__dirname, 'build', 'icons', 'icon.ico')
     });
 
     // Set CSP headers
