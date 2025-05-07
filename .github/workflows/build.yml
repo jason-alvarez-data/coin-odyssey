@@ -72,21 +72,14 @@ jobs:
           npm install --no-optional
         shell: bash
 
-      - name: Rebuild native modules
+      - name: Build better-sqlite3 for standalone Node.js (for init-db)
+        if: matrix.os == 'macos-latest' # Or apply to all OS if init-db runs on all
         run: |
-          echo "Rebuilding native modules..."
-          npm rebuild
-          echo "Installing app dependencies..."
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            npx electron-builder install-app-deps
-          else
-            ./node_modules/.bin/electron-builder install-app-deps
-          fi
-          echo "Verifying better-sqlite3 installation..."
+          echo "Building better-sqlite3 for Node.js $(node -v)..."
+          npm rebuild better-sqlite3 --build-from-source
+          echo "Verifying better-sqlite3 installation for standalone Node.js..."
           ls -la node_modules/better-sqlite3/build/Release/ || true
         shell: bash
-        env:
-          RUNNER_OS: ${{ runner.os }}
 
       - name: Initialize database template
         run: |
@@ -107,6 +100,20 @@ jobs:
           echo "Database initialization successful"
           ls -la template.db
         shell: bash
+
+      - name: Rebuild native modules for Electron
+        run: |
+          echo "Rebuilding native modules for Electron..."
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            npx electron-builder install-app-deps
+          else
+            ./node_modules/.bin/electron-builder install-app-deps
+          fi
+          echo "Verifying better-sqlite3 installation for Electron..."
+          ls -la node_modules/better-sqlite3/build/Release/ || true
+        shell: bash
+        env:
+          RUNNER_OS: ${{ runner.os }}
 
       - name: Build application
         run: |
