@@ -143,15 +143,31 @@ jobs:
       - name: Debug Windows file system (before build)
         if: matrix.os == 'windows-latest'
         run: |
-          echo "Listing D:/a/coin-odyssey/coin-odyssey/build/icons contents:"
-          ls -la D:/a/coin-odyssey/coin-odyssey/build/icons
-          echo "Checking existence of D:/a/coin-odyssey/coin-odyssey/build/icons/modern-numismat.ico"
-          if [ -f "D:/a/coin-odyssey/coin-odyssey/build/icons/modern-numismat.ico" ]; then
-            echo "Icon file FOUND by bash check."
+          echo "Listing D:/a/coin-odyssey/coin-odyssey/ contents (root):"
+          ls -la D:/a/coin-odyssey/coin-odyssey/
+          echo "Checking existence of D:/a/coin-odyssey/coin-odyssey/build directory:"
+          if [ -d "D:/a/coin-odyssey/coin-odyssey/build" ]; then
+            echo "Directory D:/a/coin-odyssey/coin-odyssey/build FOUND."
+            echo "Listing D:/a/coin-odyssey/coin-odyssey/build contents:"
+            ls -la D:/a/coin-odyssey/coin-odyssey/build
+            echo "Checking existence of D:/a/coin-odyssey/coin-odyssey/build/icons directory:"
+            if [ -d "D:/a/coin-odyssey/coin-odyssey/build/icons" ]; then
+              echo "Directory D:/a/coin-odyssey/coin-odyssey/build/icons FOUND."
+              echo "Listing D:/a/coin-odyssey/coin-odyssey/build/icons contents:"
+              ls -la D:/a/coin-odyssey/coin-odyssey/build/icons
+              echo "Checking existence of D:/a/coin-odyssey/coin-odyssey/build/icons/modern-numismat.ico"
+              if [ -f "D:/a/coin-odyssey/coin-odyssey/build/icons/modern-numismat.ico" ]; then
+                echo "Icon file D:/a/coin-odyssey/coin-odyssey/build/icons/modern-numismat.ico FOUND by bash check."
+              else
+                echo "Icon file D:/a/coin-odyssey/coin-odyssey/build/icons/modern-numismat.ico NOT FOUND by bash check."
+              fi
+            else
+              echo "Directory D:/a/coin-odyssey/coin-odyssey/build/icons NOT FOUND."
+            fi
           else
-            echo "Icon file NOT FOUND by bash check."
+            echo "Directory D:/a/coin-odyssey/coin-odyssey/build NOT FOUND."
           fi
-        shell: bash # Using bash for ls consistency with other OS logs
+        shell: bash
 
       - name: Build application
         env:
