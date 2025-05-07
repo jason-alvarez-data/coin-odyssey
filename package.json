@@ -81,13 +81,6 @@
         "filter": [
           "**/*"
         ]
-      },
-      {
-        "from": "build/icons",
-        "to": "icons",
-        "filter": [
-          "**/*"
-        ]
       }
     ],
     "win": {
@@ -99,7 +92,7 @@
           ]
         }
       ],
-      "icon": "build/icons/modern-numismat.ico",
+      "icon": "icon.ico",
       "executableName": "Modern Numismat",
       "requestedExecutionLevel": "asInvoker",
       "artifactName": "${productName}-Setup-${version}.${ext}",
@@ -108,7 +101,7 @@
         {
           "name": "Modern Numismat",
           "description": "Modern Numismat Coin Collection App",
-          "icon": "build/icons/modern-numismat.ico",
+          "icon": "icon.ico",
           "ext": ".mncoin"
         }
       ]
@@ -121,9 +114,9 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Modern Numismat",
-      "installerIcon": "build/icons/modern-numismat.ico",
-      "uninstallerIcon": "build/icons/modern-numismat.ico",
-      "installerHeaderIcon": "build/icons/modern-numismat.ico",
+      "installerIcon": "icon.ico",
+      "uninstallerIcon": "icon.ico",
+      "installerHeaderIcon": "icon.ico",
       "menuCategory": "Modern Numismat",
       "displayLanguageSelector": false
     },
