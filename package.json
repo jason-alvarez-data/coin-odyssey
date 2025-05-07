@@ -6,9 +6,9 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder -mwl",
-    "build:win": "electron-builder --windows",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux",
+    "build:win": "electron-builder --windows --x64",
+    "build:mac": "electron-builder --mac --x64",
+    "build:linux": "electron-builder --linux --x64",
     "pack": "electron-builder --dir",
     "rebuild": "electron-rebuild",
     "postinstall": "electron-builder install-app-deps && npm run rebuild",
@@ -128,12 +128,6 @@
       "target": [
         {
           "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "deb",
           "arch": [
             "x64"
           ]
