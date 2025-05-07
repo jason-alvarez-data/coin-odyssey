@@ -75,9 +75,8 @@ jobs:
         shell: bash
 
       - name: Build better-sqlite3 for standalone Node.js (for init-db)
-        if: matrix.os == 'macos-latest' # Or apply to all OS if init-db runs on all
         run: |
-          echo "Building better-sqlite3 for Node.js $(node -v)..."
+          echo "Building better-sqlite3 for Node.js $(node -v) on ${{ runner.os }}..."
           npm rebuild better-sqlite3 --build-from-source
           echo "Verifying better-sqlite3 installation for standalone Node.js..."
           ls -la node_modules/better-sqlite3/build/Release/ || true
