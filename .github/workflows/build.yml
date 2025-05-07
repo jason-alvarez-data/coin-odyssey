@@ -60,13 +60,18 @@ jobs:
           brew install python@3
           brew install gcc
 
-      - name: Clean install
+      - name: Clean macOS install & cache
+        if: matrix.os == 'macos-latest'
         run: |
-          echo "Cleaning previous installations..."
-          rm -rf node_modules || true
-          rm -f package-lock.json || true
-          echo "Installing dependencies..."
+          echo "Cleaning npm cache..."
+          npm cache clean --force
+          echo "Removing old node_modules and package-lock.json..."
+          rm -rf node_modules
+          rm -f package-lock.json
+          echo "Installing dependencies for macOS..."
           npm install --no-optional
+          echo "Explicitly installing dmg-license for macOS build..."
+          npm install dmg-license --save-dev
         shell: bash
 
       - name: Build better-sqlite3 for standalone Node.js (for init-db)
@@ -112,7 +117,19 @@ jobs:
         env:
           RUNNER_OS: ${{ runner.os }}
 
+      - name: Prepare macOS for DMG creation
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "Cleaning npm cache on macOS..."
+          npm cache clean --force
+          echo "Ensuring dmg-license is installed for macOS build..."
+          npm install dmg-license # No --save-dev needed now
+        shell: bash
+
       - name: Build application
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEBUG: electron-builder,electron-builder:*
         run: |
           echo "Starting application build..."
           echo "Node version: $(node --version)"
@@ -124,9 +141,6 @@ jobs:
           echo "Running build command: npm run ${{ matrix.build_command }}"
           npm run ${{ matrix.build_command }} --verbose
         shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEBUG: electron-builder,electron-builder:*
 
       - name: List dist directory
         run: |
