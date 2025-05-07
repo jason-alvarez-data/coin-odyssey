@@ -74,6 +74,21 @@ jobs:
           npm install dmg-license --save-dev
         shell: bash
 
+      - name: Clean install
+        run: |
+          echo "Cleaning previous installations..."
+          rm -rf node_modules || true
+          rm -f package-lock.json || true
+          echo "Installing dependencies..."
+          npm install --no-optional
+        shell: bash
+
+      - name: Install native module build tools
+        run: |
+          echo "Ensuring common native module build tools (node-gyp, prebuild-install, detect-libc) are installed..."
+          npm install node-gyp prebuild-install detect-libc
+        shell: bash
+
       - name: Build better-sqlite3 for standalone Node.js (for init-db)
         run: |
           echo "Building better-sqlite3 for Node.js $(node -v) on ${{ runner.os }}..."
