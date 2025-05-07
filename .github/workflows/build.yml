@@ -140,6 +140,19 @@ jobs:
           npm install dmg-license # No --save-dev needed now
         shell: bash
 
+      - name: Debug Windows file system (before build)
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "Listing D:/a/coin-odyssey/coin-odyssey/build/icons contents:"
+          ls -la D:/a/coin-odyssey/coin-odyssey/build/icons
+          echo "Checking existence of D:/a/coin-odyssey/coin-odyssey/build/icons/modern-numismat.ico"
+          if [ -f "D:/a/coin-odyssey/coin-odyssey/build/icons/modern-numismat.ico" ]; then
+            echo "Icon file FOUND by bash check."
+          else
+            echo "Icon file NOT FOUND by bash check."
+          fi
+        shell: bash # Using bash for ls consistency with other OS logs
+
       - name: Build application
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
