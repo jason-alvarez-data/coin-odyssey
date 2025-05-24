@@ -13,7 +13,8 @@
     "rebuild": "electron-rebuild",
     "postinstall": "electron-builder install-app-deps",
     "init-db": "node src/database/init-db.js",
-    "prebuild": "npm run init-db"
+    "prebuild": "npm run init-db",
+    "process-svg": "ts-node scripts/processSvgPaths.ts"
   },
   "private": true,
   "author": "Jason Alvarez",
@@ -26,7 +27,8 @@
   "devDependencies": {
     "electron": "^28.1.0",
     "electron-builder": "^24.9.1",
-    "electron-reloader": "^1.2.3"
+    "electron-reloader": "^1.2.3",
+    "ts-node": "^10.9.0"
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11"
@@ -42,7 +44,10 @@
     "electron-store": "^8.1.0",
     "electron-updater": "^6.1.8",
     "papaparse": "^5.5.2",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "engines": {
     "node": ">=20.10.0 <=22.14.0"
