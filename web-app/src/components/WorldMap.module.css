@@ -1,0 +1,128 @@
+.mapContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 600px;
+  background-color: #1e1e1e;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  --tooltip-bg: rgba(255, 255, 255, 0.95);
+  --tooltip-text: #000;
+  --tooltip-border: rgba(0, 0, 0, 0.1);
+  --map-background: #1e1e1e;
+  --country-fill: #2d2d2d;
+  --country-stroke: #4a4a4a;
+  --country-hover: #3d3d3d;
+  --collected-country: #4A90E2;
+  --collected-country-hover: #1d4ed8;
+}
+
+.svgContainer {
+  width: 100%;
+  height: 100%;
+  max-width: 1200px;
+  max-height: calc(100vh - 200px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.worldMap {
+  width: 100%;
+  height: 100%;
+  max-width: 1200px;
+  max-height: calc(100vh - 200px);
+  background-color: var(--map-background);
+}
+
+/* Override SVG default fills - use !important to ensure CSS takes precedence */
+.worldMap path {
+  fill: var(--country-fill) !important;
+  stroke: var(--country-stroke) !important;
+  stroke-width: 0.5 !important;
+  transition: all 0.3s ease !important;
+  cursor: pointer !important;
+}
+
+.country {
+  fill: var(--country-fill) !important;
+  stroke: var(--country-stroke) !important;
+  stroke-width: 0.5 !important;
+  transition: all 0.3s ease !important;
+  cursor: pointer !important;
+}
+
+.country:hover {
+  fill: var(--country-hover) !important;
+  stroke-width: 1 !important;
+}
+
+.country[data-collected="true"] {
+  fill: var(--collected-country) !important;
+}
+
+.country[data-collected="true"]:hover {
+  fill: var(--collected-country-hover) !important;
+}
+
+.mapLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 1rem;
+  min-height: 200px;
+}
+
+.mapError {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef4444;
+  font-size: 1rem;
+  min-height: 200px;
+  text-align: center;
+}
+
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background-color: var(--tooltip-bg);
+  color: var(--tooltip-text);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  box-shadow: 0 2px 4px var(--tooltip-border);
+  z-index: 50;
+  white-space: nowrap;
+  transform: translate(-50%, -100%);
+  margin-top: -0.5rem;
+}
+
+.tooltipContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tooltipContent strong {
+  font-weight: 600;
+  color: var(--tooltip-text);
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .mapContainer {
+  --tooltip-bg: rgba(50, 50, 50, 0.95);
+  --tooltip-text: #fff;
+  --tooltip-border: rgba(255, 255, 255, 0.1);
+  --map-background: #1e1e1e;
+  --country-fill: #2d2d2d;
+  --country-stroke: #4a4a4a;
+  --country-hover: #3d3d3d;
+  --collected-country: #4A90E2;
+  --collected-country-hover: #1d4ed8;
+} 
