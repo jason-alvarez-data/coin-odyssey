@@ -77,3 +77,12 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Node.js
+node_modules/
+.next/
+out/
+.env*.local
+.vercel
+*.tsbuildinfo
+next-env.d.ts
