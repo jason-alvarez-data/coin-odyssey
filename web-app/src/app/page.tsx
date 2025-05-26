@@ -1,59 +1,68 @@
+'use client'
+
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
 
-export default function Home() {
+export default function LandingPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    // Check if user is already logged in
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        router.push('/dashboard')
+      }
+    })
+  }, [router])
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] min-h-screen p-8 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col items-center justify-center gap-8 row-start-2">
-        <h1 className="text-4xl font-bold text-center">
-          Welcome to Coin Collecting
+    <div className="min-h-screen bg-[#1e1e2d] flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md text-center">
+        {/* Logo */}
+        <div className="mb-12 relative w-64 h-32 mx-auto">
+          <Image
+            src="/images/CoinOdyssey_Logo_Final.png"
+            alt="Coin Odyssey Logo"
+            fill
+            priority
+            className="object-contain"
+          />
+        </div>
+
+        {/* Title */}
+        <h1 className="text-4xl font-bold text-white mb-2">
+          Coin Odyssey
         </h1>
         
-        <p className="text-lg text-center max-w-2xl text-gray-600 dark:text-gray-300">
-          A modern web application for managing your coin collection, tracking values,
-          and connecting with other collectors.
+        {/* Subtitle */}
+        <p className="text-lg text-gray-400 mb-12">
+          Your journey through numismatic treasures
         </p>
 
-        <div className="flex gap-4 mt-8">
-          <Link 
-            href="/auth/login"
-            className="rounded-full border border-solid transition-colors flex items-center justify-center bg-foreground text-background px-6 py-3 hover:bg-[#383838] dark:hover:bg-[#ccc]"
+        {/* Auth Buttons */}
+        <div className="space-y-3">
+          <Link
+            href="/auth/signin"
+            className="block w-full bg-[#3699FF] text-white rounded-lg px-4 py-3 font-semibold hover:bg-[#187DE4] transition-colors"
           >
             Sign In
           </Link>
-          <Link 
-            href="/auth/register"
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] px-6 py-3"
+          <Link
+            href="/auth/signin?signup=true"
+            className="block w-full bg-white text-[#3699FF] rounded-lg px-4 py-3 font-semibold hover:bg-gray-100 transition-colors"
           >
             Create Account
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-          <div className="p-6 border rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">Track Collection</h3>
-            <p className="text-gray-600 dark:text-gray-300">
-              Manage your coin collection digitally with detailed information and images.
-            </p>
-          </div>
-          <div className="p-6 border rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">Monitor Value</h3>
-            <p className="text-gray-600 dark:text-gray-300">
-              Keep track of your collection's value and investment performance.
-            </p>
-          </div>
-          <div className="p-6 border rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">Share & Connect</h3>
-            <p className="text-gray-600 dark:text-gray-300">
-              Connect with other collectors and share your collection securely.
-            </p>
-          </div>
-        </div>
-      </main>
-
-      <footer className="row-start-3 text-center text-sm text-gray-500">
-        © {new Date().getFullYear()} Coin Collecting App. All rights reserved.
-      </footer>
+        {/* Footer Text */}
+        <p className="mt-8 text-sm text-gray-500">
+          Track, manage, and explore your coin collection
+        </p>
+      </div>
     </div>
   );
 }

@@ -15,3 +15,25 @@ export async function GET(request: NextRequest) {
   // URL to redirect to after sign in process completes
   return NextResponse.redirect(new URL('/dashboard', request.url))
 }
+
+export async function POST(request: NextRequest) {
+  const requestUrl = new URL(request.url)
+  const formData = await request.formData()
+  const email = formData.get('email')
+  const password = formData.get('password')
+  const supabase = createRouteHandlerClient({ cookies })
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email: email as string,
+    password: password as string,
+  })
+
+  if (error) {
+    return new NextResponse(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  return NextResponse.redirect(new URL('/dashboard', request.url))
+}

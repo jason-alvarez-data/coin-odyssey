@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
-const Navigation = () => {
+export default function Navigation() {
   const pathname = usePathname();
   const [isDarkMode, setIsDarkMode] = useState(true);
 
@@ -17,19 +17,22 @@ const Navigation = () => {
   ];
 
   return (
-    <nav className="w-64 bg-gray-900 text-white h-screen p-4 flex flex-col">
+    <nav className="w-64 bg-[#1e1e2d] text-white h-screen p-4 flex flex-col">
       {/* Logo */}
       <div className="mb-8">
-        <div className="bg-yellow-400 p-4 rounded-lg w-full">
+        <div className="bg-yellow-400 p-4 rounded-lg">
           <h1 className="text-black text-xl font-bold">Coin Odyssey</h1>
         </div>
       </div>
 
       {/* Add Coin Button */}
-      <button className="bg-blue-600 text-white p-3 rounded-lg mb-6 flex items-center gap-2">
+      <Link
+        href="/dashboard/add"
+        className="bg-blue-600 text-white p-3 rounded-lg mb-6 flex items-center gap-2 hover:bg-blue-700 transition-colors"
+      >
         <span>+</span>
         <span>Add Coin</span>
-      </button>
+      </Link>
       
       {/* Navigation Items */}
       <div className="space-y-2 flex-grow">
@@ -50,13 +53,13 @@ const Navigation = () => {
       </div>
 
       {/* Dark Mode Toggle */}
-      <div className="pt-4 border-t border-gray-800">
+      <div className="mt-auto pt-4 border-t border-gray-700">
         <div className="flex items-center justify-between">
-          <span>Light/Dark Mode</span>
+          <span className="text-sm">Light/Dark Mode</span>
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
             className={`w-12 h-6 rounded-full p-1 transition-colors ${
-              isDarkMode ? 'bg-blue-600' : 'bg-gray-700'
+              isDarkMode ? 'bg-blue-600' : 'bg-gray-400'
             }`}
           >
             <div
@@ -69,6 +72,4 @@ const Navigation = () => {
       </div>
     </nav>
   );
-};
-
-export default Navigation;
+}
