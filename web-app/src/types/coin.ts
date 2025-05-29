@@ -9,9 +9,21 @@ export interface Coin {
   purchaseDate: Date;
   notes: string | null;
   images: string[] | null;
+  faceValue: number | null;
+  currentMarketValue: number | null;
+  lastValueUpdate: Date | null;
 }
 
-export type SearchField = 'all' | 'denomination' | 'year' | 'grade';
+export interface CoinValueHistory {
+  id: string;
+  coinId: string;
+  marketValue: number;
+  valueDate: Date;
+  source: string | null;
+  createdAt: Date;
+}
+
+export type SearchField = 'all' | 'denomination' | 'year' | 'grade' | 'mintMark';
 
 export type GradeFilter = 
   | ''

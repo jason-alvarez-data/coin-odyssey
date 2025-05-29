@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 import React from 'react'
+import Image from 'next/image'
 
 export default function Header() {
   const [user, setUser] = useState<User | null>(null)
@@ -32,25 +33,33 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-white shadow">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-          Coin Odyssey
-        </h1>
-        {user && (
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-700">
-              {user.email}
-            </div>
-            <button
-              onClick={handleSignOut}
-              className="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500"
-            >
-              Sign Out
-            </button>
+    <div className="flex justify-end items-center">
+      {user && (
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-gray-400">
+            {user.email}
           </div>
-        )}
-      </div>
-    </header>
+          {user.user_metadata?.avatar_url ? (
+            <Image
+              src={user.user_metadata.avatar_url}
+              alt="Profile"
+              width={32}
+              height={32}
+              className="rounded-full"
+            />
+          ) : (
+            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+              <span className="text-sm">{user.email?.[0]?.toUpperCase()}</span>
+            </div>
+          )}
+          <button
+            onClick={handleSignOut}
+            className="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500"
+          >
+            Sign Out
+          </button>
+        </div>
+      )}
+    </div>
   )
 } 

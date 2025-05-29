@@ -37,9 +37,24 @@ export interface Database {
           images: string[] | null
           created_at: string | null
           updated_at: string | null
+          face_value: number | null
+          current_market_value: number | null
+          last_value_update: string | null
         }
         Insert: Omit<Database['public']['Tables']['coins']['Row'], 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Database['public']['Tables']['coins']['Insert']>
+      }
+      coin_value_history: {
+        Row: {
+          id: string
+          coin_id: string
+          market_value: number
+          value_date: string
+          source: string | null
+          created_at: string | null
+        }
+        Insert: Omit<Database['public']['Tables']['coin_value_history']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['coin_value_history']['Insert']>
       }
       collection_shares: {
         Row: {

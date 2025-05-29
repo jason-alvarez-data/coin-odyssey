@@ -1,0 +1,151 @@
+"use client";
+
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import type { User } from '@supabase/supabase-js'
+import WorldMap from '@/components/WorldMap'
+import Header from '@/components/layout/Header'
+
+interface DashboardStats {
+  totalCoins: number;
+  totalCountries: number;
+  yearsSpan: number;
+  totalValue: number;
+  countryDistribution: { [key: string]: number };
+}
+
+// Country name mappings - keep in sync with WorldMap component
+const countryMappings: { [key: string]: string } = {
+  'United States of America': 'United States',
+  'USA': 'United States',
+  'US': 'United States',
+  'UNITED STATES': 'United States',
+  'United Kingdom': 'UK',
+  'Great Britain': 'UK',
+  'England': 'UK',
+  'Russian Federation': 'Russia',
+  'People\'s Republic of China': 'China',
+  'PRC': 'China',
+};
+
+export default function DashboardPage() {
+  const [user, setUser] = useState<User | null>(null)
+  const [stats, setStats] = useState<DashboardStats>({
+    totalCoins: 0,
+    totalCountries: 0,
+    yearsSpan: 0,
+    totalValue: 0,
+    countryDistribution: {}
+  })
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+      if (user) {
+        fetchDashboardStats(user.id)
+      }
+    })
+  }, [])
+
+  const fetchDashboardStats = async (userId: string) => {
+    // Get all collections for the user
+    const { data: collections } = await supabase
+      .from('collections')
+      .select('id')
+      .eq('user_id', userId)
+
+    if (!collections?.length) return
+
+    // Get all coins from user's collections
+    const { data: coins } = await supabase
+      .from('coins')
+      .select('*')
+      .in('collection_id', collections.map(c => c.id))
+
+    if (!coins) return
+
+    // Calculate stats
+    const years = coins.map(coin => coin.year)
+    const yearsSpan = years.length ? Math.max(...years) - Math.min(...years) + 1 : 0
+    const totalValue = coins.reduce((sum, coin) => sum + (parseFloat(coin.purchase_price) || 0), 0)
+
+    // Calculate country distribution
+    const countryDistribution = coins.reduce((acc: { [key: string]: number }, coin) => {
+      if (coin.country) {
+        // Standardize country names
+        let country = coin.country.trim();
+        
+        // Apply mapping if exists
+        country = countryMappings[country] || country;
+
+        acc[country] = (acc[country] || 0) + 1;
+      }
+      return acc;
+    }, {});
+
+    setStats({
+      totalCoins: coins.length,
+      totalCountries: Object.keys(countryDistribution).length,
+      yearsSpan,
+      totalValue,
+      countryDistribution
+    })
+  }
+
+  return (
+    <div className="flex-1 bg-[#1e1e1e]">
+      <div className="p-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-white">Collection Dashboard</h1>
+          <Header />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-[#2a2a2a] p-4 rounded-lg">
+            <div className="flex items-center gap-3">
+              <span className="text-[#3b82f6] text-xl">🪙</span>
+              <div>
+                <h2 className="text-sm text-gray-400">Total Coins</h2>
+                <p className="text-2xl font-bold text-[#3b82f6]">{stats.totalCoins}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-[#2a2a2a] p-4 rounded-lg">
+            <div className="flex items-center gap-3">
+              <span className="text-[#3b82f6] text-xl">🌎</span>
+              <div>
+                <h2 className="text-sm text-gray-400">Countries</h2>
+                <p className="text-2xl font-bold text-[#3b82f6]">{stats.totalCountries}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-[#2a2a2a] p-4 rounded-lg">
+            <div className="flex items-center gap-3">
+              <span className="text-[#3b82f6] text-xl">📅</span>
+              <div>
+                <h2 className="text-sm text-gray-400">Years Span</h2>
+                <p className="text-2xl font-bold text-[#3b82f6]">{stats.yearsSpan}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-[#2a2a2a] p-4 rounded-lg">
+            <div className="flex items-center gap-3">
+              <span className="text-[#3b82f6] text-xl">💰</span>
+              <div>
+                <h2 className="text-sm text-gray-400">Estimated Value</h2>
+                <p className="text-2xl font-bold text-[#3b82f6]">${stats.totalValue.toFixed(2)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h2 className="text-xl font-bold text-white mb-4">Collection Map</h2>
+        <div className="grid grid-cols-1 gap-6">
+          <div className="bg-[#2a2a2a] p-6 rounded-lg">
+            <WorldMap collectedCountries={stats.countryDistribution} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+} 

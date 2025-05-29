@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Coin, SearchField, GradeFilter, ValueFilter } from '@/types/coin';
 import { supabase } from '@/lib/supabase';
 import { Database } from '@/types/supabase';
+import { formatDistanceToNow } from 'date-fns';
 
 interface CollectionTableProps {
   searchQuery: string;
@@ -26,6 +27,9 @@ const mapSupabaseCoinToCoin = (coin: SupabaseCoin): Coin => ({
   purchaseDate: new Date(coin.purchase_date),
   notes: coin.notes,
   images: coin.images,
+  faceValue: coin.face_value,
+  currentMarketValue: coin.current_market_value,
+  lastValueUpdate: coin.last_value_update ? new Date(coin.last_value_update) : null
 });
 
 export default function CollectionTable({
@@ -65,7 +69,7 @@ export default function CollectionTable({
       if (searchQuery) {
         if (searchField === 'all') {
           query = query.or(
-            `denomination.ilike.%${searchQuery}%,grade.ilike.%${searchQuery}%,year.eq.${
+            `denomination.ilike.%${searchQuery}%,grade.ilike.%${searchQuery}%,mint_mark.ilike.%${searchQuery}%,year.eq.${
               !isNaN(parseInt(searchQuery)) ? parseInt(searchQuery) : 0
             }`
           );
@@ -82,23 +86,23 @@ export default function CollectionTable({
         query = query.gte('grade', low).lte('grade', high);
       }
 
-      // Apply value filter
+      // Apply value filter - now using current_market_value instead of purchase_price
       if (valueFilter) {
         switch (valueFilter) {
           case 'Under $10':
-            query = query.lt('purchase_price', 10);
+            query = query.lt('current_market_value', 10);
             break;
           case '$10 - $50':
-            query = query.gte('purchase_price', 10).lt('purchase_price', 50);
+            query = query.gte('current_market_value', 10).lt('current_market_value', 50);
             break;
           case '$50 - $100':
-            query = query.gte('purchase_price', 50).lt('purchase_price', 100);
+            query = query.gte('current_market_value', 50).lt('current_market_value', 100);
             break;
           case '$100 - $500':
-            query = query.gte('purchase_price', 100).lt('purchase_price', 500);
+            query = query.gte('current_market_value', 100).lt('current_market_value', 500);
             break;
           case 'Over $500':
-            query = query.gte('purchase_price', 500);
+            query = query.gte('current_market_value', 500);
             break;
         }
       }
@@ -108,9 +112,9 @@ export default function CollectionTable({
       if (supabaseError) throw supabaseError;
 
       setCoins(data.map(mapSupabaseCoinToCoin));
-    } catch (err) {
-      console.error('Error fetching coins:', err);
-      setError('Failed to fetch coins. Please try again later.');
+    } catch (error) {
+      console.error('Error fetching coins:', error);
+      setError('Failed to fetch coins');
     } finally {
       setLoading(false);
     }
@@ -139,59 +143,57 @@ export default function CollectionTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full">
+      <table className="min-w-full bg-[#2a2a2a] text-white">
         <thead>
-          <tr className="bg-gray-700">
-            <th 
-              className="px-4 py-2 text-left cursor-pointer hover:bg-gray-600"
-              onClick={() => handleSort('purchaseDate')}
-            >
-              Date Acquired {sortColumn === 'purchaseDate' && (sortDirection === 'asc' ? '↑' : '↓')}
-            </th>
-            <th 
-              className="px-4 py-2 text-left cursor-pointer hover:bg-gray-600"
-              onClick={() => handleSort('denomination')}
-            >
+          <tr className="border-b border-gray-700">
+            <th className="px-4 py-2">Image</th>
+            <th className="px-4 py-2 cursor-pointer" onClick={() => handleSort('denomination')}>
               Denomination {sortColumn === 'denomination' && (sortDirection === 'asc' ? '↑' : '↓')}
             </th>
-            <th 
-              className="px-4 py-2 text-left cursor-pointer hover:bg-gray-600"
-              onClick={() => handleSort('year')}
-            >
+            <th className="px-4 py-2 cursor-pointer" onClick={() => handleSort('year')}>
               Year {sortColumn === 'year' && (sortDirection === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="px-4 py-2 text-left">Mint Mark</th>
-            <th 
-              className="px-4 py-2 text-left cursor-pointer hover:bg-gray-600"
-              onClick={() => handleSort('grade')}
-            >
+            <th className="px-4 py-2 cursor-pointer" onClick={() => handleSort('mintMark')}>
+              Mint Mark {sortColumn === 'mintMark' && (sortDirection === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="px-4 py-2 cursor-pointer" onClick={() => handleSort('grade')}>
               Grade {sortColumn === 'grade' && (sortDirection === 'asc' ? '↑' : '↓')}
             </th>
-            <th 
-              className="px-4 py-2 text-left cursor-pointer hover:bg-gray-600"
-              onClick={() => handleSort('purchasePrice')}
-            >
-              Value {sortColumn === 'purchasePrice' && (sortDirection === 'asc' ? '↑' : '↓')}
+            <th className="px-4 py-2">Face Value</th>
+            <th className="px-4 py-2 cursor-pointer" onClick={() => handleSort('currentMarketValue')}>
+              Market Value {sortColumn === 'currentMarketValue' && (sortDirection === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="px-4 py-2 text-left">Notes</th>
-            <th className="px-4 py-2 text-left">Images</th>
-            <th className="px-4 py-2 text-left">Actions</th>
+            <th className="px-4 py-2 cursor-pointer" onClick={() => handleSort('purchaseDate')}>
+              Purchase Date {sortColumn === 'purchaseDate' && (sortDirection === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="px-4 py-2">Actions</th>
           </tr>
         </thead>
         <tbody>
           {coins.map((coin) => (
-            <tr key={coin.id} className="border-b border-gray-700 hover:bg-gray-700/50">
-              <td className="px-4 py-2">{coin.purchaseDate.toLocaleDateString()}</td>
+            <tr key={coin.id} className="border-b border-gray-700 hover:bg-[#3a3a3a]">
+              <td className="px-4 py-2">
+                {coin.images && coin.images.length > 0 && (
+                  <img src={coin.images[0]} alt={`${coin.year} ${coin.denomination}`} className="w-12 h-12 object-cover rounded" />
+                )}
+              </td>
               <td className="px-4 py-2">{coin.denomination}</td>
               <td className="px-4 py-2">{coin.year}</td>
-              <td className="px-4 py-2">{coin.mintMark}</td>
-              <td className="px-4 py-2">{coin.grade}</td>
-              <td className="px-4 py-2">${coin.purchasePrice.toFixed(2)}</td>
-              <td className="px-4 py-2">{coin.notes}</td>
-              <td className="px-4 py-2">{coin.images?.length ? `${coin.images.length} images` : 'No images'}</td>
+              <td className="px-4 py-2">{coin.mintMark || '-'}</td>
+              <td className="px-4 py-2">{coin.grade || '-'}</td>
+              <td className="px-4 py-2">${coin.faceValue?.toFixed(2) || '-'}</td>
               <td className="px-4 py-2">
-                <button className="text-blue-400 hover:text-blue-300 mr-2">Edit</button>
-                <button className="text-red-400 hover:text-red-300">Delete</button>
+                ${coin.currentMarketValue?.toFixed(2) || '-'}
+                {coin.lastValueUpdate && (
+                  <span className="text-xs text-gray-400 ml-2" title={coin.lastValueUpdate.toLocaleString()}>
+                    ({formatDistanceToNow(coin.lastValueUpdate, { addSuffix: true })})
+                  </span>
+                )}
+              </td>
+              <td className="px-4 py-2">{coin.purchaseDate.toLocaleDateString()}</td>
+              <td className="px-4 py-2">
+                <button className="text-blue-500 hover:text-blue-400 mr-2">Edit</button>
+                <button className="text-red-500 hover:text-red-400">Delete</button>
               </td>
             </tr>
           ))}

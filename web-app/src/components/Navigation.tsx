@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import Image from 'next/image';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -17,57 +18,76 @@ export default function Navigation() {
   ];
 
   return (
-    <nav className="w-64 bg-[#1e1e2d] text-white h-screen p-4 flex flex-col">
+    <nav className="w-64 bg-[#1e1e1e] h-screen flex flex-col">
       {/* Logo */}
-      <div className="mb-8">
-        <div className="bg-yellow-400 p-4 rounded-lg">
-          <h1 className="text-black text-xl font-bold">Coin Odyssey</h1>
+      <div className="mx-4 mt-4 mb-4">
+        <div className="rounded-lg flex justify-center items-center">
+          <Image
+            src="/images/CoinOdyssey_Logo_Final.png"
+            alt="Coin Odyssey"
+            width={180}
+            height={60}
+            priority
+            className="w-auto h-auto"
+          />
         </div>
       </div>
 
       {/* Add Coin Button */}
-      <Link
-        href="/dashboard/add"
-        className="bg-blue-600 text-white p-3 rounded-lg mb-6 flex items-center gap-2 hover:bg-blue-700 transition-colors"
-      >
-        <span>+</span>
-        <span>Add Coin</span>
-      </Link>
+      <div className="px-4 mb-2">
+        <Link
+          href="/dashboard/add"
+          className="flex items-center gap-2 bg-[#2a2a2a] text-white px-4 py-3 rounded-lg hover:bg-[#353535] transition-colors"
+        >
+          <span>+</span>
+          <span>Add Coin</span>
+        </Link>
+      </div>
       
       {/* Navigation Items */}
-      <div className="space-y-2 flex-grow">
-        {navItems.map((item) => (
-          <Link
-            key={item.path}
-            href={item.path}
-            className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${
-              pathname === item.path
-                ? 'bg-gray-800'
-                : 'hover:bg-gray-800'
-            }`}
-          >
-            <span>{item.icon}</span>
-            <span>{item.name}</span>
-          </Link>
-        ))}
+      <div className="flex-1 px-4">
+        <div className="space-y-2">
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              href={item.path}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                pathname === item.path
+                  ? 'bg-[#353535] text-white'
+                  : 'bg-[#2a2a2a] text-white hover:bg-[#353535]'
+              }`}
+            >
+              <span>{item.icon}</span>
+              <span>{item.name}</span>
+            </Link>
+          ))}
+        </div>
       </div>
 
-      {/* Dark Mode Toggle */}
-      <div className="mt-auto pt-4 border-t border-gray-700">
-        <div className="flex items-center justify-between">
-          <span className="text-sm">Light/Dark Mode</span>
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className={`w-12 h-6 rounded-full p-1 transition-colors ${
-              isDarkMode ? 'bg-blue-600' : 'bg-gray-400'
-            }`}
-          >
-            <div
-              className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                isDarkMode ? 'translate-x-6' : ''
-              }`}
+      {/* Light/Dark Mode Toggle */}
+      <div className="p-4 border-t border-[#353535]">
+        <div className="flex items-center justify-between text-white">
+          <span>Light/Dark Mode</span>
+          <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out">
+            <input
+              type="checkbox"
+              className="hidden"
+              checked={isDarkMode}
+              onChange={() => setIsDarkMode(!isDarkMode)}
             />
-          </button>
+            <div
+              className={`w-12 h-6 bg-[#3b82f6] rounded-full p-1 cursor-pointer ${
+                isDarkMode ? 'bg-[#3b82f6]' : 'bg-gray-400'
+              }`}
+              onClick={() => setIsDarkMode(!isDarkMode)}
+            >
+              <div
+                className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
+                  isDarkMode ? 'translate-x-6' : 'translate-x-0'
+                }`}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </nav>
