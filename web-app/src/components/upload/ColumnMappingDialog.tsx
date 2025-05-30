@@ -8,13 +8,16 @@ interface ColumnMappingDialogProps {
 }
 
 const targetColumns = [
-  { name: 'denomination', label: 'Denomination', required: true },
-  { name: 'year', label: 'Year', required: true },
-  { name: 'mint_mark', label: 'Mint Mark', required: false },
-  { name: 'grade', label: 'Grade', required: false },
-  { name: 'purchase_price', label: 'Purchase Price', required: false },
-  { name: 'purchase_date', label: 'Purchase Date', required: false },
-  { name: 'notes', label: 'Notes', required: false },
+  { value: 'title', label: 'Title', required: true },
+  { value: 'year', label: 'Year', required: true },
+  { value: 'denomination', label: 'Denomination', required: false },
+  { value: 'country', label: 'Country', required: false },
+  { value: 'mint_mark', label: 'Mint Mark', required: false },
+  { value: 'grade', label: 'Grade', required: false },
+  { value: 'face_value', label: 'Face Value', required: true },
+  { value: 'purchase_price', label: 'Purchase Price', required: false },
+  { value: 'purchase_date', label: 'Date Acquired (defaults to today if not mapped)', required: false },
+  { value: 'notes', label: 'Notes', required: false },
 ];
 
 export default function ColumnMappingDialog({
@@ -26,15 +29,18 @@ export default function ColumnMappingDialog({
   const [mappings, setMappings] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<string[]>([]);
 
-  // Auto-map columns with exact matches
+  // Set initial mappings based on matching column names
   useEffect(() => {
     const initialMappings: Record<string, string> = {};
-    targetColumns.forEach(({ name }) => {
-      const match = sourceColumns.find(
-        col => col.toLowerCase() === name.toLowerCase()
+    targetColumns.forEach(({ value: targetCol }) => {
+      // Try to find a matching source column (case-insensitive)
+      const matchingSourceCol = sourceColumns.find(sourceCol => 
+        sourceCol.toLowerCase() === targetCol.toLowerCase() ||
+        // Special case for value -> face_value mapping
+        (targetCol === 'face_value' && sourceCol.toLowerCase() === 'value')
       );
-      if (match) {
-        initialMappings[name] = match;
+      if (matchingSourceCol) {
+        initialMappings[targetCol] = matchingSourceCol;
       }
     });
     setMappings(initialMappings);
@@ -49,8 +55,8 @@ export default function ColumnMappingDialog({
 
   const validateMappings = () => {
     const newErrors: string[] = [];
-    targetColumns.forEach(({ name, label, required }) => {
-      if (required && !mappings[name]) {
+    targetColumns.forEach(({ value, label, required }) => {
+      if (required && !mappings[value]) {
         newErrors.push(`${label} is required`);
       }
     });
@@ -91,15 +97,15 @@ export default function ColumnMappingDialog({
         )}
 
         <div className="space-y-4">
-          {targetColumns.map(({ name, label, required }) => (
-            <div key={name} className="flex items-center gap-4">
+          {targetColumns.map(({ value, label, required }) => (
+            <div key={value} className="flex items-center gap-4">
               <div className="flex-1">
                 <label className="block text-sm text-gray-400 mb-1">
                   {label} {required && <span className="text-red-500">*</span>}
                 </label>
                 <select
-                  value={mappings[name] || ''}
-                  onChange={(e) => handleMappingChange(name, e.target.value)}
+                  value={mappings[value] || ''}
+                  onChange={(e) => handleMappingChange(value, e.target.value)}
                   className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
                 >
                   <option value="">Select column</option>

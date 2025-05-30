@@ -10,14 +10,19 @@
     "process-svg": "ts-node ./scripts/processSvgPaths.ts"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.4",
+    "@heroicons/react": "^2.2.0",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/auth-ui-react": "^0.4.7",
     "@supabase/auth-ui-shared": "^0.1.8",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.39.8",
+    "@types/axios": "^0.14.4",
     "@types/d3-geo": "^3.1.0",
     "@types/d3-scale": "^4.0.9",
     "@types/react-simple-maps": "^3.0.6",
+    "@types/recharts": "^2.0.1",
+    "axios": "^1.9.0",
     "chart.js": "^4.4.9",
     "d3-geo": "^3.1.1",
     "d3-scale": "^4.0.2",
@@ -28,6 +33,7 @@
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.3.8",
+    "recharts": "^2.15.3",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

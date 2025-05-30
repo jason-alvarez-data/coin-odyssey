@@ -38,7 +38,7 @@ export default function AuthenticatedLayout({
       <Navigation />
       
       {/* Main Content */}
-      <main className="flex-1">
+      <main className="flex-1 p-8 text-white">
         {children}
       </main>
     </div>

@@ -1,17 +1,29 @@
 export interface Coin {
   id: string;
-  collectionId: string;
-  denomination: string;
+  name: string;
+  title: string;
   year: number;
   mintMark: string | null;
   grade: string | null;
-  purchasePrice: number;
-  purchaseDate: Date;
-  notes: string | null;
-  images: string[] | null;
   faceValue: number | null;
+  purchasePrice: number | null;
   currentMarketValue: number | null;
-  lastValueUpdate: Date | null;
+  lastValueUpdate: string | null;
+  pcgsId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
+  collectionId: string;
+  denomination: string;
+  purchaseDate: string | null;
+  personalValue: number | null;
+  lastAppraisalValue: number | null;
+  lastAppraisalDate: string | null;
+  mintage: number | null;
+  rarityScale: number | null;
+  historicalNotes: string | null;
+  varietyNotes: string | null;
+  notes: string | null;
 }
 
 export interface CoinValueHistory {
