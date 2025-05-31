@@ -9,7 +9,7 @@ import Header from '@/components/layout/Header'
 interface DashboardStats {
   totalCoins: number;
   totalCountries: number;
-  yearsSpan: number;
+  yearsSpan: string;
   totalValue: number;
   countryDistribution: { [key: string]: number };
 }
@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalCoins: 0,
     totalCountries: 0,
-    yearsSpan: 0,
+    yearsSpan: '-',
     totalValue: 0,
     countryDistribution: {}
   })
@@ -66,7 +66,9 @@ export default function DashboardPage() {
 
     // Calculate stats
     const years = coins.map(coin => coin.year)
-    const yearsSpan = years.length ? Math.max(...years) - Math.min(...years) + 1 : 0
+    const oldestYear = years.length ? Math.min(...years) : 0
+    const newestYear = years.length ? Math.max(...years) : 0
+    const yearsSpan = years.length ? `${oldestYear} - ${newestYear}` : '-'
     const totalValue = coins.reduce((sum, coin) => sum + (parseFloat(coin.purchase_price) || 0), 0)
 
     // Calculate country distribution
@@ -123,7 +125,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <span className="text-[#3b82f6] text-xl">📅</span>
               <div>
-                <h2 className="text-sm text-gray-400">Years Span</h2>
+                <h2 className="text-sm text-gray-400">Years Range</h2>
                 <p className="text-2xl font-bold text-[#3b82f6]">{stats.yearsSpan}</p>
               </div>
             </div>

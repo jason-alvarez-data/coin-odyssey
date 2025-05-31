@@ -36,9 +36,6 @@ export default function Header() {
     <div className="flex justify-end items-center">
       {user && (
         <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-400">
-            {user.email}
-          </div>
           {user.user_metadata?.avatar_url ? (
             <Image
               src={user.user_metadata.avatar_url}
@@ -48,7 +45,7 @@ export default function Header() {
               className="rounded-full"
             />
           ) : (
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white">
               <span className="text-sm">{user.email?.[0]?.toUpperCase()}</span>
             </div>
           )}

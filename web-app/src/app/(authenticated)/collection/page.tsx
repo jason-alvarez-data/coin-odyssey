@@ -28,6 +28,9 @@ export default function CollectionPage() {
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -124,6 +127,33 @@ export default function CollectionPage() {
     window.location.href = `/collection/edit/${coinId}`;
   };
 
+  // Filter coins based on search query
+  const filteredCoins = coins.filter(coin => {
+    const searchLower = searchQuery.toLowerCase()
+    return (
+      coin.title?.toLowerCase().includes(searchLower) ||
+      coin.denomination.toLowerCase().includes(searchLower) ||
+      coin.year.toString().includes(searchQuery) ||
+      coin.mint_mark?.toLowerCase().includes(searchLower) ||
+      coin.grade?.toLowerCase().includes(searchLower)
+    )
+  })
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredCoins.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginatedCoins = filteredCoins.slice(startIndex, startIndex + itemsPerPage)
+
+  // Reset to first page when search query changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
+
+  // Reset to first page when items per page changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage])
+
   return (
     <div className="flex-1 bg-[#1e1e1e]">
       <div className="p-8">
@@ -131,7 +161,7 @@ export default function CollectionPage() {
           <div>
             <h1 className="text-2xl font-bold text-white">My Collection</h1>
             <p className="text-sm text-gray-400 mt-1">
-              {coins.length} {coins.length === 1 ? 'coin' : 'coins'} in collection
+              {filteredCoins.length} {filteredCoins.length === 1 ? 'coin' : 'coins'} in collection
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -145,6 +175,33 @@ export default function CollectionPage() {
               </button>
             )}
             <Header />
+          </div>
+        </div>
+
+        {/* Search Input */}
+        <div className="mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search coins by title, denomination, year, mint mark, or grade..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#2a2a2a] text-white rounded-lg px-4 py-2 pl-10 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+            <svg
+              className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
           </div>
         </div>
 
@@ -248,63 +305,134 @@ export default function CollectionPage() {
 
         {loading ? (
           <div className="text-gray-400">Loading collection...</div>
-        ) : coins.length === 0 ? (
+        ) : filteredCoins.length === 0 ? (
           <div className="bg-[#2a2a2a] rounded-lg p-6 text-center">
-            <p className="text-gray-400 mb-4">Your collection is empty</p>
-            <button 
-              onClick={() => window.location.href = '/dashboard/add'}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Add Your First Coin
-            </button>
+            {searchQuery ? (
+              <p className="text-gray-400 mb-4">No coins found matching your search</p>
+            ) : (
+              <>
+                <p className="text-gray-400 mb-4">Your collection is empty</p>
+                <button 
+                  onClick={() => window.location.href = '/dashboard/add'}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Add Your First Coin
+                </button>
+              </>
+            )}
           </div>
         ) : (
-          <div className="bg-[#2a2a2a] rounded-lg overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-[#1e1e1e] text-gray-400">
-                <tr>
-                  <th className="px-6 py-4">Date Acquired</th>
-                  <th className="px-6 py-4">Coin Details</th>
-                  <th className="px-6 py-4">Year</th>
-                  <th className="px-6 py-4">Mint Mark</th>
-                  <th className="px-6 py-4">Grade</th>
-                  <th className="px-6 py-4">Face Value</th>
-                  <th className="px-6 py-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="text-white">
-                {coins.map((coin) => (
-                  <tr key={coin.id} className="border-t border-[#1e1e1e] hover:bg-[#353535] transition-colors">
-                    <td className="px-6 py-4">{formatDate(coin.purchase_date)}</td>
-                    <td className="px-6 py-4">
-                      <div className="text-base font-medium">{coin.title || 'Untitled Coin'}</div>
-                      {coin.denomination && (
-                        <div className="text-sm text-gray-400">{coin.denomination}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">{coin.year}</td>
-                    <td className="px-6 py-4">{coin.mint_mark || '-'}</td>
-                    <td className="px-6 py-4">{coin.grade || '-'}</td>
-                    <td className="px-6 py-4">{formatCurrency(coin.face_value)}</td>
-                    <td className="px-6 py-4">
-                      <button 
-                        onClick={() => handleEdit(coin.id)}
-                        className="text-blue-400 hover:text-blue-300 mr-4 transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button 
-                        onClick={() => setShowDeleteConfirm(coin.id)}
-                        className="text-red-400 hover:text-red-300 transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </td>
+          <>
+            <div className="bg-[#2a2a2a] rounded-lg overflow-hidden">
+              <table className="w-full text-left">
+                <thead className="bg-[#1e1e1e] text-gray-400">
+                  <tr>
+                    <th className="px-6 py-4">Date Acquired</th>
+                    <th className="px-6 py-4">Coin Details</th>
+                    <th className="px-6 py-4">Year</th>
+                    <th className="px-6 py-4">Mint Mark</th>
+                    <th className="px-6 py-4">Grade</th>
+                    <th className="px-6 py-4">Face Value</th>
+                    <th className="px-6 py-4">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="text-white">
+                  {paginatedCoins.map((coin) => (
+                    <tr key={coin.id} className="border-t border-[#1e1e1e] hover:bg-[#353535] transition-colors">
+                      <td className="px-6 py-4">{formatDate(coin.purchase_date)}</td>
+                      <td className="px-6 py-4">
+                        <div className="text-base font-medium">{coin.title || 'Untitled Coin'}</div>
+                        {coin.denomination && (
+                          <div className="text-sm text-gray-400">{coin.denomination}</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">{coin.year}</td>
+                      <td className="px-6 py-4">{coin.mint_mark || '-'}</td>
+                      <td className="px-6 py-4">{coin.grade || '-'}</td>
+                      <td className="px-6 py-4">{formatCurrency(coin.face_value)}</td>
+                      <td className="px-6 py-4">
+                        <button 
+                          onClick={() => handleEdit(coin.id)}
+                          className="text-blue-400 hover:text-blue-300 mr-4 transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => setShowDeleteConfirm(coin.id)}
+                          className="text-red-400 hover:text-red-300 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="mt-6 flex items-center justify-between px-4 py-3 bg-[#2a2a2a] rounded-lg">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center text-sm text-gray-400">
+                  <p>
+                    Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+                    <span className="font-medium">
+                      {Math.min(startIndex + itemsPerPage, filteredCoins.length)}
+                    </span>{' '}
+                    of <span className="font-medium">{filteredCoins.length}</span> coins
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="itemsPerPage" className="text-sm text-gray-400">
+                    Items per page:
+                  </label>
+                  <select
+                    id="itemsPerPage"
+                    value={itemsPerPage}
+                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                    className="bg-[#1e1e1e] text-white border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value={10}>10</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 rounded-md bg-[#1e1e1e] text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#353535] transition-colors"
+                >
+                  Previous
+                </button>
+                {totalPages > 1 && (
+                  <div className="flex items-center space-x-2">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-3 py-1 rounded-md transition-colors ${
+                          currentPage === page
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-[#1e1e1e] text-white hover:bg-[#353535]'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button
+                  onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 rounded-md bg-[#1e1e1e] text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#353535] transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>
