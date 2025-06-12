@@ -2,13 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #1e1e1e;
-  --foreground: #ffffff;
+@layer base {
+  :root {
+    --background: 250 250 250;
+    --foreground: 0 0 0;
+  }
+
+  [data-theme='dark'],
+  :root[class~='dark'] {
+    --background: 17 24 39;
+    --foreground: 255 255 255;
+  }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply transition-colors duration-200;
+  }
+  
+  body {
+    @apply min-h-screen;
+    background-color: rgb(var(--background));
+    color: rgb(var(--foreground));
+  }
+}
+
+/* Prevent background flash during route changes */
+#__next {
+  @apply min-h-screen bg-gray-50 dark:bg-gray-900;
 }
