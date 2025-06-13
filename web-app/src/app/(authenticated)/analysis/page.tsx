@@ -59,14 +59,13 @@ interface CustomLabelProps {
   cx: number;
   cy: number;
   midAngle: number;
-  innerRadius: number;
   outerRadius: number;
   percent: number;
   name: string;
 }
 
 const RADIAN = Math.PI / 180;
-const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: CustomLabelProps) => {
+const renderCustomizedLabel = ({ cx, cy, midAngle, outerRadius, percent, name }: CustomLabelProps) => {
   const radius = outerRadius * 1.2;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
@@ -89,49 +88,47 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 };
 
 export default function AnalysisPage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [coins, setCoins] = useState<Coin[]>([])
   const [loading, setLoading] = useState(true)
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null)
+  const [coins, setCoins] = useState<Coin[]>([])
 
   useEffect(() => {
+    const fetchCoins = async (userId: string) => {
+      try {
+        setLoading(true)
+        const { data: collections } = await supabase
+          .from('collections')
+          .select('id')
+          .eq('user_id', userId)
+
+        if (!collections?.length) {
+          setCoins([])
+          return
+        }
+
+        const { data: coins } = await supabase
+          .from('coins')
+          .select('*')
+          .in('collection_id', collections.map(c => c.id))
+          .order('purchase_date', { ascending: true })
+
+        setCoins(coins || [])
+        if (coins) {
+          calculateAnalytics(coins)
+        }
+      } catch (error) {
+        console.error('Error fetching coins:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
       if (user) {
         fetchCoins(user.id)
       }
     })
   }, [])
-
-  const fetchCoins = async (userId: string) => {
-    try {
-      setLoading(true)
-      const { data: collections } = await supabase
-        .from('collections')
-        .select('id')
-        .eq('user_id', userId)
-
-      if (!collections?.length) {
-        setCoins([])
-        return
-      }
-
-      const { data: coins } = await supabase
-        .from('coins')
-        .select('*')
-        .in('collection_id', collections.map(c => c.id))
-        .order('purchase_date', { ascending: true })
-
-      setCoins(coins || [])
-      if (coins) {
-        calculateAnalytics(coins)
-      }
-    } catch (error) {
-      console.error('Error fetching coins:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const calculateAnalytics = (coins: Coin[]) => {
     const summary: AnalyticsSummary = {

@@ -16,24 +16,23 @@ export default function SignIn() {
     setOrigin(window.location.origin)
   }, [])
 
-  const handleSignIn = async (event: any) => {
-    event.preventDefault()
+  const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
     setError(null)
     setLoading(true)
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: event.target.email.value,
-        password: event.target.password.value,
+        email: e.currentTarget.email.value,
+        password: e.currentTarget.password.value,
       })
 
-      if (error) {
-        setError(error.message)
-      } else {
-        router.push('/dashboard')
-      }
-    } catch (err) {
-      setError('An unexpected error occurred')
+      if (error) throw error
+
+      router.push('/dashboard')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred during sign in'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

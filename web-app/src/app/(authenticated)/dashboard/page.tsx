@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { User } from '@supabase/supabase-js'
 import WorldMap from '@/components/WorldMap'
 import Header from '@/components/layout/Header'
 
@@ -29,70 +28,114 @@ const countryMappings: { [key: string]: string } = {
 };
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null)
   const [stats, setStats] = useState<DashboardStats>({
     totalCoins: 0,
     totalCountries: 0,
     yearsSpan: '-',
     totalValue: 0,
     countryDistribution: {}
-  })
+  });
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
+    const fetchData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        fetchDashboardStats(user.id)
+        await fetchDashboardStats(user.id);
       }
-    })
-  }, [])
+    };
+
+    fetchData();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('public:coins')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'coins',
+      }, async (payload) => {
+        // Refresh data when coins table changes
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await fetchDashboardStats(user.id);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, []);
 
   const fetchDashboardStats = async (userId: string) => {
-    // Get all collections for the user
-    const { data: collections } = await supabase
-      .from('collections')
-      .select('id')
-      .eq('user_id', userId)
+    try {
+      // Get all collections for the user
+      const { data: collections, error: collectionsError } = await supabase
+        .from('collections')
+        .select('id')
+        .eq('user_id', userId);
 
-    if (!collections?.length) return
-
-    // Get all coins from user's collections
-    const { data: coins } = await supabase
-      .from('coins')
-      .select('*')
-      .in('collection_id', collections.map(c => c.id))
-
-    if (!coins) return
-
-    // Calculate stats
-    const years = coins.map(coin => coin.year)
-    const oldestYear = years.length ? Math.min(...years) : 0
-    const newestYear = years.length ? Math.max(...years) : 0
-    const yearsSpan = years.length ? `${oldestYear} - ${newestYear}` : '-'
-    const totalValue = coins.reduce((sum, coin) => sum + (parseFloat(coin.purchase_price) || 0), 0)
-
-    // Calculate country distribution
-    const countryDistribution = coins.reduce((acc: { [key: string]: number }, coin) => {
-      if (coin.country) {
-        // Standardize country names
-        let country = coin.country.trim();
-        
-        // Apply mapping if exists
-        country = countryMappings[country] || country;
-
-        acc[country] = (acc[country] || 0) + 1;
+      if (collectionsError) throw collectionsError;
+      if (!collections?.length) {
+        setStats({
+          totalCoins: 0,
+          totalCountries: 0,
+          yearsSpan: '-',
+          totalValue: 0,
+          countryDistribution: {}
+        });
+        return;
       }
-      return acc;
-    }, {});
 
-    setStats({
-      totalCoins: coins.length,
-      totalCountries: Object.keys(countryDistribution).length,
-      yearsSpan,
-      totalValue,
-      countryDistribution
-    })
-  }
+      // Get all coins from user's collections
+      const { data: coins, error: coinsError } = await supabase
+        .from('coins')
+        .select('*')
+        .in('collection_id', collections.map(c => c.id));
+
+      if (coinsError) throw coinsError;
+      if (!coins) {
+        setStats(prev => ({ ...prev, countryDistribution: {} }));
+        return;
+      }
+
+      // Calculate stats
+      const years = coins.map(coin => coin.year);
+      const oldestYear = years.length ? Math.min(...years) : 0;
+      const newestYear = years.length ? Math.max(...years) : 0;
+      const yearsSpan = years.length ? `${oldestYear} - ${newestYear}` : '-';
+      const totalValue = coins.reduce((sum, coin) => sum + (parseFloat(coin.purchase_price) || 0), 0);
+
+      // Calculate country distribution with standardized names
+      const countryDistribution = coins.reduce((acc: { [key: string]: number }, coin) => {
+        if (coin.country) {
+          // Standardize country names
+          let country = coin.country.trim();
+          
+          // Apply mapping if exists, ensuring case-insensitive matching
+          const mappedCountry = Object.entries(countryMappings).find(
+            ([key]) => key.toLowerCase() === country.toLowerCase()
+          );
+          country = mappedCountry ? mappedCountry[1] : country;
+
+          acc[country] = (acc[country] || 0) + 1;
+        }
+        return acc;
+      }, {});
+
+      setStats({
+        totalCoins: coins.length,
+        totalCountries: Object.keys(countryDistribution).length,
+        yearsSpan,
+        totalValue,
+        countryDistribution
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      // Keep previous state on error
+      setStats(prev => ({ ...prev }));
+    }
+  };
 
   return (
     <div className="flex-1 bg-[#1e1e1e]">
@@ -144,7 +187,7 @@ export default function DashboardPage() {
         <h2 className="text-xl font-bold text-white mb-4">Collection Map</h2>
         <div className="grid grid-cols-1 gap-6">
           <div className="bg-[#2a2a2a] p-6 rounded-lg">
-            <WorldMap collectedCountries={stats.countryDistribution} />
+            <WorldMap key={JSON.stringify(stats.countryDistribution)} collectedCountries={stats.countryDistribution} />
           </div>
         </div>
       </div>

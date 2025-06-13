@@ -16,6 +16,10 @@ const CoinForm: React.FC<CoinFormProps> = ({ onSubmit, initialData, isEditing })
     year: new Date().getFullYear(),
     mintMark: '',
     grade: '',
+    obverseImage: '',
+    reverseImage: '',
+    purchaseDate: new Date().toISOString().split('T')[0],
+    country: '',
   });
   const [isResearchModalOpen, setIsResearchModalOpen] = useState(false);
 
@@ -29,163 +33,147 @@ const CoinForm: React.FC<CoinFormProps> = ({ onSubmit, initialData, isEditing })
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleImageChange = (side: 'obverse' | 'reverse') => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const imageUrl = URL.createObjectURL(file);
+      setFormData(prev => ({
+        ...prev,
+        [side === 'obverse' ? 'obverseImage' : 'reverseImage']: imageUrl
+      }));
+    }
+  };
+
   const inputClasses = "mt-2 block w-full rounded-lg bg-[#2a2a2a] border-gray-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 placeholder-gray-400 py-2.5 px-4 text-base";
   const labelClasses = "block text-base font-medium text-gray-300";
   const sectionTitleClasses = "text-xl font-medium text-white mb-6";
   const hintTextClasses = "mt-2 text-sm text-gray-400";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-12">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        {/* Basic Information */}
-        <div className="space-y-6">
-          <h3 className={sectionTitleClasses}>Basic Information</h3>
-          
+    <form onSubmit={handleSubmit} className="space-y-8">
+      {/* Basic Information */}
+      <div>
+        <h3 className={sectionTitleClasses}>Basic Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="title" className={labelClasses}>
-              Title*
-            </label>
+            <label className={labelClasses}>Title</label>
             <input
               type="text"
-              id="title"
               name="title"
-              required
               value={formData.title || ''}
               onChange={handleChange}
               className={inputClasses}
-              placeholder="e.g., US State Quarter - Colorado"
+              placeholder="e.g., 1964 Kennedy Half Dollar"
             />
-            <div className={hintTextClasses}>
-              A descriptive name for your coin
-            </div>
           </div>
 
           <div>
-            <label htmlFor="denomination" className={labelClasses}>
-              Denomination*
-            </label>
+            <label className={labelClasses}>Denomination</label>
             <input
               type="text"
-              id="denomination"
               name="denomination"
-              required
               value={formData.denomination || ''}
               onChange={handleChange}
               className={inputClasses}
-              placeholder="e.g., Penny, Quarter, Dollar"
+              placeholder="e.g., Half Dollar"
+              required
             />
           </div>
 
           <div>
-            <label htmlFor="year" className={labelClasses}>
-              Year*
-            </label>
+            <label className={labelClasses}>Country</label>
+            <input
+              type="text"
+              name="country"
+              value={formData.country || ''}
+              onChange={handleChange}
+              className={inputClasses}
+              placeholder="e.g., United States"
+            />
+          </div>
+
+          <div>
+            <label className={labelClasses}>Year</label>
             <input
               type="number"
-              id="year"
               name="year"
-              required
               value={formData.year || ''}
               onChange={handleChange}
               className={inputClasses}
-              placeholder="e.g., 1964"
+              required
             />
           </div>
+        </div>
+      </div>
 
+      {/* Grading & Condition */}
+      <div>
+        <h3 className={sectionTitleClasses}>Grading & Condition</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="mintMark" className={labelClasses}>
-              Mint Mark
-            </label>
+            <label className={labelClasses}>Mint Mark</label>
             <input
               type="text"
-              id="mintMark"
               name="mintMark"
               value={formData.mintMark || ''}
               onChange={handleChange}
               className={inputClasses}
-              placeholder="e.g., D, S, P"
+              placeholder="e.g., D"
             />
           </div>
 
           <div>
-            <label htmlFor="grade" className={labelClasses}>
-              Grade
-            </label>
-            <select
-              id="grade"
+            <label className={labelClasses}>Grade</label>
+            <input
+              type="text"
               name="grade"
               value={formData.grade || ''}
               onChange={handleChange}
               className={inputClasses}
-            >
-              <option value="">Select Grade</option>
-              <option value="MS-70">MS-70 (Perfect Uncirculated)</option>
-              <option value="MS-65">MS-65 (Gem Uncirculated)</option>
-              <option value="MS-60">MS-60 (Uncirculated)</option>
-              <option value="AU-58">AU-58 (Choice About Uncirculated)</option>
-              <option value="XF-45">XF-45 (Extremely Fine)</option>
-              <option value="VF-30">VF-30 (Very Fine)</option>
-              <option value="F-12">F-12 (Fine)</option>
-              <option value="VG-8">VG-8 (Very Good)</option>
-              <option value="G-4">G-4 (Good)</option>
-              <option value="AG-3">AG-3 (About Good)</option>
-            </select>
+              placeholder="e.g., MS-65"
+            />
           </div>
         </div>
+      </div>
 
-        {/* Value Information */}
-        <div className="space-y-6">
-          <h3 className={sectionTitleClasses}>Value Information</h3>
-          
+      {/* Valuation */}
+      <div>
+        <h3 className={sectionTitleClasses}>Valuation</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="faceValue" className={labelClasses}>
-              Face Value
-            </label>
-            <div className="mt-2 relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span className="text-gray-400 text-base">$</span>
-              </div>
+            <label className={labelClasses}>Face Value</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
               <input
                 type="number"
-                step="0.01"
-                id="faceValue"
                 name="faceValue"
                 value={formData.faceValue || ''}
                 onChange={handleChange}
                 className={`${inputClasses} pl-8`}
-                placeholder="0.00"
+                step="0.01"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="purchasePrice" className={labelClasses}>
-              Purchase Price
-            </label>
-            <div className="mt-2 relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span className="text-gray-400 text-base">$</span>
-              </div>
+            <label className={labelClasses}>Purchase Price</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
               <input
                 type="number"
-                step="0.01"
-                id="purchasePrice"
                 name="purchasePrice"
                 value={formData.purchasePrice || ''}
                 onChange={handleChange}
                 className={`${inputClasses} pl-8`}
-                placeholder="0.00"
+                step="0.01"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="purchaseDate" className={labelClasses}>
-              Purchase Date
-            </label>
+            <label className={labelClasses}>Purchase Date</label>
             <input
               type="date"
-              id="purchaseDate"
               name="purchaseDate"
               value={formData.purchaseDate || ''}
               onChange={handleChange}
@@ -194,149 +182,76 @@ const CoinForm: React.FC<CoinFormProps> = ({ onSubmit, initialData, isEditing })
           </div>
 
           <div>
-            <label htmlFor="currentMarketValue" className={`${labelClasses} flex items-center justify-between`}>
-              <span>Current Market Value</span>
-              <span className="text-sm text-gray-400">(Manual entry until price API is integrated)</span>
-            </label>
-            <div className="mt-2 flex gap-3">
-              <div className="relative flex-1 rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <span className="text-gray-400 text-base">$</span>
-                </div>
-                <input
-                  type="number"
-                  step="0.01"
-                  id="currentMarketValue"
-                  name="currentMarketValue"
-                  value={formData.currentMarketValue || ''}
-                  onChange={handleChange}
-                  className={`${inputClasses} pl-8`}
-                  placeholder="0.00"
-                />
-              </div>
+            <label className={labelClasses}>Current Market Value</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
+              <input
+                type="number"
+                name="currentMarketValue"
+                value={formData.currentMarketValue || ''}
+                onChange={handleChange}
+                className={`${inputClasses} pl-8`}
+                step="0.01"
+              />
               <button
                 type="button"
                 onClick={() => setIsResearchModalOpen(true)}
-                className="inline-flex items-center px-4 py-2.5 border border-gray-600 shadow-sm text-base font-medium rounded-lg text-white bg-[#2a2a2a] hover:bg-[#3a3a3a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500"
               >
-                <MagnifyingGlassIcon className="h-5 w-5 mr-2" />
-                Research Value
+                <MagnifyingGlassIcon className="h-5 w-5" />
               </button>
-            </div>
-            <div className={hintTextClasses}>
-              Enter your best estimate based on research or recent appraisals
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="personalValue" className={labelClasses}>
-              Personal Value Estimate
-            </label>
-            <div className="mt-2 relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span className="text-gray-400 text-base">$</span>
-              </div>
-              <input
-                type="number"
-                step="0.01"
-                id="personalValue"
-                name="personalValue"
-                value={formData.personalValue || ''}
-                onChange={handleChange}
-                className={`${inputClasses} pl-8`}
-                placeholder="0.00"
-              />
-            </div>
-            <div className={hintTextClasses}>
-              Your personal estimate of the coin's value
             </div>
           </div>
         </div>
       </div>
 
-      {/* Additional Information */}
-      <div className="space-y-6">
+      {/* Coin Images */}
+      <div>
+        <h3 className={sectionTitleClasses}>Coin Images</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className={labelClasses}>Obverse (Front) Image</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange('obverse')}
+              className={`${inputClasses} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
+            />
+            {formData.obverseImage && (
+              <div className="mt-2">
+                <img src={formData.obverseImage} alt="Obverse" className="w-32 h-32 object-cover rounded-lg" />
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className={labelClasses}>Reverse (Back) Image</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange('reverse')}
+              className={`${inputClasses} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
+            />
+            {formData.reverseImage && (
+              <div className="mt-2">
+                <img src={formData.reverseImage} alt="Reverse" className="w-32 h-32 object-cover rounded-lg" />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div>
         <h3 className={sectionTitleClasses}>Additional Information</h3>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="mintage" className={labelClasses}>
-              Mintage (if known)
-            </label>
-            <input
-              type="number"
-              id="mintage"
-              name="mintage"
-              value={formData.mintage || ''}
-              onChange={handleChange}
-              className={inputClasses}
-              placeholder="e.g., 1234567"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="rarityScale" className={labelClasses}>
-              Rarity Scale (1-10)
-            </label>
-            <input
-              type="number"
-              id="rarityScale"
-              name="rarityScale"
-              min="1"
-              max="10"
-              value={formData.rarityScale || ''}
-              onChange={handleChange}
-              className={inputClasses}
-              placeholder="1-10"
-            />
-            <div className={hintTextClasses}>
-              1 = Very Common, 10 = Extremely Rare
-            </div>
-          </div>
-        </div>
-
         <div>
-          <label htmlFor="historicalNotes" className={labelClasses}>
-            Historical Notes
-          </label>
+          <label className={labelClasses}>Notes</label>
           <textarea
-            id="historicalNotes"
-            name="historicalNotes"
-            rows={4}
-            value={formData.historicalNotes || ''}
-            onChange={handleChange}
-            className={inputClasses}
-            placeholder="Add any historical information about this coin..."
-          />
-        </div>
-
-        <div>
-          <label htmlFor="varietyNotes" className={labelClasses}>
-            Variety Notes
-          </label>
-          <textarea
-            id="varietyNotes"
-            name="varietyNotes"
-            rows={4}
-            value={formData.varietyNotes || ''}
-            onChange={handleChange}
-            className={inputClasses}
-            placeholder="Add any variety or error information..."
-          />
-        </div>
-
-        <div>
-          <label htmlFor="notes" className={labelClasses}>
-            Personal Notes
-          </label>
-          <textarea
-            id="notes"
             name="notes"
-            rows={4}
             value={formData.notes || ''}
             onChange={handleChange}
-            className={inputClasses}
-            placeholder="Add any personal notes about this coin..."
+            className={`${inputClasses} h-32`}
+            placeholder="Add any additional notes about the coin..."
           />
         </div>
       </div>
@@ -344,7 +259,7 @@ const CoinForm: React.FC<CoinFormProps> = ({ onSubmit, initialData, isEditing })
       <div className="flex justify-end space-x-4">
         <button
           type="submit"
-          className="px-6 py-3 bg-blue-600 text-white text-base font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           {isEditing ? 'Update Coin' : 'Add Coin'}
         </button>
@@ -353,11 +268,15 @@ const CoinForm: React.FC<CoinFormProps> = ({ onSubmit, initialData, isEditing })
       <ValueResearchModal
         isOpen={isResearchModalOpen}
         onClose={() => setIsResearchModalOpen(false)}
+        onValueSelect={(value) => {
+          setFormData(prev => ({ ...prev, currentMarketValue: value }));
+          setIsResearchModalOpen(false);
+        }}
         coinInfo={{
           denomination: formData.denomination || '',
           year: formData.year || 0,
-          mintMark: formData.mintMark,
-          grade: formData.grade
+          mintMark: formData.mintMark || '',
+          grade: formData.grade || ''
         }}
       />
     </form>

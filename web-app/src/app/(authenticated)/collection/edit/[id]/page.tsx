@@ -28,27 +28,26 @@ export default function EditCoinPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchCoin = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('coins')
+          .select('*')
+          .eq('id', params.id)
+          .single();
+
+        if (error) throw error;
+        setCoin(data);
+      } catch (error) {
+        console.error('Error fetching coin:', error);
+        setError('Could not load coin details');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchCoin();
-  }, []);
-
-  const fetchCoin = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('coins')
-        .select('*')
-        .eq('id', params.id)
-        .single();
-
-      if (error) throw error;
-      setCoin(data);
-    } catch (error) {
-      console.error('Error fetching coin:', error);
-      setError('Could not load coin details');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [params.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

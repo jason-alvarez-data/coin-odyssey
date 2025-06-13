@@ -39,6 +39,7 @@ create table coins (
   purchase_date date,
   notes text,
   images text[],
+  country text,
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now()
 );
@@ -85,6 +86,11 @@ create policy "Users can delete coins in their collections"
       and user_id = auth.uid()
     )
   );
+
+-- Create indexes
+create index idx_coins_collection_id on coins(collection_id);
+create index idx_coins_year on coins(year);
+create index idx_coins_country on coins(country);
 
 -- Shared Collections Table
 create table collection_shares (

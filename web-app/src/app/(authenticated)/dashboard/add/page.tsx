@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+// import { supabase } from '@/lib/supabase';
 import Header from '@/components/layout/Header';
 import CoinForm from '@/components/CoinForm';
 import { Coin } from '@/types/coin';

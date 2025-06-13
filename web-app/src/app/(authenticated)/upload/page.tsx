@@ -12,7 +12,7 @@ import { useCollection } from '@/contexts/CollectionContext';
 
 interface ParsedData {
   columns: string[];
-  rows: any[];
+  rows: unknown[];
 }
 
 export default function UploadCollectionPage() {
@@ -21,7 +21,7 @@ export default function UploadCollectionPage() {
   const [parsedData, setParsedData] = useState<ParsedData | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [transformedData, setTransformedData] = useState<any[] | null>(null);
+  const [transformedData, setTransformedData] = useState<unknown[] | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -125,7 +125,8 @@ export default function UploadCollectionPage() {
     // Transform the data based on mappings and add required fields
     const transformed = parsedData.rows.map((row, index) => {
       // Check if the row is empty
-      const hasData = Object.values(row).some(value => 
+      if (!Array.isArray(row)) return {};
+      const hasData = row.some(value => 
         value !== undefined && value !== null && value !== ''
       );
       
@@ -140,11 +141,11 @@ export default function UploadCollectionPage() {
       }
 
       // First pass to get all values
-      const rawValues: Record<string, any> = {};
+      const rawValues: Record<string, unknown> = {};
       Object.entries(mappings).forEach(([targetCol, sourceCol]) => {
         const sourceIndex = parsedData.columns.indexOf(sourceCol);
         if (sourceIndex !== -1) {
-          rawValues[targetCol] = row[sourceIndex];
+          rawValues[targetCol] = (row as unknown[])[sourceIndex];
         }
       });
 
@@ -155,7 +156,7 @@ export default function UploadCollectionPage() {
       }
 
       // Initialize transformed row with collection ID and default date
-      const transformedRow: Record<string, any> = {
+      const transformedRow: Record<string, unknown> = {
         collection_id: collection.id,
         images: [], // Initialize empty images array
         purchase_date: rawValues.purchase_date || new Date().toISOString().split('T')[0], // Ensure date is always set
@@ -163,13 +164,13 @@ export default function UploadCollectionPage() {
       
       // Get additional fields for title construction
       const seriesIndex = parsedData.columns.indexOf('series');
-      const series = seriesIndex !== -1 ? row[seriesIndex] : '';
+      const series = seriesIndex !== -1 ? (row as unknown[])[seriesIndex] : '';
       const featuresIndex = parsedData.columns.indexOf('features');
-      const features = featuresIndex !== -1 ? row[featuresIndex] : '';
+      const features = featuresIndex !== -1 ? (row as unknown[])[featuresIndex] : '';
       const countryIndex = parsedData.columns.indexOf('country');
-      const country = countryIndex !== -1 ? row[countryIndex] : '';
+      const country = countryIndex !== -1 ? (row as unknown[])[countryIndex] : '';
       const regionIndex = parsedData.columns.indexOf('region');
-      const region = regionIndex !== -1 ? row[regionIndex] : '';
+      const region = regionIndex !== -1 ? (row as unknown[])[regionIndex] : '';
       
       // Second pass to transform values with all context available
       Object.entries(mappings).forEach(([targetCol, sourceCol]) => {
@@ -191,116 +192,28 @@ export default function UploadCollectionPage() {
               const titleParts = [];
               
               // Add year if available
-              if (rawValues.year) titleParts.push(rawValues.year);
+              if (rawValues.year) titleParts.push(String(rawValues.year));
               
               // Add series if available
-              if (series) titleParts.push(series);
+              if (series) titleParts.push(String(series));
               
               // Add region/state info if available
-              if (region && region !== 'Americas' && region !== 'Europe' && region !== 'Asia') {
-                if (region.startsWith('50 States')) {
-                  // Extract state name from features or use region
-                  const state = features || region.replace('50 States >', '').trim();
-                  titleParts.push(state);
-                } else {
-                  titleParts.push(region);
-                }
+              if (region && typeof region === 'string' && region !== 'Americas' && region !== 'Europe' && region !== 'Asia') {
+                titleParts.push(region);
               }
-              
-              // Add features if available and not already included
-              if (features && !titleParts.includes(features)) {
-                titleParts.push(features);
-              }
-              
-              // Add denomination type
-              if (rawValues.denomination) {
-                const denomParts = rawValues.denomination.split(' ');
-                // Get the last word (e.g., "Cent" from "Common Cent")
-                const denomType = denomParts[denomParts.length - 1];
-                if (!titleParts.some(part => part.includes(denomType))) {
-                  titleParts.push(denomType);
-                }
-              }
-              
-              value = titleParts.filter(Boolean).join(' - ');
-              
-              // If we still can't construct a meaningful title, use a placeholder
-              if (!value.trim()) {
-                console.log(`Row ${index + 1}: Unable to construct meaningful title, using placeholder`);
-                value = `Untitled Coin ${index + 1}`;
-              }
+              // Add country if available
+              if (country) titleParts.push(String(country));
+              // Add features if available
+              if (features) titleParts.push(String(features));
+              value = titleParts.join(' - ');
             }
+          }
+
+          // If value is a string, trim it
+          if (typeof value === 'string') {
             value = value.trim();
           }
-          
-          // Convert year to integer and validate
-          if (targetCol === 'year') {
-            if (!value && value !== 0) {
-              // Use current year as placeholder for empty year
-              value = new Date().getFullYear();
-              console.log(`Row ${index + 1}: Using current year as placeholder`);
-            } else {
-              const yearNum = parseInt(value, 10);
-              if (isNaN(yearNum)) {
-                value = new Date().getFullYear();
-                console.log(`Row ${index + 1}: Invalid year "${value}", using current year as placeholder`);
-              } else if (yearNum < 1 || yearNum > new Date().getFullYear()) {
-                value = new Date().getFullYear();
-                console.log(`Row ${index + 1}: Year out of range ${yearNum}, using current year as placeholder`);
-              } else {
-                value = yearNum;
-              }
-            }
-          }
-          
-          // Convert purchase_price to numeric
-          if (targetCol === 'purchase_price' && value) {
-            const priceNum = parseFloat(value);
-            if (isNaN(priceNum)) {
-              console.log(`Row ${index + 1}: Invalid purchase price "${value}", setting to null`);
-              value = null;
-            } else {
-              value = priceNum;
-            }
-          }
 
-          // Convert face_value to numeric
-          if (targetCol === 'face_value') {
-            const numValue = parseFloat(value);
-            if (isNaN(numValue)) {
-              console.log(`Row ${index + 1}: Invalid face value "${value}", using 0`);
-              value = 0;
-            } else {
-              value = numValue;
-            }
-          }
-
-          // Handle purchase_date
-          if (targetCol === 'purchase_date') {
-            if (!value || value === '') {
-              // Use today's date as default for missing purchase dates
-              value = new Date().toISOString().split('T')[0];
-              console.log(`Row ${index + 1}: Missing purchase date, using today's date`);
-            } else {
-              try {
-                // Try to parse the date
-                const date = new Date(value);
-                if (isNaN(date.getTime())) {
-                  // If invalid date, use today
-                  value = new Date().toISOString().split('T')[0];
-                  console.log(`Row ${index + 1}: Invalid date "${value}", using today's date`);
-                } else {
-                  // Format as YYYY-MM-DD
-                  value = date.toISOString().split('T')[0];
-                }
-              } catch (err) {
-                // If date parsing fails, use today
-                value = new Date().toISOString().split('T')[0];
-                console.log(`Row ${index + 1}: Error parsing date "${value}", using today's date`);
-              }
-            }
-          }
-          
           transformedRow[targetCol] = value;
         }
       });

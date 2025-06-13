@@ -24,6 +24,10 @@ export interface Coin {
   historicalNotes: string | null;
   varietyNotes: string | null;
   notes: string | null;
+  images: string[] | null;
+  obverseImage: string | null;
+  reverseImage: string | null;
+  country: string | null;
 }
 
 export interface CoinValueHistory {

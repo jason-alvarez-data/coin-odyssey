@@ -64,6 +64,8 @@ export default function TermsOfService() {
               legal@coinodyssey.com
             </a>
           </p>
+
+          <p>You&apos;re responsible for maintaining the security of your account and password.</p>
         </div>
       </div>
     </div>

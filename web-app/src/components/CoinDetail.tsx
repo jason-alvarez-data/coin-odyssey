@@ -27,23 +27,26 @@ const CoinDetail: React.FC<CoinDetailProps> = ({ coin, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedCoin, setEditedCoin] = useState(coin);
 
-  useEffect(() => {
-    fetchGradingGuide();
-  }, [coin.grade]);
-
   const fetchGradingGuide = async () => {
-    if (coin.grade) {
+    try {
       const { data, error } = await supabase
         .from('grading_guides')
         .select('*')
-        .eq('grade', coin.grade)
+        .eq('coin_type', coin.type)
         .single();
 
-      if (!error && data) {
-        setGradingGuide(data);
-      }
+      if (error) throw error;
+      setGradingGuide(data);
+    } catch (error) {
+      console.error('Error fetching grading guide:', error);
     }
   };
+
+  useEffect(() => {
+    if (coin) {
+      fetchGradingGuide();
+    }
+  }, [coin, fetchGradingGuide]);
 
   const formatCurrency = (value: number | null) => {
     if (value === null) return 'N/A';

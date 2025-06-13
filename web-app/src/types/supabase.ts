@@ -35,6 +35,7 @@ export interface Database {
           purchase_date: string
           notes: string | null
           images: string[] | null
+          country: string | null
           created_at: string | null
           updated_at: string | null
           face_value: number | null
