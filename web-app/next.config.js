@@ -4,7 +4,14 @@ const nextConfig = {
   reactStrictMode: true,
   // Optimize images
   images: {
-    domains: ['your-supabase-storage-domain.supabase.co'], // Add your Supabase storage domain
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'jyclijzuinhubtigjtfp.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
     formats: ['image/avif', 'image/webp'],
   },
   // Security headers

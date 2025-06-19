@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import WorldMap from '@/components/WorldMap'
 import Header from '@/components/layout/Header'
+import { getStandardizedCountryName } from '@/utils/countryMappings'
 
 interface DashboardStats {
   totalCoins: number;
@@ -12,20 +13,6 @@ interface DashboardStats {
   totalValue: number;
   countryDistribution: { [key: string]: number };
 }
-
-// Country name mappings - keep in sync with WorldMap component
-const countryMappings: { [key: string]: string } = {
-  'United States of America': 'United States',
-  'USA': 'United States',
-  'US': 'United States',
-  'UNITED STATES': 'United States',
-  'United Kingdom': 'UK',
-  'Great Britain': 'UK',
-  'England': 'UK',
-  'Russian Federation': 'Russia',
-  'People\'s Republic of China': 'China',
-  'PRC': 'China',
-};
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
@@ -109,15 +96,7 @@ export default function DashboardPage() {
       // Calculate country distribution with standardized names
       const countryDistribution = coins.reduce((acc: { [key: string]: number }, coin) => {
         if (coin.country) {
-          // Standardize country names
-          let country = coin.country.trim();
-          
-          // Apply mapping if exists, ensuring case-insensitive matching
-          const mappedCountry = Object.entries(countryMappings).find(
-            ([key]) => key.toLowerCase() === country.toLowerCase()
-          );
-          country = mappedCountry ? mappedCountry[1] : country;
-
+          const country = getStandardizedCountryName(coin.country);
           acc[country] = (acc[country] || 0) + 1;
         }
         return acc;
@@ -187,7 +166,7 @@ export default function DashboardPage() {
         <h2 className="text-xl font-bold text-white mb-4">Collection Map</h2>
         <div className="grid grid-cols-1 gap-6">
           <div className="bg-[#2a2a2a] p-6 rounded-lg">
-            <WorldMap key={JSON.stringify(stats.countryDistribution)} collectedCountries={stats.countryDistribution} />
+            <WorldMap collectedCountries={stats.countryDistribution} />
           </div>
         </div>
       </div>

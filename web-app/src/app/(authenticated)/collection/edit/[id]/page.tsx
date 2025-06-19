@@ -7,16 +7,17 @@ import Header from '@/components/layout/Header';
 
 interface Coin {
   id: string;
-  title: string;
+  title: string | null;
   denomination: string;
   year: number;
-  mint_mark?: string;
-  grade?: string;
-  face_value: number;
-  purchase_price?: number;
-  purchase_date: string;
-  notes?: string;
-  country?: string;
+  mint_mark?: string | null;
+  grade?: string | null;
+  face_value: number | null;
+  purchase_price?: number | null;
+  purchase_date: string | null;
+  notes?: string | null;
+  country?: string | null;
+  images?: string[] | null;
 }
 
 export default function EditCoinPage() {
@@ -26,6 +27,10 @@ export default function EditCoinPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [obverseImage, setObverseImage] = useState<string | null>(null);
+  const [reverseImage, setReverseImage] = useState<string | null>(null);
+  const [uploadingObverse, setUploadingObverse] = useState(false);
+  const [uploadingReverse, setUploadingReverse] = useState(false);
 
   useEffect(() => {
     const fetchCoin = async () => {
@@ -38,7 +43,17 @@ export default function EditCoinPage() {
           .single();
 
         if (error) throw error;
+        
         setCoin(data);
+        
+        // Set existing images if they exist
+        if (data.images && data.images.length > 0) {
+          setObverseImage(data.images[0] || null);
+          setReverseImage(data.images[1] || null);
+        } else {
+          setObverseImage(null);
+          setReverseImage(null);
+        }
       } catch (error) {
         console.error('Error fetching coin:', error);
         setError('Could not load coin details');
@@ -55,6 +70,12 @@ export default function EditCoinPage() {
 
     try {
       setSaving(true);
+      
+      // Build images array from obverse and reverse
+      const images: string[] = [];
+      if (obverseImage) images.push(obverseImage);
+      if (reverseImage && reverseImage !== obverseImage) images.push(reverseImage);
+      
       const { error } = await supabase
         .from('coins')
         .update({
@@ -68,6 +89,7 @@ export default function EditCoinPage() {
           purchase_date: coin.purchase_date,
           notes: coin.notes,
           country: coin.country,
+          images: images.length > 0 ? images : null,
         })
         .eq('id', coin.id);
 
@@ -90,6 +112,105 @@ export default function EditCoinPage() {
         [name]: value,
       };
     });
+  };
+
+  const handleImageChange = (side: 'obverse' | 'reverse') => async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !coin) return;
+
+    // Set loading state
+    if (side === 'obverse') {
+      setUploadingObverse(true);
+    } else {
+      setUploadingReverse(true);
+    }
+
+    try {
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${coin.id}_${side}_${Date.now()}.${fileExt}`;
+      
+      // Validate file
+      if (!fileExt) {
+        throw new Error('Invalid file: no extension');
+      }
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        throw new Error('File too large: maximum size is 10MB');
+      }
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Invalid file type: must be an image');
+      }
+
+      // Upload file to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('coin-images')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('coin-images')
+        .getPublicUrl(fileName);
+
+      const imageUrl = urlData.publicUrl;
+
+      // Update the local state
+      if (side === 'obverse') {
+        setObverseImage(imageUrl);
+      } else {
+        setReverseImage(imageUrl);
+      }
+
+    } catch (error) {
+      console.error(`Error uploading ${side} image:`, error);
+      alert(`Failed to upload ${side} image. Please try again.`);
+    } finally {
+      // Clear loading state
+      if (side === 'obverse') {
+        setUploadingObverse(false);
+      } else {
+        setUploadingReverse(false);
+      }
+    }
+  };
+
+  const removeImage = async (side: 'obverse' | 'reverse') => {
+    const currentImageUrl = side === 'obverse' ? obverseImage : reverseImage;
+    
+    if (currentImageUrl && currentImageUrl.includes('coin-images')) {
+      try {
+        // Extract filename from URL
+        const urlParts = currentImageUrl.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        
+        // Delete from Supabase Storage
+        const { error } = await supabase.storage
+          .from('coin-images')
+          .remove([fileName]);
+          
+        if (error) {
+          console.error('Error deleting image:', error);
+        }
+      } catch (error) {
+        console.error('Error removing image from storage:', error);
+      }
+    }
+
+    // Update local state
+    if (side === 'obverse') {
+      setObverseImage(null);
+    } else {
+      setReverseImage(null);
+    }
   };
 
   if (loading) {
@@ -138,7 +259,7 @@ export default function EditCoinPage() {
             <input
               type="text"
               name="title"
-              value={coin.title}
+              value={coin.title || ''}
               onChange={handleInputChange}
               required
               className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
@@ -153,7 +274,7 @@ export default function EditCoinPage() {
               <input
                 type="number"
                 name="year"
-                value={coin.year}
+                value={coin.year || ''}
                 onChange={handleInputChange}
                 required
                 className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
@@ -167,7 +288,7 @@ export default function EditCoinPage() {
               <input
                 type="number"
                 name="face_value"
-                value={coin.face_value}
+                value={coin.face_value || ''}
                 onChange={handleInputChange}
                 required
                 step="0.01"
@@ -244,7 +365,7 @@ export default function EditCoinPage() {
               <input
                 type="date"
                 name="purchase_date"
-                value={coin.purchase_date}
+                value={coin.purchase_date || ''}
                 onChange={handleInputChange}
                 required
                 className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
@@ -261,6 +382,134 @@ export default function EditCoinPage() {
               rows={4}
               className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
             />
+          </div>
+
+          {/* Coin Images - Obverse and Reverse */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-3">Coin Images</label>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Obverse (Front) Image */}
+              <div>
+                <label className="block text-sm text-gray-300 mb-2">Obverse (Front)</label>
+                <div className="space-y-3">
+                  {obverseImage ? (
+                    <div className="relative">
+                      <img
+                        src={obverseImage}
+                        alt="Obverse (Front)"
+                        className="w-full h-48 object-cover rounded-lg border border-gray-600"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage('obverse')}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-full h-48 border-2 border-dashed border-gray-600 rounded-lg flex items-center justify-center">
+                      <span className="text-gray-500 text-sm">No obverse image</span>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange('obverse')}
+                      className="hidden"
+                      id="obverse-upload"
+                      disabled={uploadingObverse}
+                    />
+                    <label
+                      htmlFor="obverse-upload"
+                      className={`w-full py-2 px-4 rounded-lg transition-colors text-center block ${
+                        uploadingObverse 
+                          ? 'bg-gray-600 cursor-not-allowed' 
+                          : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+                      } text-white`}
+                    >
+                      {uploadingObverse ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                          </svg>
+                          Uploading...
+                        </span>
+                      ) : (
+                        obverseImage ? 'Change Obverse' : 'Add Obverse'
+                      )}
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reverse (Back) Image */}
+              <div>
+                <label className="block text-sm text-gray-300 mb-2">Reverse (Back)</label>
+                <div className="space-y-3">
+                  {reverseImage ? (
+                    <div className="relative">
+                      <img
+                        src={reverseImage}
+                        alt="Reverse (Back)"
+                        className="w-full h-48 object-cover rounded-lg border border-gray-600"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage('reverse')}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-full h-48 border-2 border-dashed border-gray-600 rounded-lg flex items-center justify-center">
+                      <span className="text-gray-500 text-sm">No reverse image</span>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange('reverse')}
+                      className="hidden"
+                      id="reverse-upload"
+                      disabled={uploadingReverse}
+                    />
+                    <label
+                      htmlFor="reverse-upload"
+                      className={`w-full py-2 px-4 rounded-lg transition-colors text-center block ${
+                        uploadingReverse 
+                          ? 'bg-gray-600 cursor-not-allowed' 
+                          : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+                      } text-white`}
+                    >
+                      {uploadingReverse ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                          </svg>
+                          Uploading...
+                        </span>
+                      ) : (
+                        reverseImage ? 'Change Reverse' : 'Add Reverse'
+                      )}
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-3 text-xs text-gray-500">
+              <p>• Obverse: The front side of the coin (usually with the face or main design)</p>
+              <p>• Reverse: The back side of the coin (usually with the denomination or secondary design)</p>
+            </div>
           </div>
 
           <div className="flex justify-end gap-4 pt-4">

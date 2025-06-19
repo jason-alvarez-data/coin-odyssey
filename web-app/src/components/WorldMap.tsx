@@ -1,156 +1,200 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
 import styles from './WorldMap.module.css';
+import { getStandardizedCountryName } from '@/utils/countryMappings';
 
 interface WorldMapProps {
   collectedCountries: { [key: string]: number };
 }
 
-// Country name mapping for standardization
-const countryNameMapping: { [key: string]: string } = {
-  'United States of America': 'United States',
-  'USA': 'United States',
-  'US': 'United States',
-  'UNITED STATES': 'United States',
-  'United Kingdom': 'UK',
-  'Great Britain': 'UK',
-  'Russian Federation': 'Russia',
-  'People\'s Republic of China': 'China',
-  'PRC': 'China',
-};
-
 export default function WorldMap({ collectedCountries }: WorldMapProps) {
-  const [svgContent, setSvgContent] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [tooltipContent, setTooltipContent] = useState('');
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const [isTooltipVisible, setIsTooltipVisible] = useState(false);
-  
   const containerRef = useRef<HTMLDivElement>(null);
-  const tooltipTimeoutRef = useRef<NodeJS.Timeout>();
-  const eventListenersRef = useRef<Map<Element, any>>(new Map());
   const processedSvgRef = useRef<boolean>(false);
-  const collectedCountriesRef = useRef(collectedCountries);
-  const activePathRef = useRef<Element | null>(null);
+  const eventListenersRef = useRef<Map<Element, any>>(new Map());
+  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const getStandardizedCountryName = useCallback((countryName: string): string => {
-    return countryNameMapping[countryName] || countryName;
-  }, []);
+  const [svgContent, setSvgContent] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Stable SVG content that never changes once set
+  const stableSvgContent = useRef<string>('');
+  
+  // Tooltip refs to avoid state changes that cause re-renders
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const tooltipContentRef = useRef<string>('');
+  const isTooltipVisibleRef = useRef<boolean>(false);
 
-  // Update the ref when collectedCountries changes
-  useEffect(() => {
-    collectedCountriesRef.current = collectedCountries;
-    if (containerRef.current) {
-      updateCountryStates();
-    }
-  }, [collectedCountries]);
-
-  const updateCountryStates = useCallback(() => {
+  const applyCountryHighlights = useCallback(() => {
+    console.log('🎯 Applying country highlights with data:', collectedCountries);
     const svgContainer = containerRef.current?.querySelector(`.${styles.svgContainer}`);
-    if (!svgContainer) return;
+    if (!svgContainer) {
+      console.log('❌ No SVG container found');
+      return;
+    }
 
     const svg = svgContainer.querySelector('svg');
-    if (!svg) return;
+    if (!svg) {
+      console.log('❌ No SVG found');
+      return;
+    }
 
     const paths = svg.querySelectorAll('path');
+    console.log('📊 Found', paths.length, 'paths in SVG');
+    
+    let highlightedCount = 0;
+    
     paths.forEach((path) => {
       const countryName = path.getAttribute('data-country-name');
       if (countryName) {
-        const isCollected = collectedCountriesRef.current[countryName];
-        // Set data attributes for state management
-        path.setAttribute('data-collected', isCollected ? 'true' : 'false');
-        // Set fill and opacity directly
-        const pathElement = path as SVGPathElement;
+        // Try to match this SVG country with collected countries
+        let isCollected = false;
+        let matchedValue = 0;
+        
+        // First try exact match
+        if (collectedCountries[countryName]) {
+          matchedValue = collectedCountries[countryName];
+          isCollected = Number(matchedValue) > 0;
+        }
+        
+        // If no exact match, try case-insensitive match
+        if (!isCollected) {
+          const lowerSvgName = countryName.toLowerCase();
+          const matchedEntry = Object.entries(collectedCountries).find(
+            ([key]) => key.toLowerCase() === lowerSvgName
+          );
+          if (matchedEntry) {
+            matchedValue = matchedEntry[1];
+            isCollected = Number(matchedValue) > 0;
+          }
+        }
+        
+        // If still no match, try partial matching for regions like "CANARY ISLANDS (SPAIN)"
+        if (!isCollected && countryName.includes('(') && countryName.includes(')')) {
+          const parentCountry = countryName.match(/\(([^)]+)\)/)?.[1];
+          if (parentCountry) {
+            const matchedEntry = Object.entries(collectedCountries).find(
+              ([key]) => key.toLowerCase() === parentCountry.toLowerCase()
+            );
+            if (matchedEntry) {
+              matchedValue = matchedEntry[1];
+              isCollected = Number(matchedValue) > 0;
+            }
+          }
+        }
+        
         if (isCollected) {
-          pathElement.style.fill = 'var(--collected-country)';
+          console.log('Highlighting country:', countryName, 'with', matchedValue, 'coins');
+          highlightedCount++;
+        }
+        
+        const pathElement = path as SVGPathElement;
+        
+        // Apply permanent styles based on collection status
+        if (isCollected) {
+          // Collected countries - permanent blue highlighting
+          pathElement.style.fill = '#3b82f6';
           pathElement.style.opacity = '1';
         } else {
-          pathElement.style.fill = 'var(--country-fill)';
+          // Uncollected countries - light gray
+          pathElement.style.fill = '#ffffff';
           pathElement.style.opacity = '0.1';
         }
-        pathElement.style.cursor = 'pointer';
+        
+        // Base styles for all countries
+        pathElement.style.stroke = '#404040';
         pathElement.style.strokeWidth = '0.5';
-        pathElement.style.stroke = 'var(--country-stroke)';
-        pathElement.style.transition = 'opacity 0.3s ease-in-out, fill 0.3s ease-in-out, stroke-width 0.3s ease-in-out';
+        pathElement.style.cursor = 'pointer';
+        
+        // Set data attributes for tooltips
+        path.setAttribute('data-collected', isCollected ? 'true' : 'false');
+        path.setAttribute('data-coin-count', matchedValue.toString());
       }
     });
+    
+    console.log('📊 Highlighted', highlightedCount, 'countries out of', paths.length, 'total paths');
+  }, [collectedCountries]);
+
+  const showTooltip = useCallback((content: string, x: number, y: number) => {
+    if (tooltipRef.current) {
+      tooltipContentRef.current = content;
+      tooltipRef.current.textContent = content;
+      tooltipRef.current.style.left = `${x}px`;
+      tooltipRef.current.style.top = `${y}px`;
+      tooltipRef.current.style.transform = 'translate(-50%, -120%)';
+      tooltipRef.current.style.display = 'block';
+      isTooltipVisibleRef.current = true;
+    }
   }, []);
 
-  const handleCountryHover = useCallback((event: MouseEvent, country: string | null, path: Element | null) => {
+  const hideTooltip = useCallback(() => {
+    if (tooltipRef.current) {
+      tooltipRef.current.style.display = 'none';
+      isTooltipVisibleRef.current = false;
+    }
+  }, []);
+
+  const handleCountryEnter = useCallback((event: MouseEvent, country: string, path: Element) => {
+    console.log('Country enter:', country);
+    
     if (tooltipTimeoutRef.current) {
       clearTimeout(tooltipTimeoutRef.current);
     }
 
-    if (country && containerRef.current && path) {
-      const count = collectedCountriesRef.current[country] || 0;
-      const content = `${country}: ${count} coins`;
-      setTooltipContent(content);
-      
-      const x = event.clientX;
-      const y = event.clientY;
-      
-      setTooltipPosition({ x, y });
-      setIsTooltipVisible(true);
+    const coinCount = path.getAttribute('data-coin-count') || '0';
+    const content = `${country}: ${coinCount} coins`;
+    
+    const x = event.clientX;
+    const y = event.clientY;
+    
+    showTooltip(content, x, y);
+  }, [showTooltip]);
 
-      // Update hover state
-      const isCollected = path.getAttribute('data-collected') === 'true';
-      const pathElement = path as SVGPathElement;
-      if (isCollected) {
-        pathElement.style.fill = 'var(--collected-country-hover)';
-      } else {
-        pathElement.style.fill = 'var(--country-hover)';
-        pathElement.style.opacity = '0.2';
-      }
-      pathElement.style.strokeWidth = '1';
-      activePathRef.current = path;
-    }
-
-    // Handle mouse leave
-    if (!country || !path) {
-      tooltipTimeoutRef.current = setTimeout(() => {
-        setIsTooltipVisible(false);
-        if (activePathRef.current) {
-          const isCollected = activePathRef.current.getAttribute('data-collected') === 'true';
-          const pathElement = activePathRef.current as SVGPathElement;
-          if (isCollected) {
-            pathElement.style.fill = 'var(--collected-country)';
-            pathElement.style.opacity = '1';
-          } else {
-            pathElement.style.fill = 'var(--country-fill)';
-            pathElement.style.opacity = '0.1';
-          }
-          pathElement.style.strokeWidth = '0.5';
-        }
-      }, 100);
-    }
-  }, []);
+  const handleCountryLeave = useCallback((path: Element) => {
+    console.log('Country leave');
+    tooltipTimeoutRef.current = setTimeout(() => {
+      hideTooltip();
+    }, 100);
+  }, [hideTooltip]);
 
   const setupEventListeners = useCallback(() => {
+    console.log('Setting up event listeners');
     const svgContainer = containerRef.current?.querySelector(`.${styles.svgContainer}`);
-    if (!svgContainer || processedSvgRef.current) return;
+    if (!svgContainer) {
+      console.log('Cannot set up listeners - no container found');
+      return;
+    }
 
     const handleMouseEnter = (event: Event) => {
       if (!(event instanceof MouseEvent)) return;
       const path = event.target as Element;
       const countryName = path.getAttribute('data-country-name');
-      handleCountryHover(event, countryName, path);
+      if (countryName) {
+        handleCountryEnter(event, countryName, path);
+      }
     };
 
     const handleMouseLeave = (event: Event) => {
       if (!(event instanceof MouseEvent)) return;
       const path = event.target as Element;
       const countryName = path.getAttribute('data-country-name');
-      handleCountryHover(event, null, path);
+      if (countryName) {
+        handleCountryLeave(path);
+      }
     };
 
     const handleMouseMove = (event: Event) => {
       if (!(event instanceof MouseEvent)) return;
       const path = event.target as Element;
       const countryName = path.getAttribute('data-country-name');
-      if (countryName) {
-        handleCountryHover(event, countryName, path);
+      if (countryName && isTooltipVisibleRef.current) {
+        const coinCount = path.getAttribute('data-coin-count') || '0';
+        const content = `${countryName}: ${coinCount} coins`;
+        
+        const x = event.clientX;
+        const y = event.clientY;
+        showTooltip(content, x, y);
       }
     };
 
@@ -164,14 +208,14 @@ export default function WorldMap({ collectedCountries }: WorldMapProps) {
       mousemove: handleMouseMove,
     });
 
-    updateCountryStates();
-    processedSvgRef.current = true;
-  }, [handleCountryHover, updateCountryStates]);
+    console.log('Event listeners attached to SVG container');
+  }, [handleCountryEnter, handleCountryLeave]);
 
   // Load SVG once on mount
   useEffect(() => {
     const loadSvg = async () => {
       try {
+        console.log('🔄 Loading SVG...');
         setIsLoading(true);
         setError(null);
         
@@ -220,14 +264,6 @@ export default function WorldMap({ collectedCountries }: WorldMapProps) {
           if (countryName) {
             const standardizedName = getStandardizedCountryName(countryName);
             path.setAttribute('data-country-name', standardizedName);
-            path.setAttribute('data-collected', 'false');
-            // Set initial styles
-            path.style.fill = 'var(--country-fill)';
-            path.style.stroke = 'var(--country-stroke)';
-            path.style.strokeWidth = '0.5';
-            path.style.cursor = 'pointer';
-            path.style.opacity = '0.1';
-            path.style.transition = 'opacity 0.3s ease-in-out, fill 0.3s ease-in-out, stroke-width 0.3s ease-in-out';
           }
         });
         
@@ -237,8 +273,12 @@ export default function WorldMap({ collectedCountries }: WorldMapProps) {
         svg.style.maxWidth = '100%';
         svg.style.maxHeight = '100%';
         
-        setSvgContent(svg.outerHTML);
+        console.log('✅ SVG loaded and processed, setting content...');
+        const svgHtml = svg.outerHTML;
+        setSvgContent(svgHtml);
+        stableSvgContent.current = svgHtml; // Store stable version
         setIsLoading(false);
+        console.log('✅ SVG content set in state');
       } catch (err) {
         console.error('Error loading SVG:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -246,16 +286,58 @@ export default function WorldMap({ collectedCountries }: WorldMapProps) {
       }
     };
 
-    loadSvg();
-  }, [getStandardizedCountryName]);
-
-  // Setup event listeners after SVG is loaded
-  useEffect(() => {
-    if (svgContent && !isLoading) {
-      processedSvgRef.current = false;
-      setupEventListeners();
+    if (!processedSvgRef.current) {
+      loadSvg();
     }
-  }, [svgContent, isLoading, setupEventListeners]);
+  }, []);
+
+  // Setup event listeners ONCE after SVG is loaded
+  useEffect(() => {
+    if (svgContent && !isLoading && !processedSvgRef.current) {
+      console.log('🚀 Setting up event listeners');
+      // Use a timeout to ensure DOM is ready
+      setTimeout(() => {
+        setupEventListeners();
+        processedSvgRef.current = true;
+        console.log('✅ Event listeners setup complete');
+      }, 100);
+    }
+  }, [svgContent, isLoading]);
+
+  // Apply highlights when data is available OR when SVG content changes (HMR rebuilds)
+  useEffect(() => {
+    if (svgContent && !isLoading && Object.keys(collectedCountries).length > 0) {
+      console.log('🎯 Applying highlights for', Object.keys(collectedCountries).length, 'countries');
+      // Use a timeout to ensure DOM is ready
+      setTimeout(() => {
+        applyCountryHighlights();
+        console.log('✅ Highlights applied');
+      }, 150); // Slightly longer delay to ensure event listeners are set up first
+    }
+  }, [svgContent, isLoading, collectedCountries]);
+
+  // Re-apply highlights when HMR updates (development only)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && svgContent && Object.keys(collectedCountries).length > 0) {
+      const intervalId = setInterval(() => {
+        const svgContainer = containerRef.current?.querySelector(`.${styles.svgContainer}`);
+        if (svgContainer) {
+          const svg = svgContainer.querySelector('svg');
+          if (svg) {
+            const paths = svg.querySelectorAll('path');
+            // Check if highlighting is lost (first path should have data-country-name but no custom styles)
+            const firstPath = paths[0] as SVGPathElement;
+            if (firstPath && firstPath.getAttribute('data-country-name') && !firstPath.style.fill) {
+              console.log('🔄 HMR detected, re-applying highlights...');
+              applyCountryHighlights();
+            }
+          }
+        }
+      }, 1000); // Check every second in development
+
+      return () => clearInterval(intervalId);
+    }
+  }, [svgContent, collectedCountries, applyCountryHighlights]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -292,26 +374,27 @@ export default function WorldMap({ collectedCountries }: WorldMapProps) {
 
   return (
     <div ref={containerRef} className={styles.mapContainer}>
+
       <div
         className={styles.svgContainer}
-        dangerouslySetInnerHTML={{ __html: svgContent }}
+        dangerouslySetInnerHTML={{ __html: stableSvgContent.current || svgContent }}
       />
-      {isTooltipVisible && (
-        <div
-          className={styles.tooltip}
-          style={{
-            position: 'fixed',
-            left: `${tooltipPosition.x}px`,
-            top: `${tooltipPosition.y}px`,
-            transform: 'translate(-50%, -120%)',
-            pointerEvents: 'none'
-          }}
-        >
-          <div className={styles.tooltipContent}>
-            {tooltipContent}
-          </div>
-        </div>
-      )}
+      <div
+        ref={tooltipRef}
+        className={styles.tooltip}
+        style={{
+          position: 'fixed',
+          display: 'none',
+          pointerEvents: 'none',
+          zIndex: 1000,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          color: 'white',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          whiteSpace: 'nowrap'
+        }}
+      />
     </div>
   );
 } 
