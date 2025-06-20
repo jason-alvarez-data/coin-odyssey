@@ -15,7 +15,7 @@ export default function Login() {
           theme="default"
           showLinks={true}
           providers={['google', 'github']}
-          redirectTo={`${window.location.origin}/auth/callback`}
+          redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : '/auth/callback'}
         />
       </div>
     </div>

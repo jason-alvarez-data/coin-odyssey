@@ -13,7 +13,7 @@ export default function CoinForm({ onSubmit, initialData }: CoinFormProps) {
     mintMark: initialData?.mintMark || '',
     grade: initialData?.grade || '',
     purchasePrice: initialData?.purchasePrice || 0,
-    purchaseDate: initialData?.purchaseDate || new Date(),
+    purchaseDate: initialData?.purchaseDate || new Date().toISOString().split('T')[0],
     notes: initialData?.notes || '',
     images: initialData?.images || [],
     faceValue: initialData?.faceValue || null,
@@ -139,7 +139,7 @@ export default function CoinForm({ onSubmit, initialData }: CoinFormProps) {
             type="number"
             id="purchasePrice"
             name="purchasePrice"
-            value={formData.purchasePrice}
+            value={formData.purchasePrice || ''}
             onChange={handleChange}
             step="0.01"
             min="0"
@@ -156,7 +156,7 @@ export default function CoinForm({ onSubmit, initialData }: CoinFormProps) {
             type="date"
             id="purchaseDate"
             name="purchaseDate"
-            value={formData.purchaseDate?.toISOString().split('T')[0]}
+            value={typeof formData.purchaseDate === 'string' ? formData.purchaseDate : ''}
             onChange={handleChange}
             className="mt-1 block w-full rounded-md bg-[#2a2a2a] border border-gray-600 text-white"
             required

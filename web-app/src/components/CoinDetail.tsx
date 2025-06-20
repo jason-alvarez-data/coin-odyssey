@@ -32,7 +32,7 @@ const CoinDetail: React.FC<CoinDetailProps> = ({ coin, onUpdate }) => {
       const { data, error } = await supabase
         .from('grading_guides')
         .select('*')
-        .eq('coin_type', coin.type)
+        .eq('coin_type', coin.denomination)
         .single();
 
       if (error) throw error;
