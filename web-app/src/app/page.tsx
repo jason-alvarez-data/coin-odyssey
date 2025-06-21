@@ -189,6 +189,7 @@ export default function LandingPage() {
             <div className="mt-4 flex justify-center space-x-6 text-sm text-gray-500 dark:text-gray-400">
               <a href="/privacy" className="hover:text-gray-900 dark:hover:text-gray-300">Privacy Policy</a>
               <a href="/terms" className="hover:text-gray-900 dark:hover:text-gray-300">Terms of Service</a>
+              <a href="/cookies" className="hover:text-gray-900 dark:hover:text-gray-300">Cookie Policy</a>
               <a href="/contact" className="hover:text-gray-900 dark:hover:text-gray-300">Contact</a>
             </div>
           </div>
