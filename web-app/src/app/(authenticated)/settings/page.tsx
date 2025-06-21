@@ -1,9 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/layout/Header';
+import ConsentManager from '@/components/ConsentManager';
+import GlobalPrivacyControl from '@/components/GlobalPrivacyControl';
+import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 
 export default function SettingsPage() {
+  const [user, setUser] = useState<User | null>(null)
   const [settings, setSettings] = useState({
     theme: 'Light',
     currencyFormat: 'USD ($)',
@@ -28,6 +33,13 @@ export default function SettingsPage() {
       quantity: true,
     }
   });
+
+  useEffect(() => {
+    // Get current user
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+    })
+  }, [])
 
   const handleCheckboxChange = (field: string) => {
     setSettings(prev => ({
@@ -68,7 +80,7 @@ export default function SettingsPage() {
         <Header />
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {/* Application Preferences */}
         <div className="bg-[#2a2a2a] p-6 rounded-lg">
           <h2 className="text-xl font-semibold mb-4">Application Preferences</h2>
@@ -210,6 +222,14 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        
+        {/* Privacy & Consent Management */}
+        {user && (
+          <div className="lg:col-span-2 xl:col-span-3 space-y-6">
+            <GlobalPrivacyControl user={user} />
+            <ConsentManager user={user} />
+          </div>
+        )}
       </div>
     </div>
   );

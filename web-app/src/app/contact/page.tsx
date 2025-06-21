@@ -12,20 +12,36 @@ export default function Contact() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [errorMessage, setErrorMessage] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setSubmitStatus('idle')
+    setErrorMessage('')
     
-    // Here you would typically send the form data to your backend
-    // For now, we'll simulate a successful submission
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      setSubmitStatus('success')
-      setFormData({ name: '', email: '', subject: '', message: '' })
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        setSubmitStatus('success')
+        setFormData({ name: '', email: '', subject: '', message: '' })
+      } else {
+        setSubmitStatus('error')
+        setErrorMessage(result.error || 'An error occurred while sending your message.')
+      }
     } catch (error) {
+      console.error('Form submission error:', error)
       setSubmitStatus('error')
+      setErrorMessage('Network error. Please check your connection and try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -57,37 +73,41 @@ export default function Contact() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Name
+                  Name *
                 </label>
                 <input
                   type="text"
                   name="name"
                   id="name"
                   required
+                  maxLength={100}
                   value={formData.name}
                   onChange={handleChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  placeholder="Your full name"
                 />
               </div>
 
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Email
+                  Email *
                 </label>
                 <input
                   type="email"
                   name="email"
                   id="email"
                   required
+                  maxLength={200}
                   value={formData.email}
                   onChange={handleChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  placeholder="your.email@example.com"
                 />
               </div>
 
               <div>
                 <label htmlFor="subject" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Subject
+                  Subject *
                 </label>
                 <select
                   name="subject"
@@ -102,22 +122,30 @@ export default function Contact() {
                   <option value="support">Technical Support</option>
                   <option value="billing">Billing Question</option>
                   <option value="feedback">Feedback</option>
+                  <option value="feature-request">Feature Request</option>
+                  <option value="bug-report">Bug Report</option>
                 </select>
               </div>
 
               <div>
                 <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Message
+                  Message *
                 </label>
                 <textarea
                   name="message"
                   id="message"
                   rows={4}
                   required
+                  minLength={10}
+                  maxLength={5000}
                   value={formData.message}
                   onChange={handleChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  placeholder="Please describe your inquiry in detail..."
                 />
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                  {formData.message.length}/5000 characters (minimum 10)
+                </p>
               </div>
 
               <button
@@ -125,18 +153,51 @@ export default function Contact() {
                 disabled={isSubmitting}
                 className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Sending...' : 'Send Message'}
+                {isSubmitting ? (
+                  <div className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending...
+                  </div>
+                ) : (
+                  'Send Message'
+                )}
               </button>
 
               {submitStatus === 'success' && (
-                <p className="text-green-600 dark:text-green-400 text-sm text-center">
-                  Thank you for your message! We'll get back to you soon.
-                </p>
+                <div className="rounded-md bg-green-50 p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-green-800">
+                        Thank you for your message! We'll get back to you within 24-48 hours.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
+
               {submitStatus === 'error' && (
-                <p className="text-red-600 dark:text-red-400 text-sm text-center">
-                  There was an error sending your message. Please try again.
-                </p>
+                <div className="rounded-md bg-red-50 p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-red-800">
+                        {errorMessage}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
             </form>
           </div>
@@ -183,6 +244,14 @@ export default function Contact() {
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">Response Time</h3>
               <p className="mt-2 text-gray-600 dark:text-gray-300">
                 We typically respond to all inquiries within 24-48 hours during business days.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Privacy Notice</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-300 text-sm">
+                Your contact information is only used to respond to your inquiry and is not shared with third parties. 
+                See our <Link href="/privacy" className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">Privacy Policy</Link> for details.
               </p>
             </div>
           </div>

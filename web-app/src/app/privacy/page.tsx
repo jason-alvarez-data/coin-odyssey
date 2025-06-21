@@ -1,8 +1,25 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect } from 'react'
 
 export default function PrivacyPolicy() {
+  useEffect(() => {
+    // Load Termly.io privacy policy script
+    const script = document.createElement('script')
+    script.src = 'https://app.termly.io/embed-policy.min.js'
+    script.async = true
+    document.head.appendChild(script)
+
+    return () => {
+      // Cleanup script on unmount
+      const existingScript = document.querySelector('script[src="https://app.termly.io/embed-policy.min.js"]')
+      if (existingScript) {
+        document.head.removeChild(existingScript)
+      }
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-4xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
@@ -13,55 +30,57 @@ export default function PrivacyPolicy() {
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-5xl">
             Privacy Policy
           </h1>
-          <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-            Last updated: {new Date().toLocaleDateString()}
-          </p>
         </div>
 
-        <div className="prose prose-lg dark:prose-invert max-w-none">
-          <h2>1. Information We Collect</h2>
-          <p>
-            We collect information that you provide directly to us, including:
-          </p>
-          <ul>
-            <li>Account information (name, email address)</li>
-            <li>Collection data and preferences</li>
-            <li>Usage information and analytics</li>
-          </ul>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
+          {/* Termly.io Privacy Policy Embed */}
+          <div 
+            data-name="termly-embed" 
+            data-id="c406524c-1d92-4af6-9845-c524ad72fbfa" 
+            data-type="iframe"
+            className="min-h-[600px]"
+          />
+          
+          {/* Fallback iframe if embed doesn't work */}
+          <div className="min-h-[600px]" style={{ display: 'none' }}>
+            <iframe
+              src="https://app.termly.io/policy-viewer/policy.html?policyUUID=c406524c-1d92-4af6-9845-c524ad72fbfa"
+              width="100%"
+              height="600"
+              frameBorder="0"
+              title="Privacy Policy"
+              className="rounded-lg"
+            />
+          </div>
+          
+          {/* Fallback content */}
+          <noscript>
+            <div className="text-center py-8">
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
+                Please enable JavaScript to view our Privacy Policy, or visit our policy directly:
+              </p>
+              <a 
+                href="https://app.termly.io/policy-viewer/policy.html?policyUUID=c406524c-1d92-4af6-9845-c524ad72fbfa" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 underline"
+              >
+                View Privacy Policy
+              </a>
+            </div>
+          </noscript>
+        </div>
 
-          <h2>2. How We Use Your Information</h2>
-          <p>
-            We use the information we collect to:
-          </p>
-          <ul>
-            <li>Provide and maintain our services</li>
-            <li>Improve and personalize your experience</li>
-            <li>Communicate with you about updates and features</li>
-            <li>Ensure the security of our platform</li>
-          </ul>
-
-          <h2>3. Data Storage and Security</h2>
-          <p>
-            We implement appropriate security measures to protect your personal information. Your data is stored securely using industry-standard encryption and security practices.
-          </p>
-
-          <h2>4. Your Rights</h2>
-          <p>
-            You have the right to:
-          </p>
-          <ul>
-            <li>Access your personal data</li>
-            <li>Correct inaccurate data</li>
-            <li>Request deletion of your data</li>
-            <li>Opt-out of marketing communications</li>
-          </ul>
-
-          <h2>5. Contact Us</h2>
-          <p>
-            If you have any questions about this Privacy Policy, please contact us at:
-            <br />
-            <a href="mailto:privacy@coinodyssey.com" className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
-              privacy@coinodyssey.com
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            This privacy policy is powered by{' '}
+            <a 
+              href="https://termly.io" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              Termly
             </a>
           </p>
         </div>

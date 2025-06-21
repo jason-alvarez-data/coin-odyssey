@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from '@/components/ThemeProvider'
+import CookieBanner from '@/components/CookieBanner'
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
-        {/* No-JS fallback */}
+        {/* Global Privacy Control Detection */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -35,6 +36,25 @@ export default function RootLayout({
                 document.documentElement.style.backgroundColor = 'rgb(17 24 39)';
                 if (!localStorage.theme) {
                   localStorage.theme = 'dark';
+                }
+                
+                // Global Privacy Control Detection
+                if (typeof navigator !== 'undefined' && 'globalPrivacyControl' in navigator) {
+                  var gpcEnabled = navigator.globalPrivacyControl === true;
+                  console.log('GPC Status:', gpcEnabled ? 'Enabled' : 'Disabled');
+                  
+                  // Store GPC status for later use
+                  window.__GPC_STATUS = {
+                    supported: true,
+                    enabled: gpcEnabled,
+                    detected: new Date().toISOString()
+                  };
+                } else {
+                  window.__GPC_STATUS = {
+                    supported: false,
+                    enabled: false,
+                    detected: new Date().toISOString()
+                  };
                 }
               })();
             `,
@@ -53,6 +73,7 @@ export default function RootLayout({
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             {children}
           </div>
+          <CookieBanner useTermly={true} />
         </ThemeProvider>
       </body>
     </html>
