@@ -7,8 +7,10 @@ export default function CookiePolicy() {
   useEffect(() => {
     // Load Termly.io cookie policy script
     const script = document.createElement('script')
+    script.type = 'text/javascript'
     script.src = 'https://app.termly.io/embed-policy.min.js'
-    script.async = true
+    script.setAttribute('data-name', 'termly-embed-policy')
+    script.setAttribute('data-policy-uuid', '88edecf6-926c-4030-b796-5b3e3f06efe3')
     document.head.appendChild(script)
 
     return () => {
@@ -44,14 +46,14 @@ export default function CookiePolicy() {
           />
           
           {/* Fallback iframe if embed doesn't work */}
-          <div className="min-h-[600px]" style={{ display: 'none' }}>
+          <div className="min-h-[600px] mt-4">
             <iframe
               src="https://app.termly.io/policy-viewer/policy.html?policyUUID=88edecf6-926c-4030-b796-5b3e3f06efe3"
               width="100%"
               height="600"
               frameBorder="0"
               title="Cookie Policy"
-              className="rounded-lg"
+              className="rounded-lg border-0"
             />
           </div>
           

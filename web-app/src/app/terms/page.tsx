@@ -7,8 +7,10 @@ export default function TermsOfService() {
   useEffect(() => {
     // Load Termly.io terms of service script
     const script = document.createElement('script')
+    script.type = 'text/javascript'
     script.src = 'https://app.termly.io/embed-policy.min.js'
-    script.async = true
+    script.setAttribute('data-name', 'termly-embed-policy')
+    script.setAttribute('data-policy-uuid', 'de3d1a01-5c9f-4dd2-ba3b-a7e0daf9808b')
     document.head.appendChild(script)
 
     return () => {
@@ -42,14 +44,14 @@ export default function TermsOfService() {
           />
           
           {/* Fallback iframe if embed doesn't work */}
-          <div className="min-h-[600px]" style={{ display: 'none' }}>
+          <div className="min-h-[600px] mt-4">
             <iframe
               src="https://app.termly.io/policy-viewer/policy.html?policyUUID=de3d1a01-5c9f-4dd2-ba3b-a7e0daf9808b"
               width="100%"
               height="600"
               frameBorder="0"
               title="Terms of Service"
-              className="rounded-lg"
+              className="rounded-lg border-0"
             />
           </div>
           

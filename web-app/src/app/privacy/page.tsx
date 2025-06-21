@@ -7,8 +7,10 @@ export default function PrivacyPolicy() {
   useEffect(() => {
     // Load Termly.io privacy policy script
     const script = document.createElement('script')
+    script.type = 'text/javascript'
     script.src = 'https://app.termly.io/embed-policy.min.js'
-    script.async = true
+    script.setAttribute('data-name', 'termly-embed-policy')
+    script.setAttribute('data-policy-uuid', 'c406524c-1d92-4af6-9845-c524ad72fbfa')
     document.head.appendChild(script)
 
     return () => {
@@ -35,21 +37,21 @@ export default function PrivacyPolicy() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
           {/* Termly.io Privacy Policy Embed */}
           <div 
-            data-name="termly-embed" 
+            data-name="termly-embed"
             data-id="c406524c-1d92-4af6-9845-c524ad72fbfa" 
             data-type="iframe"
             className="min-h-[600px]"
           />
           
           {/* Fallback iframe if embed doesn't work */}
-          <div className="min-h-[600px]" style={{ display: 'none' }}>
+          <div className="min-h-[600px] mt-4">
             <iframe
               src="https://app.termly.io/policy-viewer/policy.html?policyUUID=c406524c-1d92-4af6-9845-c524ad72fbfa"
               width="100%"
               height="600"
               frameBorder="0"
               title="Privacy Policy"
-              className="rounded-lg"
+              className="rounded-lg border-0"
             />
           </div>
           
