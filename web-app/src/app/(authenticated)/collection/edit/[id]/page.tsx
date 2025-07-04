@@ -13,6 +13,7 @@ interface Coin {
   mint_mark?: string | null;
   grade?: string | null;
   face_value: number | null;
+  current_market_value?: number | null;
   purchase_price?: number | null;
   purchase_date: string | null;
   notes?: string | null;
@@ -85,6 +86,7 @@ export default function EditCoinPage() {
           mint_mark: coin.mint_mark,
           grade: coin.grade,
           face_value: coin.face_value,
+          current_market_value: coin.current_market_value,
           purchase_price: coin.purchase_price,
           purchase_date: coin.purchase_date,
           notes: coin.notes,

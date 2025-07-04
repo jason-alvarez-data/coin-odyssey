@@ -66,6 +66,8 @@ export default function AddCoinPage() {
         year: coin.year || new Date().getFullYear(),
         mint_mark: coin.mintMark || null,
         grade: coin.grade || null,
+        face_value: coin.faceValue || null,
+        current_market_value: coin.currentMarketValue || null,
         purchase_price: coin.purchasePrice || null,
         purchase_date: coin.purchaseDate ? new Date(coin.purchaseDate).toISOString().split('T')[0] : null,
         notes: coin.notes || null,
