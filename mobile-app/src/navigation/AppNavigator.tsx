@@ -12,7 +12,14 @@ const Stack = createStackNavigator<RootStackParamList>();
 export default function AppNavigator() {
   const { user, loading } = useAuth();
 
+  console.log('AppNavigator render:', { 
+    hasUser: !!user, 
+    userEmail: user?.email, 
+    loading 
+  });
+
   if (loading) {
+    console.log('AppNavigator: Still loading auth state');
     return null; // Could add a loading screen here
   }
 

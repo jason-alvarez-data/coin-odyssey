@@ -1,17 +1,19 @@
 // src/services/auth.ts
 import { supabase } from './supabase';
-import * as SecureStore from 'expo-secure-store';
 
 export class AuthService {
   static async signIn(email: string, password: string) {
+    console.log('AuthService: Attempting sign in...');
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     
-    if (data.session) {
-      await SecureStore.setItemAsync('session', JSON.stringify(data.session));
-    }
+    console.log('AuthService: Sign in result:', { 
+      hasUser: !!data.user, 
+      hasSession: !!data.session, 
+      error: error?.message 
+    });
     
     return { data, error };
   }
@@ -26,8 +28,12 @@ export class AuthService {
   }
 
   static async signOut() {
-    await supabase.auth.signOut();
-    await SecureStore.deleteItemAsync('session');
+    console.log('AuthService: Signing out...');
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('AuthService: Sign out error:', error);
+    }
+    return { error };
   }
 
   static async getCurrentUser() {

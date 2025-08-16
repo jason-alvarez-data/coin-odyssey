@@ -5,8 +5,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../styles';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
-import CollectionListScreen from '../screens/collection/CollectionListScreen';
-import CameraScreen from '../screens/camera/CameraScreen';
+import CollectionNavigator from './CollectionNavigator';
+import AddCoinScreen from '../screens/collection/AddCoinScreen';
 import AnalyticsScreen from '../screens/analytics/AnalyticsScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 
@@ -17,7 +17,7 @@ const TabBarIcon = ({ routeName, focused }: { routeName: string; focused: boolea
     switch (name) {
       case 'Dashboard': return '🏠';
       case 'Collection': return '🪙';
-      case 'Camera': return '📸';
+      case 'AddCoin': return '➕';
       case 'Analytics': return '📊';
       case 'Profile': return '👤';
       default: return '•';
@@ -87,8 +87,12 @@ export default function SimpleTabNavigator() {
       initialRouteName="Dashboard"
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Collection" component={CollectionListScreen} />
-      <Tab.Screen name="Camera" component={CameraScreen} />
+      <Tab.Screen name="Collection" component={CollectionNavigator} />
+      <Tab.Screen 
+        name="AddCoin" 
+        component={AddCoinScreen}
+        options={{ tabBarLabel: 'Add Coin' }}
+      />
       <Tab.Screen name="Analytics" component={AnalyticsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
@@ -106,9 +110,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.background.card,
+    backgroundColor: 'rgba(15, 15, 35, 0.85)',
     borderWidth: 1,
-    borderColor: Colors.background.cardBorder,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
   },
   tabItem: {
     flex: 1,
