@@ -29,6 +29,20 @@ export interface Coin {
   obverseImage: string | null;
   reverseImage: string | null;
   country: string | null;
+  
+  // Series information
+  series: string | null;
+  seriesId: string | null;
+  specificCoinId: string | null;
+  specificCoinName: string | null;
+  
+  // Additional metadata from series
+  designer: string | null;
+  theme: string | null;
+  honoree: string | null;
+  releaseDate: string | null;
+  certificationNumber: string | null;
+  gradingService: string | null;
 }
 
 export interface CoinValueHistory {

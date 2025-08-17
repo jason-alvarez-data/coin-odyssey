@@ -19,6 +19,7 @@ import { Colors, Typography, Spacing, GlassmorphismStyles } from '../../styles';
 import { Input, Button } from '../../components/common';
 import { Coin } from '../../types/coin';
 import { CoinService } from '../../services/coinService';
+import { getSeriesById, getSpecificCoinById } from '../../types/series';
 
 interface CoinDetailScreenProps {
   route: {
@@ -50,6 +51,17 @@ export default function CoinDetailScreen({ route, navigation }: CoinDetailScreen
     purchasePrice: coin.purchasePrice?.toString() || '',
     purchaseDate: coin.purchaseDate || '',
     notes: coin.notes || '',
+    // Series information
+    series: coin.series || '',
+    seriesId: coin.seriesId || '',
+    specificCoinId: coin.specificCoinId || '',
+    specificCoinName: coin.specificCoinName || '',
+    designer: coin.designer || '',
+    theme: coin.theme || '',
+    honoree: coin.honoree || '',
+    releaseDate: coin.releaseDate || '',
+    certificationNumber: coin.certificationNumber || '',
+    gradingService: coin.gradingService || '',
   });
 
   const [images, setImages] = useState({
@@ -145,6 +157,17 @@ export default function CoinDetailScreen({ route, navigation }: CoinDetailScreen
         notes: formData.notes || undefined,
         obverseImage: images.obverse !== coin.obverseImage ? images.obverse : undefined,
         reverseImage: images.reverse !== coin.reverseImage ? images.reverse : undefined,
+        // Series information
+        series: formData.series || undefined,
+        seriesId: formData.seriesId || undefined,
+        specificCoinId: formData.specificCoinId || undefined,
+        specificCoinName: formData.specificCoinName || undefined,
+        designer: formData.designer || undefined,
+        theme: formData.theme || undefined,
+        honoree: formData.honoree || undefined,
+        releaseDate: formData.releaseDate || undefined,
+        certificationNumber: formData.certificationNumber || undefined,
+        gradingService: formData.gradingService || undefined,
       };
 
       const updatedCoin = await CoinService.updateCoin(coin.id, updates);
@@ -429,6 +452,96 @@ export default function CoinDetailScreen({ route, navigation }: CoinDetailScreen
             )}
           </BlurView>
 
+          {/* Series Information */}
+          {(coin.series || coin.seriesId || coin.specificCoinName) && (
+            <BlurView intensity={60} style={styles.formSection}>
+              <Text style={styles.sectionTitle}>🎯 Series Information</Text>
+              
+              <View style={styles.infoGrid}>
+                {coin.series && (
+                  <InfoItem label="Series" value={coin.series} />
+                )}
+                
+                {coin.specificCoinName && (
+                  <InfoItem label="Specific Coin" value={coin.specificCoinName} />
+                )}
+                
+                {coin.honoree && (
+                  <InfoItem label="Honoree" value={coin.honoree} />
+                )}
+                
+                {coin.designer && (
+                  <InfoItem label="Designer" value={coin.designer} />
+                )}
+                
+                {coin.theme && (
+                  <InfoItem label="Theme" value={coin.theme} />
+                )}
+                
+                {coin.releaseDate && (
+                  <InfoItem 
+                    label="Release Date" 
+                    value={new Date(coin.releaseDate).toLocaleDateString()} 
+                  />
+                )}
+                
+                {coin.certificationNumber && (
+                  <InfoItem label="Certification #" value={coin.certificationNumber} />
+                )}
+                
+                {coin.gradingService && (
+                  <InfoItem label="Grading Service" value={coin.gradingService} />
+                )}
+              </View>
+              
+              {/* Enhanced series details from database */}
+              {coin.seriesId && (() => {
+                const seriesInfo = getSeriesById(coin.seriesId);
+                const specificCoinInfo = coin.specificCoinId ? getSpecificCoinById(coin.seriesId, coin.specificCoinId) : null;
+                
+                return seriesInfo && (
+                  <View style={styles.seriesDetailsCard}>
+                    <Text style={styles.seriesDetailsTitle}>📚 Series Details</Text>
+                    <Text style={styles.seriesDescription}>{seriesInfo.description}</Text>
+                    
+                    <View style={styles.seriesMetadata}>
+                      <View style={styles.seriesMetadataItem}>
+                        <Text style={styles.seriesMetadataLabel}>Years:</Text>
+                        <Text style={styles.seriesMetadataValue}>
+                          {seriesInfo.startYear}-{seriesInfo.endYear}
+                        </Text>
+                      </View>
+                      
+                      <View style={styles.seriesMetadataItem}>
+                        <Text style={styles.seriesMetadataLabel}>Total Coins:</Text>
+                        <Text style={styles.seriesMetadataValue}>
+                          {seriesInfo.specificCoins.length}
+                        </Text>
+                      </View>
+                      
+                      <View style={styles.seriesMetadataItem}>
+                        <Text style={styles.seriesMetadataLabel}>Category:</Text>
+                        <Text style={styles.seriesMetadataValue}>
+                          {seriesInfo.category.replace('_', ' ')}
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    {specificCoinInfo?.rarity && (
+                      <View style={[styles.rarityBadge, { 
+                        backgroundColor: getRarityColor(specificCoinInfo.rarity) 
+                      }]}>
+                        <Text style={styles.rarityText}>
+                          {specificCoinInfo.rarity.replace('_', ' ').toUpperCase()} RARITY
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })()}
+            </BlurView>
+          )}
+
           {/* Notes */}
           <BlurView intensity={60} style={styles.formSection}>
             <Text style={styles.sectionTitle}>📝 Notes</Text>
@@ -449,6 +562,85 @@ export default function CoinDetailScreen({ route, navigation }: CoinDetailScreen
             )}
           </BlurView>
 
+          {/* Series Information - Edit Mode */}
+          {isEditing && (
+            <BlurView intensity={60} style={styles.formSection}>
+              <Text style={styles.sectionTitle}>🎯 Series Information</Text>
+              
+              <Input
+                label="Series Name"
+                placeholder="e.g. American Women Quarters"
+                value={formData.series}
+                onChangeText={(value) => updateFormData('series', value)}
+                style={styles.input}
+              />
+
+              <Input
+                label="Specific Coin Name"
+                placeholder="e.g. Maya Angelou Quarter"
+                value={formData.specificCoinName}
+                onChangeText={(value) => updateFormData('specificCoinName', value)}
+                style={styles.input}
+              />
+
+              <View style={styles.gridRow}>
+                <View style={styles.gridInput}>
+                  <Input
+                    label="Designer"
+                    placeholder="Designer name"
+                    value={formData.designer}
+                    onChangeText={(value) => updateFormData('designer', value)}
+                  />
+                </View>
+
+                <View style={styles.gridInput}>
+                  <Input
+                    label="Theme"
+                    placeholder="Coin theme"
+                    value={formData.theme}
+                    onChangeText={(value) => updateFormData('theme', value)}
+                  />
+                </View>
+              </View>
+
+              <Input
+                label="Honoree"
+                placeholder="Person being honored"
+                value={formData.honoree}
+                onChangeText={(value) => updateFormData('honoree', value)}
+                style={styles.input}
+              />
+
+              <View style={styles.gridRow}>
+                <View style={styles.gridInput}>
+                  <Input
+                    label="Release Date"
+                    placeholder="YYYY-MM-DD"
+                    value={formData.releaseDate}
+                    onChangeText={(value) => updateFormData('releaseDate', value)}
+                  />
+                </View>
+
+                <View style={styles.gridInput}>
+                  <Input
+                    label="Grading Service"
+                    placeholder="e.g. PCGS, NGC"
+                    value={formData.gradingService}
+                    onChangeText={(value) => updateFormData('gradingService', value)}
+                  />
+                </View>
+              </View>
+
+              <Input
+                label="Certification Number"
+                placeholder="Grading certification number"
+                value={formData.certificationNumber}
+                onChangeText={(value) => updateFormData('certificationNumber', value)}
+                style={styles.input}
+              />
+            </BlurView>
+          )}
+
           <View style={styles.bottomSpacing} />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -462,6 +654,17 @@ const InfoItem = ({ label, value }: { label: string; value: string }) => (
     <Text style={styles.infoValue}>{value}</Text>
   </View>
 );
+
+const getRarityColor = (rarity: string): string => {
+  const rarityColors = {
+    common: '#9CA3AF',      // Gray
+    uncommon: '#10B981',    // Green
+    rare: '#3B82F6',       // Blue
+    scarce: '#8B5CF6',     // Purple
+    very_rare: '#F59E0B',   // Gold
+  };
+  return rarityColors[rarity as keyof typeof rarityColors] || '#9CA3AF';
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -634,5 +837,58 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 120,
+  },
+  // Series Information Styles
+  seriesDetailsCard: {
+    marginTop: Spacing.lg,
+    padding: Spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary.gold,
+  },
+  seriesDetailsTitle: {
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.primary.gold,
+    marginBottom: Spacing.sm,
+  },
+  seriesDescription: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    lineHeight: 20,
+    marginBottom: Spacing.md,
+  },
+  seriesMetadata: {
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  seriesMetadataItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  seriesMetadataLabel: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  seriesMetadataValue: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.primary,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  rarityBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: 16,
+    marginTop: Spacing.sm,
+  },
+  rarityText: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.bold,
+    color: '#000',
+    letterSpacing: 0.5,
   },
 });

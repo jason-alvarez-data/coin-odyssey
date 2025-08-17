@@ -18,8 +18,11 @@ import { Colors, Typography, Spacing, GlassmorphismStyles } from '../../styles';
 import { Input, Button } from '../../components/common';
 import { Coin } from '../../types/coin';
 import { CoinService } from '../../services/coinService';
+import { CoinSeries, SpecificCoin, COIN_SERIES, getSeriesByCountryAndDenomination, getSeriesById } from '../../types/series';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 
 export default function AddCoinScreen() {
+  const navigation = useNavigation();
   const [formData, setFormData] = useState({
     name: '',
     title: '',
@@ -32,6 +35,17 @@ export default function AddCoinScreen() {
     purchasePrice: '',
     purchaseDate: '',
     notes: '',
+    // New series-related fields
+    series: '',
+    seriesId: '',
+    specificCoinId: '',
+    specificCoinName: '',
+    designer: '',
+    theme: '',
+    honoree: '',
+    releaseDate: '',
+    certificationNumber: '',
+    gradingService: '',
   });
 
   const [images, setImages] = useState<{
@@ -43,9 +57,71 @@ export default function AddCoinScreen() {
   });
 
   const [loading, setLoading] = useState(false);
+  
+  // Series selection state
+  const [availableSeries, setAvailableSeries] = useState<CoinSeries[]>([]);
+  const [availableSpecificCoins, setAvailableSpecificCoins] = useState<SpecificCoin[]>([]);
+  const [selectedSeries, setSelectedSeries] = useState<CoinSeries | null>(null);
+  const [showSeriesDropdown, setShowSeriesDropdown] = useState(false);
+  const [showSpecificCoinDropdown, setShowSpecificCoinDropdown] = useState(false);
 
   const updateFormData = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newFormData = { ...prev, [field]: value };
+      
+      // When country or denomination changes, update available series
+      if (field === 'country' || field === 'denomination') {
+        if (newFormData.country && newFormData.denomination) {
+          const series = getSeriesByCountryAndDenomination(newFormData.country, newFormData.denomination);
+          setAvailableSeries(series);
+          console.log(`Found ${series.length} series for ${newFormData.country} ${newFormData.denomination}:`, series.map(s => s.name));
+        } else {
+          setAvailableSeries([]);
+        }
+        // Clear series selection when filtering criteria change
+        setSelectedSeries(null);
+        setAvailableSpecificCoins([]);
+        newFormData.series = '';
+        newFormData.seriesId = '';
+        newFormData.specificCoinId = '';
+        newFormData.specificCoinName = '';
+      }
+      
+      return newFormData;
+    });
+  };
+
+  const handleSeriesSelection = (series: CoinSeries) => {
+    setSelectedSeries(series);
+    setAvailableSpecificCoins(series.specificCoins);
+    setFormData(prev => ({
+      ...prev,
+      series: series.name,
+      seriesId: series.id,
+      specificCoinId: '',
+      specificCoinName: '',
+      // Auto-fill some fields based on series
+      country: series.country,
+      denomination: series.denomination,
+    }));
+    setShowSeriesDropdown(false);
+  };
+
+  const handleSpecificCoinSelection = (specificCoin: SpecificCoin) => {
+    setFormData(prev => ({
+      ...prev,
+      specificCoinId: specificCoin.id,
+      specificCoinName: specificCoin.name,
+      year: specificCoin.year.toString(),
+      // Auto-fill additional metadata
+      designer: specificCoin.designer || '',
+      theme: specificCoin.theme || '',
+      honoree: specificCoin.honoree || '',
+      releaseDate: specificCoin.releaseDate || '',
+      // Suggest name if not already filled
+      name: prev.name || specificCoin.name,
+    }));
+    setShowSpecificCoinDropdown(false);
   };
 
   const requestCameraPermission = async () => {
@@ -116,6 +192,17 @@ export default function AddCoinScreen() {
         notes: formData.notes || undefined,
         obverseImage: images.obverse || undefined,
         reverseImage: images.reverse || undefined,
+        // Series information
+        series: formData.series || undefined,
+        seriesId: formData.seriesId || undefined,
+        specificCoinId: formData.specificCoinId || undefined,
+        specificCoinName: formData.specificCoinName || undefined,
+        designer: formData.designer || undefined,
+        theme: formData.theme || undefined,
+        honoree: formData.honoree || undefined,
+        releaseDate: formData.releaseDate || undefined,
+        certificationNumber: formData.certificationNumber || undefined,
+        gradingService: formData.gradingService || undefined,
       };
 
       // Save coin to Supabase
@@ -137,11 +224,76 @@ export default function AddCoinScreen() {
               purchasePrice: '',
               purchaseDate: '',
               notes: '',
+              // Reset series fields
+              series: '',
+              seriesId: '',
+              specificCoinId: '',
+              specificCoinName: '',
+              designer: '',
+              theme: '',
+              honoree: '',
+              releaseDate: '',
+              certificationNumber: '',
+              gradingService: '',
             });
+            // Reset series state
+            setAvailableSeries([]);
+            setAvailableSpecificCoins([]);
+            setSelectedSeries(null);
+            setShowSeriesDropdown(false);
+            setShowSpecificCoinDropdown(false);
             setImages({ obverse: null, reverse: null });
           }
         },
-        { text: 'View Collection', style: 'default' }
+        { 
+          text: 'View Collection', 
+          style: 'default',
+          onPress: () => {
+            // Navigate to the Collection tab using CommonActions
+            try {
+              navigation.dispatch(
+                CommonActions.navigate({
+                  name: 'Collection',
+                })
+              );
+              // Clear the form after successful navigation
+              setFormData({
+                name: '',
+                title: '',
+                year: '',
+                denomination: '',
+                country: '',
+                mintMark: '',
+                grade: '',
+                faceValue: '',
+                purchasePrice: '',
+                purchaseDate: '',
+                notes: '',
+                // Reset series fields
+                series: '',
+                seriesId: '',
+                specificCoinId: '',
+                specificCoinName: '',
+                designer: '',
+                theme: '',
+                honoree: '',
+                releaseDate: '',
+                certificationNumber: '',
+                gradingService: '',
+              });
+              // Reset series state
+              setAvailableSeries([]);
+              setAvailableSpecificCoins([]);
+              setSelectedSeries(null);
+              setShowSeriesDropdown(false);
+              setShowSpecificCoinDropdown(false);
+              setImages({ obverse: null, reverse: null });
+            } catch (error) {
+              console.log('Navigation error:', error);
+              Alert.alert('Success!', 'Coin added successfully! You can view it in the Collection tab.');
+            }
+          }
+        }
       ]);
     } catch (error) {
       Alert.alert('Error', 'Failed to save coin. Please try again.');
@@ -265,6 +417,137 @@ export default function AddCoinScreen() {
                 />
               </View>
             </View>
+          </BlurView>
+
+          {/* Series Selection */}
+          <BlurView intensity={60} style={[
+            styles.formSection,
+            (showSeriesDropdown || showSpecificCoinDropdown) && styles.expandedSection
+          ]}>
+            <Text style={styles.sectionTitle}>🎯 Series Information</Text>
+            
+            {/* Help text when no series available */}
+            {!formData.country || !formData.denomination ? (
+              <View style={styles.helpCard}>
+                <Text style={styles.helpText}>
+                  💡 Enter country and denomination above to see available coin series
+                </Text>
+              </View>
+            ) : availableSeries.length === 0 ? (
+              <View style={styles.helpCard}>
+                <Text style={styles.helpText}>
+                  No predefined series found for {formData.country} {formData.denomination}
+                </Text>
+                <Text style={styles.helpSubtext}>
+                  You can still add your coin manually - series selection is optional
+                </Text>
+              </View>
+            ) : (
+              /* Series Dropdown */
+              <View style={[
+                styles.dropdownContainer,
+                showSeriesDropdown && styles.dropdownContainerExpanded
+              ]}>
+                <Text style={styles.inputLabel}>
+                  Coin Series (Optional) - {availableSeries.length} available
+                </Text>
+                <TouchableOpacity 
+                  style={styles.dropdown}
+                  onPress={() => setShowSeriesDropdown(!showSeriesDropdown)}
+                >
+                  <Text style={styles.dropdownText}>
+                    {selectedSeries ? selectedSeries.name : 'Select a series...'}
+                  </Text>
+                  <Text style={styles.dropdownArrow}>▼</Text>
+                </TouchableOpacity>
+                
+                {showSeriesDropdown && (
+                  <BlurView intensity={80} style={styles.dropdownMenu}>
+                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
+                      {availableSeries.map((series) => (
+                        <TouchableOpacity
+                          key={series.id}
+                          style={styles.dropdownItem}
+                          onPress={() => handleSeriesSelection(series)}
+                        >
+                          <Text style={styles.dropdownItemText}>{series.name}</Text>
+                          <Text style={styles.dropdownItemSubtext}>
+                            {series.startYear}-{series.endYear} • {series.specificCoins.length} coins
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </BlurView>
+                )}
+              </View>
+            )}
+
+            {/* Specific Coin Selection */}
+            {availableSpecificCoins.length > 0 && (
+              <View style={[
+                styles.dropdownContainer,
+                showSpecificCoinDropdown && styles.dropdownContainerExpanded
+              ]}>
+                <Text style={styles.inputLabel}>Specific Coin</Text>
+                <TouchableOpacity 
+                  style={styles.dropdown}
+                  onPress={() => setShowSpecificCoinDropdown(!showSpecificCoinDropdown)}
+                >
+                  <Text style={styles.dropdownText}>
+                    {formData.specificCoinName || 'Select specific coin...'}
+                  </Text>
+                  <Text style={styles.dropdownArrow}>▼</Text>
+                </TouchableOpacity>
+                
+                {showSpecificCoinDropdown && (
+                  <BlurView intensity={80} style={styles.dropdownMenu}>
+                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
+                      {availableSpecificCoins.map((coin) => (
+                        <TouchableOpacity
+                          key={coin.id}
+                          style={styles.dropdownItem}
+                          onPress={() => handleSpecificCoinSelection(coin)}
+                        >
+                          <Text style={styles.dropdownItemText}>{coin.name}</Text>
+                          {coin.honoree && (
+                            <Text style={styles.dropdownItemSubtext}>
+                              Honoring {coin.honoree}
+                            </Text>
+                          )}
+                          {coin.description && (
+                            <Text style={styles.dropdownItemSubtext}>
+                              {coin.description}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </BlurView>
+                )}
+              </View>
+            )}
+
+            {/* Additional Series Info (Auto-filled) */}
+            {formData.honoree && (
+              <View style={styles.infoCard}>
+                <Text style={styles.infoLabel}>Honoree:</Text>
+                <Text style={styles.infoValue}>{formData.honoree}</Text>
+              </View>
+            )}
+            
+            {formData.designer && (
+              <View style={styles.infoCard}>
+                <Text style={styles.infoLabel}>Designer:</Text>
+                <Text style={styles.infoValue}>{formData.designer}</Text>
+              </View>
+            )}
+
+            {formData.releaseDate && (
+              <View style={styles.infoCard}>
+                <Text style={styles.infoLabel}>Release Date:</Text>
+                <Text style={styles.infoValue}>{new Date(formData.releaseDate).toLocaleDateString()}</Text>
+              </View>
+            )}
           </BlurView>
 
           {/* Grading & Value */}
@@ -441,5 +724,127 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 100, // Extra space for tab bar
+  },
+  // Series selection styles
+  dropdownContainer: {
+    marginBottom: Spacing.lg,
+    position: 'relative',
+    zIndex: 100,
+  },
+  dropdownContainerExpanded: {
+    marginBottom: 280, // Extra space when dropdown is open
+  },
+  inputLabel: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
+  },
+  dropdown: {
+    ...GlassmorphismStyles.card,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    minHeight: 48,
+  },
+  dropdownText: {
+    fontSize: Typography.fontSize.md,
+    color: Colors.text.primary,
+    flex: 1,
+  },
+  dropdownArrow: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.primary.gold,
+    marginLeft: Spacing.sm,
+  },
+  dropdownMenu: {
+    ...GlassmorphismStyles.card,
+    position: 'absolute',
+    top: 55,
+    left: 0,
+    right: 0,
+    maxHeight: 250,
+    zIndex: 1000,
+    borderWidth: 1,
+    borderColor: Colors.primary.gold,
+    elevation: 10, // Android shadow
+    shadowColor: '#000', // iOS shadow
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  dropdownScroll: {
+    maxHeight: 230,
+    flexGrow: 0,
+  },
+  dropdownItem: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.background.cardBorder,
+  },
+  dropdownItemText: {
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+  },
+  dropdownItemSubtext: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+    lineHeight: 16,
+  },
+  infoCard: {
+    ...GlassmorphismStyles.card,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.primary.gold,
+  },
+  infoLabel: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.primary.gold,
+    marginRight: Spacing.sm,
+    minWidth: 80,
+  },
+  infoValue: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.primary,
+    flex: 1,
+  },
+  helpCard: {
+    ...GlassmorphismStyles.card,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.text.secondary,
+    borderStyle: 'dashed',
+  },
+  helpText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    fontWeight: Typography.fontWeight.medium,
+  },
+  helpSubtext: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.tertiary,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+    fontStyle: 'italic',
+  },
+  expandedSection: {
+    marginBottom: Spacing['3xl'], // Extra space when dropdowns are open
+    paddingBottom: Spacing['2xl'],
   },
 });

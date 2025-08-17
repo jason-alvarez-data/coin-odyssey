@@ -24,6 +24,9 @@
         "NSCameraUsageDescription": "This app needs access to camera to photograph coins for your collection.",
         "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select coin images.",
         "NSLocationWhenInUseUsageDescription": "This app needs location access to find coin shops and shows near you."
+      },
+      "entitlements": {
+        "aps-environment": "development"
       }
     },
     "android": {
@@ -39,7 +42,11 @@
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION"
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.WAKE_LOCK",
+        "com.google.android.c2dm.permission.RECEIVE"
       ]
     },
     "web": {
@@ -48,8 +55,9 @@
     },
     "plugins": [
       "expo-camera",
-      "expo-image-picker",
-      "expo-secure-store"
+      "expo-image-picker", 
+      "expo-secure-store",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

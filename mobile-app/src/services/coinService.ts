@@ -16,6 +16,17 @@ interface CreateCoinData {
   notes?: string;
   obverseImage?: string;
   reverseImage?: string;
+  // Series information
+  series?: string;
+  seriesId?: string;
+  specificCoinId?: string;
+  specificCoinName?: string;
+  designer?: string;
+  theme?: string;
+  honoree?: string;
+  releaseDate?: string;
+  certificationNumber?: string;
+  gradingService?: string;
 }
 
 export class CoinService {
@@ -120,14 +131,28 @@ export class CoinService {
     // Prepare coin data for database
     const dbCoinData = {
       collection_id: collectionId,
+      name: coinData.name,
+      title: coinData.title || null,
       denomination: coinData.denomination,
       year: coinData.year,
       mint_mark: coinData.mintMark || null,
       grade: coinData.grade || null,
+      face_value: coinData.faceValue || null,
       purchase_price: coinData.purchasePrice || null,
       purchase_date: coinData.purchaseDate || null,
       notes: coinData.notes || null,
       country: coinData.country || null,
+      // Series information
+      series: coinData.series || null,
+      series_id: coinData.seriesId || null,
+      specific_coin_id: coinData.specificCoinId || null,
+      specific_coin_name: coinData.specificCoinName || null,
+      designer: coinData.designer || null,
+      theme: coinData.theme || null,
+      honoree: coinData.honoree || null,
+      release_date: coinData.releaseDate || null,
+      certification_number: coinData.certificationNumber || null,
+      grading_service: coinData.gradingService || null,
       // Store images in array format for compatibility
       images: [obverseImageUrl, reverseImageUrl].filter(Boolean),
     };
@@ -139,15 +164,28 @@ export class CoinService {
       .select(`
         id,
         collection_id,
+        name,
+        title,
         denomination,
         year,
         mint_mark,
         grade,
+        face_value,
         purchase_price,
         purchase_date,
         notes,
         images,
         country,
+        series,
+        series_id,
+        specific_coin_id,
+        specific_coin_name,
+        designer,
+        theme,
+        honoree,
+        release_date,
+        certification_number,
+        grading_service,
         created_at,
         updated_at
       `)
@@ -160,8 +198,8 @@ export class CoinService {
     // Transform database response to match Coin interface
     const coin: Coin = {
       id: newCoin.id,
-      name: coinData.name,
-      title: coinData.title || '',
+      name: newCoin.name || coinData.name,
+      title: newCoin.title || coinData.title || '',
       year: newCoin.year,
       mintMark: newCoin.mint_mark,
       grade: newCoin.grade,
@@ -188,6 +226,17 @@ export class CoinService {
       obverseImage: obverseImageUrl,
       reverseImage: reverseImageUrl,
       country: newCoin.country,
+      // Series information
+      series: newCoin.series,
+      seriesId: newCoin.series_id,
+      specificCoinId: newCoin.specific_coin_id,
+      specificCoinName: newCoin.specific_coin_name,
+      designer: newCoin.designer,
+      theme: newCoin.theme,
+      honoree: newCoin.honoree,
+      releaseDate: newCoin.release_date,
+      certificationNumber: newCoin.certification_number,
+      gradingService: newCoin.grading_service,
     };
 
     return coin;
@@ -200,15 +249,28 @@ export class CoinService {
       .select(`
         id,
         collection_id,
+        name,
+        title,
         denomination,
         year,
         mint_mark,
         grade,
+        face_value,
         purchase_price,
         purchase_date,
         notes,
         images,
         country,
+        series,
+        series_id,
+        specific_coin_id,
+        specific_coin_name,
+        designer,
+        theme,
+        honoree,
+        release_date,
+        certification_number,
+        grading_service,
         created_at,
         updated_at,
         collections!inner(user_id)
@@ -221,8 +283,8 @@ export class CoinService {
 
     return coins.map(coin => ({
       id: coin.id,
-      name: `${coin.year} ${coin.denomination}`,
-      title: '',
+      name: coin.name || `${coin.year} ${coin.denomination}`,
+      title: coin.title || '',
       year: coin.year,
       mintMark: coin.mint_mark,
       grade: coin.grade,
@@ -249,6 +311,17 @@ export class CoinService {
       obverseImage: coin.images?.[0] || null,
       reverseImage: coin.images?.[1] || null,
       country: coin.country,
+      // Series information
+      series: coin.series,
+      seriesId: coin.series_id,
+      specificCoinId: coin.specific_coin_id,
+      specificCoinName: coin.specific_coin_name,
+      designer: coin.designer,
+      theme: coin.theme,
+      honoree: coin.honoree,
+      releaseDate: coin.release_date,
+      certificationNumber: coin.certification_number,
+      gradingService: coin.grading_service,
     }));
   }
 
@@ -296,6 +369,20 @@ export class CoinService {
     if (updates.purchasePrice !== undefined) updateData.purchase_price = updates.purchasePrice || null;
     if (updates.purchaseDate !== undefined) updateData.purchase_date = updates.purchaseDate || null;
     if (updates.notes !== undefined) updateData.notes = updates.notes || null;
+    if (updates.name !== undefined) updateData.name = updates.name || null;
+    if (updates.title !== undefined) updateData.title = updates.title || null;
+    
+    // Series information
+    if (updates.series !== undefined) updateData.series = updates.series || null;
+    if (updates.seriesId !== undefined) updateData.series_id = updates.seriesId || null;
+    if (updates.specificCoinId !== undefined) updateData.specific_coin_id = updates.specificCoinId || null;
+    if (updates.specificCoinName !== undefined) updateData.specific_coin_name = updates.specificCoinName || null;
+    if (updates.designer !== undefined) updateData.designer = updates.designer || null;
+    if (updates.theme !== undefined) updateData.theme = updates.theme || null;
+    if (updates.honoree !== undefined) updateData.honoree = updates.honoree || null;
+    if (updates.releaseDate !== undefined) updateData.release_date = updates.releaseDate || null;
+    if (updates.certificationNumber !== undefined) updateData.certification_number = updates.certificationNumber || null;
+    if (updates.gradingService !== undefined) updateData.grading_service = updates.gradingService || null;
     
     // Update images array
     updateData.images = [obverseImageUrl, reverseImageUrl].filter(Boolean);
@@ -309,6 +396,8 @@ export class CoinService {
       .select(`
         id,
         collection_id,
+        name,
+        title,
         denomination,
         year,
         mint_mark,
@@ -318,6 +407,16 @@ export class CoinService {
         notes,
         images,
         country,
+        series,
+        series_id,
+        specific_coin_id,
+        specific_coin_name,
+        designer,
+        theme,
+        honoree,
+        release_date,
+        certification_number,
+        grading_service,
         created_at,
         updated_at
       `)
@@ -330,8 +429,8 @@ export class CoinService {
     // Transform database response to match Coin interface
     const coin: Coin = {
       id: updatedCoin.id,
-      name: updates.name || `${updatedCoin.year} ${updatedCoin.denomination}`,
-      title: updates.title || '',
+      name: updatedCoin.name || `${updatedCoin.year} ${updatedCoin.denomination}`,
+      title: updatedCoin.title || '',
       year: updatedCoin.year,
       mintMark: updatedCoin.mint_mark,
       grade: updatedCoin.grade,
@@ -358,6 +457,17 @@ export class CoinService {
       obverseImage: obverseImageUrl,
       reverseImage: reverseImageUrl,
       country: updatedCoin.country,
+      // Series information
+      series: updatedCoin.series,
+      seriesId: updatedCoin.series_id,
+      specificCoinId: updatedCoin.specific_coin_id,
+      specificCoinName: updatedCoin.specific_coin_name,
+      designer: updatedCoin.designer,
+      theme: updatedCoin.theme,
+      honoree: updatedCoin.honoree,
+      releaseDate: updatedCoin.release_date,
+      certificationNumber: updatedCoin.certification_number,
+      gradingService: updatedCoin.grading_service,
     };
 
     return coin;

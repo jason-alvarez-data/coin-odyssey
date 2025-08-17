@@ -1,6 +1,6 @@
 // src/screens/dashboard/DashboardScreen.tsx
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,7 +11,11 @@ import { CoinService } from '../../services/coinService';
 import { DashboardStackScreenProps } from '../../types/navigation';
 import { GeographicService, GeographicData } from '../../services/geographicService';
 import { GoalsService } from '../../services/goalsService';
-import { CollectionGoal } from '../../types/goal';
+import { CollectionGoal, GoalProgress } from '../../types/goal';
+import { NotificationService } from '../../services/notificationService';
+import { useAuth } from '../../hooks/useAuth';
+import { AchievementService } from '../../services/achievementService';
+import { Achievement, RARITY_COLORS } from '../../types/achievement';
 
 type DashboardScreenProps = DashboardStackScreenProps<'DashboardHome'>;
 
@@ -23,13 +27,29 @@ interface CollectionStats {
   recentCoins: Coin[];
 }
 
+interface RecentGoalProgress {
+  goalId: string;
+  goalTitle: string;
+  previousProgress: number;
+  currentProgress: number;
+  newItems: Coin[];
+  timestamp: string;
+}
+
 export default function DashboardScreen({ navigation }: DashboardScreenProps) {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [stats, setStats] = useState<CollectionStats | null>(null);
   const [geographicData, setGeographicData] = useState<GeographicData | null>(null);
   const [goals, setGoals] = useState<CollectionGoal[]>([]);
+  const [recentProgress, setRecentProgress] = useState<RecentGoalProgress[]>([]);
+  const [recentAchievements, setRecentAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Animation values for real-time updates
+  const progressAnimations = useRef(new Map<string, Animated.Value>()).current;
+  const fadeAnimation = useRef(new Animated.Value(1)).current;
 
   const calculateStats = useCallback((coins: Coin[]): CollectionStats => {
     const totalCoins = coins.length;
@@ -62,16 +82,18 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
   const loadDashboardData = useCallback(async () => {
     try {
       // Load all data in parallel for better performance
-      const [coins, geoData, userGoals] = await Promise.all([
+      const [coins, geoData, userGoals, achievementStats] = await Promise.all([
         CoinService.getUserCoins(),
         GeographicService.getGeographicData(),
         GoalsService.getUserGoals(),
+        user?.id ? AchievementService.getAchievementStats(user.id) : Promise.resolve({ recentUnlocked: [] }),
       ]);
 
       const calculatedStats = calculateStats(coins);
       setStats(calculatedStats);
       setGeographicData(geoData);
       setGoals(userGoals);
+      setRecentAchievements(achievementStats.recentUnlocked || []);
 
       // Update goals progress (don't await to avoid blocking UI)
       GoalsService.updateAllGoalsProgress().catch(console.error);
@@ -92,6 +114,87 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
       setRefreshing(false);
     }
   }, [calculateStats]);
+
+  // Handle real-time goal progress updates
+  const handleGoalProgressUpdate = useCallback((progress: GoalProgress) => {
+    setGoals(currentGoals => {
+      const updatedGoals = currentGoals.map(goal => {
+        if (goal.id === progress.goalId) {
+          const previousProgress = (goal.currentCount / goal.targetCount) * 100;
+          const currentProgress = progress.progressPercentage;
+          
+          // Add to recent progress if significant change
+          if (currentProgress > previousProgress) {
+            setRecentProgress(current => {
+              const newProgress: RecentGoalProgress = {
+                goalId: goal.id,
+                goalTitle: goal.title,
+                previousProgress,
+                currentProgress,
+                newItems: [], // Would be populated with actual new items
+                timestamp: new Date().toISOString(),
+              };
+              
+              // Keep only last 5 progress updates
+              const updated = [newProgress, ...current.slice(0, 4)];
+              
+              // Animate the progress update
+              const animValue = progressAnimations.get(goal.id) || new Animated.Value(previousProgress);
+              progressAnimations.set(goal.id, animValue);
+              
+              Animated.timing(animValue, {
+                toValue: currentProgress,
+                duration: 1000,
+                useNativeDriver: false,
+              }).start();
+              
+              // Flash the goal card to indicate update
+              Animated.sequence([
+                Animated.timing(fadeAnimation, {
+                  toValue: 0.7,
+                  duration: 200,
+                  useNativeDriver: true,
+                }),
+                Animated.timing(fadeAnimation, {
+                  toValue: 1,
+                  duration: 200,
+                  useNativeDriver: true,
+                }),
+              ]).start();
+              
+              return updated;
+            });
+          }
+          
+          return {
+            ...goal,
+            currentCount: progress.completedItems.length,
+            isCompleted: progress.progressPercentage >= 100,
+          };
+        }
+        return goal;
+      });
+      
+      return updatedGoals;
+    });
+  }, [progressAnimations, fadeAnimation]);
+
+  // Initialize real-time monitoring
+  useEffect(() => {
+    if (user?.id) {
+      // Initialize notifications
+      NotificationService.initializeNotifications();
+      
+      // Start goal progress monitoring
+      GoalsService.startGoalProgressMonitoring(user.id);
+      GoalsService.setProgressListener(user.id, handleGoalProgressUpdate);
+      
+      // Cleanup on unmount
+      return () => {
+        GoalsService.stopGoalProgressMonitoring(user.id);
+      };
+    }
+  }, [user?.id, handleGoalProgressUpdate]);
 
   useEffect(() => {
     loadDashboardData();
@@ -251,6 +354,109 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
             ))}
           </View>
         </View>
+
+        {/* Real-time Progress Updates */}
+        {recentProgress.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>⚡ Recent Progress</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.progressScrollContainer}
+            >
+              {recentProgress.map((progress, index) => (
+                <Animated.View
+                  key={`${progress.goalId}-${progress.timestamp}`}
+                  style={[
+                    styles.progressUpdateCard,
+                    {
+                      opacity: fadeAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.7, 1],
+                      }),
+                    },
+                  ]}
+                >
+                  <BlurView intensity={60} style={styles.progressUpdateInner}>
+                    <View style={styles.progressUpdateHeader}>
+                      <View style={styles.progressIcon}>
+                        <Text style={styles.progressEmoji}>📈</Text>
+                      </View>
+                      <Text style={styles.progressTitle} numberOfLines={1}>
+                        {progress.goalTitle}
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.progressChange}>
+                      <Text style={styles.progressFromTo}>
+                        {Math.round(progress.previousProgress)}% → {Math.round(progress.currentProgress)}%
+                      </Text>
+                      <View style={styles.progressMiniBar}>
+                        <View 
+                          style={[
+                            styles.progressMiniFill, 
+                            { width: `${progress.currentProgress}%` }
+                          ]} 
+                        />
+                      </View>
+                    </View>
+                    
+                    <Text style={styles.progressTime}>
+                      {new Date(progress.timestamp).toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </Text>
+                  </BlurView>
+                </Animated.View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Recent Achievements */}
+        {recentAchievements.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>🏆 Recent Achievements</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.achievementsScrollContainer}
+            >
+              {recentAchievements.map((achievement) => (
+                <BlurView key={achievement.id} intensity={60} style={[
+                  styles.achievementCard,
+                  { borderColor: RARITY_COLORS[achievement.rarity] }
+                ]}>
+                  <View style={styles.achievementHeader}>
+                    <Text style={styles.achievementIcon}>{achievement.icon}</Text>
+                    <View style={[
+                      styles.rarityBadge,
+                      { backgroundColor: RARITY_COLORS[achievement.rarity] }
+                    ]}>
+                      <Text style={styles.rarityText}>{achievement.rarity.toUpperCase()}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.achievementTitle} numberOfLines={1}>
+                    {achievement.title}
+                  </Text>
+                  <Text style={styles.achievementDescription} numberOfLines={2}>
+                    {achievement.description}
+                  </Text>
+                  <View style={styles.achievementReward}>
+                    <Text style={styles.rewardIcon}>
+                      {achievement.reward.type === 'badge' ? '🏅' : 
+                       achievement.reward.type === 'title' ? '👑' : '⭐'}
+                    </Text>
+                    <Text style={styles.rewardText} numberOfLines={1}>
+                      {achievement.reward.value}
+                    </Text>
+                  </View>
+                </BlurView>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Collection Goals - Separate Section */}
         <View style={styles.section}>
@@ -775,5 +981,125 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: Colors.primary.gold,
     borderRadius: 2,
+  },
+  // Real-time Progress Widget Styles
+  progressScrollContainer: {
+    paddingRight: Spacing.xl,
+  },
+  progressUpdateCard: {
+    marginRight: Spacing.md,
+    width: 200,
+  },
+  progressUpdateInner: {
+    ...GlassmorphismStyles.card,
+    padding: Spacing.md,
+    borderColor: Colors.primary.gold,
+    borderWidth: 1,
+  },
+  progressUpdateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  progressIcon: {
+    width: 24,
+    height: 24,
+    backgroundColor: Colors.primary.gold,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.sm,
+  },
+  progressEmoji: {
+    fontSize: 12,
+  },
+  progressTitle: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    flex: 1,
+  },
+  progressChange: {
+    marginBottom: Spacing.sm,
+  },
+  progressFromTo: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.primary.gold,
+    marginBottom: Spacing.xs,
+  },
+  progressMiniBar: {
+    height: 3,
+    backgroundColor: Colors.background.cardBorder,
+    borderRadius: 1.5,
+    overflow: 'hidden',
+  },
+  progressMiniFill: {
+    height: '100%',
+    backgroundColor: Colors.primary.gold,
+    borderRadius: 1.5,
+  },
+  progressTime: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.tertiary,
+    textAlign: 'right',
+  },
+  // Achievement Widget Styles
+  achievementsScrollContainer: {
+    paddingRight: Spacing.xl,
+  },
+  achievementCard: {
+    ...GlassmorphismStyles.card,
+    marginRight: Spacing.md,
+    width: 160,
+    padding: Spacing.md,
+    borderWidth: 2,
+  },
+  achievementHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.sm,
+  },
+  achievementIcon: {
+    fontSize: 32,
+  },
+  rarityBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  rarityText: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.bold,
+    color: '#000',
+  },
+  achievementTitle: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+  },
+  achievementDescription: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.sm,
+    lineHeight: 16,
+  },
+  achievementReward: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 'auto',
+  },
+  rewardIcon: {
+    fontSize: 16,
+    marginRight: Spacing.xs,
+  },
+  rewardText: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.primary.gold,
+    flex: 1,
   },
 });
