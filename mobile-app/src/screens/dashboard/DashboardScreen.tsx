@@ -8,10 +8,12 @@ import { Colors, Typography, Spacing, GlassmorphismStyles } from '../../styles';
 import { Card } from '../../components/common';
 import { Coin } from '../../types/coin';
 import { CoinService } from '../../services/coinService';
+import { DashboardStackScreenProps } from '../../types/navigation';
+import { GeographicService, GeographicData } from '../../services/geographicService';
+import { GoalsService } from '../../services/goalsService';
+import { CollectionGoal } from '../../types/goal';
 
-interface DashboardScreenProps {
-  navigation: any;
-}
+type DashboardScreenProps = DashboardStackScreenProps<'DashboardHome'>;
 
 interface CollectionStats {
   totalCoins: number;
@@ -24,6 +26,8 @@ interface CollectionStats {
 export default function DashboardScreen({ navigation }: DashboardScreenProps) {
   const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<CollectionStats | null>(null);
+  const [geographicData, setGeographicData] = useState<GeographicData | null>(null);
+  const [goals, setGoals] = useState<CollectionGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -57,9 +61,20 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
 
   const loadDashboardData = useCallback(async () => {
     try {
-      const coins = await CoinService.getUserCoins();
+      // Load all data in parallel for better performance
+      const [coins, geoData, userGoals] = await Promise.all([
+        CoinService.getUserCoins(),
+        GeographicService.getGeographicData(),
+        GoalsService.getUserGoals(),
+      ]);
+
       const calculatedStats = calculateStats(coins);
       setStats(calculatedStats);
+      setGeographicData(geoData);
+      setGoals(userGoals);
+
+      // Update goals progress (don't await to avoid blocking UI)
+      GoalsService.updateAllGoalsProgress().catch(console.error);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       // Set empty stats on error
@@ -70,6 +85,8 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
         yearSpan: 'No coins',
         recentCoins: [],
       });
+      setGeographicData(null);
+      setGoals([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -99,16 +116,20 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
   const handleQuickAction = (action: string) => {
     switch (action) {
       case 'Add Coin':
-        navigation.navigate('AddCoin');
+        // Navigate to Collection tab, then to AddCoin screen
+        navigation.getParent()?.navigate('Collection', { screen: 'AddCoin' });
         break;
       case 'View Collection':
-        navigation.navigate('Collection');
+        // Navigate to Collection tab
+        navigation.getParent()?.navigate('Collection');
         break;
       case 'View Analytics':
-        navigation.navigate('Analytics');
+        // Navigate to Analytics tab
+        navigation.getParent()?.navigate('Analytics');
         break;
       case 'Explore Map':
-        // TODO: Add map functionality
+        // Navigate within the same stack to Map
+        navigation.navigate('Map');
         break;
     }
   };
@@ -164,48 +185,60 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          {[
-            { 
-              value: stats?.totalCoins?.toLocaleString() || '0', 
-              label: 'Total Coins', 
-              icon: '🪙' 
-            },
-            { 
-              value: stats?.totalValue ? formatCurrency(stats.totalValue) : '$0', 
-              label: 'Collection Value', 
-              icon: '💰' 
-            },
-            { 
-              value: stats?.uniqueCountries?.toString() || '0', 
-              label: 'Countries', 
-              icon: '🌍' 
-            },
-            { 
-              value: stats?.yearSpan || 'No coins', 
-              label: 'Year Span', 
-              icon: '📅' 
-            },
-          ].map((stat) => (
-            <BlurView key={stat.label} intensity={60} style={styles.statCard}>
-              <Text style={styles.statIcon}>{stat.icon}</Text>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </BlurView>
-          ))}
+          <View style={styles.statsRow}>
+            {[
+              { 
+                value: stats?.totalCoins?.toLocaleString() || '0', 
+                label: 'Total Coins', 
+                icon: '🪙' 
+              },
+              { 
+                value: stats?.totalValue ? formatCurrency(stats.totalValue) : '$0', 
+                label: 'Collection Value', 
+                icon: '💰' 
+              },
+            ].map((stat) => (
+              <BlurView key={stat.label} intensity={60} style={styles.statCard}>
+                <Text style={styles.statIcon}>{stat.icon}</Text>
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+              </BlurView>
+            ))}
+          </View>
+          <View style={styles.statsRow}>
+            {[
+              { 
+                value: stats?.uniqueCountries?.toString() || '0', 
+                label: 'Countries', 
+                icon: '🌍' 
+              },
+              { 
+                value: stats?.yearSpan || 'No coins', 
+                label: 'Year Span', 
+                icon: '📅' 
+              },
+            ].map((stat) => (
+              <BlurView key={stat.label} intensity={60} style={styles.statCard}>
+                <Text style={styles.statIcon}>{stat.icon}</Text>
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+              </BlurView>
+            ))}
+          </View>
         </View>
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Streamlined */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.actionsGrid}>
+          <View style={styles.actionsRow}>
             {[
               { icon: '➕', label: 'Add Coin' },
-              { icon: '🪙', label: 'View Collection' },
               { icon: '📊', label: 'View Analytics' },
               { icon: '🌍', label: 'Explore Map' },
             ].map((action) => (
               <TouchableOpacity 
                 key={action.label}
+                style={styles.actionCardContainer}
                 onPress={() => handleQuickAction(action.label)}
               >
                 <BlurView intensity={60} style={styles.actionCard}>
@@ -219,6 +252,109 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
           </View>
         </View>
 
+        {/* Collection Goals - Separate Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>🎯 Collection Goals</Text>
+            <TouchableOpacity onPress={() => navigation.getParent()?.navigate('Profile')}>
+              <Text style={styles.sectionAction}>Manage Goals</Text>
+            </TouchableOpacity>
+          </View>
+          {goals.length === 0 ? (
+            <BlurView intensity={60} style={styles.emptyGoalsCard}>
+              <Text style={styles.emptyGoalsIcon}>🎯</Text>
+              <Text style={styles.emptyGoalsTitle}>Set Your First Goal</Text>
+              <Text style={styles.emptyGoalsText}>
+                Create collection goals to track your progress and stay motivated!
+              </Text>
+              <TouchableOpacity 
+                style={styles.createGoalButton}
+                onPress={() => navigation.getParent()?.navigate('Profile')}
+              >
+                <Text style={styles.createGoalButtonText}>Create Goal</Text>
+              </TouchableOpacity>
+            </BlurView>
+          ) : (
+            <View style={styles.goalsContainer}>
+              {goals.slice(0, 2).map((goal) => (
+                <BlurView key={goal.id} intensity={60} style={styles.goalCard}>
+                  <View style={styles.goalHeader}>
+                    <Text style={styles.goalTitle} numberOfLines={1}>
+                      {goal.title}
+                    </Text>
+                    <Text style={styles.goalProgress}>
+                      {goal.currentCount}/{goal.targetCount}
+                    </Text>
+                  </View>
+                  <View style={styles.goalProgressBar}>
+                    <View 
+                      style={[
+                        styles.goalProgressFill, 
+                        { width: `${Math.min((goal.currentCount / goal.targetCount) * 100, 100)}%` }
+                      ]} 
+                    />
+                  </View>
+                  <View style={styles.goalFooter}>
+                    <Text style={styles.goalCategory}>{goal.category.replace('_', ' ')}</Text>
+                    <Text style={styles.goalPercentage}>
+                      {Math.round((goal.currentCount / goal.targetCount) * 100)}%
+                    </Text>
+                  </View>
+                </BlurView>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Geographic Summary */}
+        {geographicData && geographicData.totalCountries > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Geographic Overview</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Map')}>
+                <Text style={styles.sectionAction}>View Map</Text>
+              </TouchableOpacity>
+            </View>
+            <BlurView intensity={60} style={styles.geoCard}>
+              <View style={styles.geoHeader}>
+                <Text style={styles.geoIcon}>🗺️</Text>
+                <View>
+                  <Text style={styles.geoTitle}>World Collection</Text>
+                  <Text style={styles.geoSubtitle}>
+                    {geographicData.totalCountries} countries • {geographicData.totalContinents} continents
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.geoCountries}>
+                {geographicData.continents.slice(0, 3).map((continent) => (
+                  <View key={continent.name} style={styles.geoCountryItem}>
+                    <Text style={styles.geoCountryFlag}>{continent.icon}</Text>
+                    <View>
+                      <Text style={styles.geoCountryName}>{continent.name}</Text>
+                      <Text style={styles.geoCountryCount}>{continent.coins} coins</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+              {geographicData.insights.collectionGoal && (
+                <View style={styles.geoGoal}>
+                  <Text style={styles.geoGoalText}>
+                    Collection Goal: {geographicData.insights.collectionGoal.current}/{geographicData.insights.collectionGoal.target} countries
+                  </Text>
+                  <View style={styles.geoGoalBar}>
+                    <View 
+                      style={[
+                        styles.geoGoalFill, 
+                        { width: `${geographicData.insights.collectionGoal.percentage}%` }
+                      ]} 
+                    />
+                  </View>
+                </View>
+              )}
+            </BlurView>
+          </View>
+        )}
+
         {/* Recent Activity */}
         {stats?.recentCoins && stats.recentCoins.length > 0 && (
           <View style={styles.section}>
@@ -231,7 +367,7 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
                     styles.activityItem,
                     index < stats.recentCoins.length - 1 && styles.activityItemBorder
                   ]}
-                  onPress={() => navigation.navigate('Collection', {
+                  onPress={() => navigation.getParent()?.navigate('Collection', {
                     screen: 'CoinDetail',
                     params: { coin }
                   })}
@@ -268,7 +404,7 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
             </Text>
             <TouchableOpacity 
               style={styles.emptyStateButton}
-              onPress={() => navigation.navigate('AddCoin')}
+              onPress={() => navigation.getParent()?.navigate('Collection', { screen: 'AddCoin' })}
             >
               <Text style={styles.emptyStateButtonText}>Add First Coin</Text>
             </TouchableOpacity>
@@ -307,15 +443,16 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
     marginBottom: Spacing['2xl'],
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
   },
   statCard: {
     ...GlassmorphismStyles.card,
     flex: 1,
-    minWidth: '45%',
     alignItems: 'center',
     paddingVertical: Spacing.xl,
   },
@@ -344,15 +481,30 @@ const styles = StyleSheet.create({
     color: Colors.primary.gold,
     marginBottom: Spacing.lg,
   },
-  actionsGrid: {
+  sectionHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  sectionAction: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.primary.gold,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  actionsGrid: {
+    // Container for action rows
+  },
+  actionsRow: {
+    flexDirection: 'row',
     gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  actionCardContainer: {
+    flex: 1,
   },
   actionCard: {
     ...GlassmorphismStyles.card,
-    flex: 1,
-    minWidth: '45%',
     alignItems: 'center',
     paddingVertical: Spacing.xl,
   },
@@ -467,5 +619,161 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.md,
     marginTop: Spacing.md,
     textAlign: 'center',
+  },
+  // Collection Goals Styles
+  goalsContainer: {
+    gap: Spacing.md,
+  },
+  goalCard: {
+    ...GlassmorphismStyles.card,
+    padding: Spacing.lg,
+  },
+  goalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  goalTitle: {
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  goalProgress: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.primary.gold,
+  },
+  goalProgressBar: {
+    height: 6,
+    backgroundColor: Colors.background.cardBorder,
+    borderRadius: 3,
+    marginBottom: Spacing.md,
+    overflow: 'hidden',
+  },
+  goalProgressFill: {
+    height: '100%',
+    backgroundColor: Colors.primary.gold,
+    borderRadius: 3,
+  },
+  goalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  goalCategory: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+    textTransform: 'capitalize',
+  },
+  goalPercentage: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.primary,
+  },
+  emptyGoalsCard: {
+    ...GlassmorphismStyles.card,
+    alignItems: 'center',
+    paddingVertical: Spacing['2xl'],
+    paddingHorizontal: Spacing.xl,
+  },
+  emptyGoalsIcon: {
+    fontSize: 48,
+    marginBottom: Spacing.lg,
+  },
+  emptyGoalsTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.md,
+    textAlign: 'center',
+  },
+  emptyGoalsText: {
+    fontSize: Typography.fontSize.md,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: Spacing.xl,
+  },
+  createGoalButton: {
+    backgroundColor: Colors.primary.gold,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: 12,
+  },
+  createGoalButtonText: {
+    color: '#000',
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  // Geographic Summary Styles
+  geoCard: {
+    ...GlassmorphismStyles.card,
+    padding: Spacing.lg,
+  },
+  geoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  geoIcon: {
+    fontSize: 32,
+    marginRight: Spacing.md,
+  },
+  geoTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+  },
+  geoSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+  },
+  geoCountries: {
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  geoCountryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+  },
+  geoCountryFlag: {
+    fontSize: 20,
+    marginRight: Spacing.md,
+  },
+  geoCountryName: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+  },
+  geoCountryCount: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+  },
+  geoGoal: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.background.cardBorder,
+    paddingTop: Spacing.md,
+  },
+  geoGoalText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.sm,
+  },
+  geoGoalBar: {
+    height: 4,
+    backgroundColor: Colors.background.cardBorder,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  geoGoalFill: {
+    height: '100%',
+    backgroundColor: Colors.primary.gold,
+    borderRadius: 2,
   },
 });

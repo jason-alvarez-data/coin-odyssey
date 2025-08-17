@@ -7,10 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, GlassmorphismStyles, Spacing } from '../styles';
 import { MainTabParamList } from '../types/navigation';
 
-// Import screens (we'll create these next)
-import DashboardScreen from '../screens/dashboard/DashboardScreen';
+// Import screens and navigators
+import DashboardNavigator from './DashboardNavigator';
 import CollectionNavigator from './CollectionNavigator';
-import CameraScreen from '../screens/camera/CameraScreen';
+import AddCoinScreen from '../screens/collection/AddCoinScreen';
 import AnalyticsScreen from '../screens/analytics/AnalyticsScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 
@@ -26,7 +26,7 @@ const TabBarIcon: React.FC<TabBarIconProps> = ({ routeName, focused }) => {
     switch (name) {
       case 'Dashboard': return '🏠';
       case 'Collection': return '🪙';
-      case 'Camera': return '📸';
+      case 'AddCoin': return '➕';
       case 'Analytics': return '📊';
       case 'Profile': return '👤';
       default: return '•';
@@ -119,7 +119,7 @@ export default function MainTabNavigator() {
     >
       <Tab.Screen 
         name="Dashboard" 
-        component={DashboardScreen}
+        component={DashboardNavigator}
         options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen 
@@ -128,9 +128,9 @@ export default function MainTabNavigator() {
         options={{ tabBarLabel: 'Collection' }}
       />
       <Tab.Screen 
-        name="Camera" 
-        component={CameraScreen}
-        options={{ tabBarLabel: 'Camera' }}
+        name="AddCoin" 
+        component={AddCoinScreen}
+        options={{ tabBarLabel: 'Add Coin' }}
       />
       <Tab.Screen 
         name="Analytics" 
@@ -148,18 +148,15 @@ export default function MainTabNavigator() {
 
 const styles = StyleSheet.create({
   tabBarContainer: {
+    ...GlassmorphismStyles.navigation,
     position: 'absolute',
     left: Spacing.md,
     right: Spacing.md,
     height: 80,
-    borderRadius: 25,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.background.card,
-    borderWidth: 1,
-    borderColor: Colors.background.cardBorder,
   },
   tabItem: {
     flex: 1,

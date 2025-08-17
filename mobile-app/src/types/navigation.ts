@@ -15,11 +15,16 @@ export type AuthStackParamList = {
 };
 
 export type MainTabParamList = {
-  Dashboard: undefined;
+  Dashboard: NavigatorScreenParams<DashboardStackParamList>;
   Collection: NavigatorScreenParams<CollectionStackParamList>;
   AddCoin: undefined;
   Analytics: undefined;
   Profile: undefined;
+};
+
+export type DashboardStackParamList = {
+  DashboardHome: undefined;
+  Map: undefined;
 };
 
 export type CollectionStackParamList = {
@@ -49,5 +54,10 @@ export type MainTabScreenProps<T extends keyof MainTabParamList> = BottomTabScre
 
 export type CollectionStackScreenProps<T extends keyof CollectionStackParamList> = StackScreenProps<
   CollectionStackParamList,
+  T
+>;
+
+export type DashboardStackScreenProps<T extends keyof DashboardStackParamList> = StackScreenProps<
+  DashboardStackParamList,
   T
 >;

@@ -1219,17 +1219,36 @@ describe('CoinCard', () => {
   - [x] Full logout functionality with confirmation dialog
   - [x] Premium styling with gold accents and glassmorphism design
 
-### Phase 4: Advanced Features & Polish (CURRENT - NEXT PHASE) 🔄
-- [ ] **Analytics Dashboard**
-  - [ ] Chart components with gold accents and real collection data
-  - [ ] Interactive data visualization (value trends, acquisition timeline)
-  - [ ] Performance metrics cards (growth rate, most valuable, etc.)
-  - [ ] Export functionality with premium styling
-- [ ] **Advanced Camera Features**
-  - [ ] Multi-angle capture modes (obverse, reverse, edge)
-  - [ ] Barcode scanning overlay for certification labels
-  - [ ] Image enhancement filters and auto-crop
-  - [ ] Batch photography workflow for multiple coins
+### Phase 4: Analytics & Collection Goals ✅ COMPLETED
+- [x] **Analytics Dashboard**
+  - [x] Chart components with gold accents and real collection data
+  - [x] Interactive data visualization (value trends, country distribution)
+  - [x] Performance metrics cards (growth rate, most valuable, top countries)
+  - [x] Custom SVG charts with premium glassmorphism styling
+- [x] **Collection Goals System**
+  - [x] Comprehensive goals data structure and types
+  - [x] Goals service with CRUD operations and progress tracking
+  - [x] Goal templates (US Women's Quarters, State Quarters, Morgan Dollars, etc.)
+  - [x] Custom goal creation with category and priority selection
+  - [x] Dashboard integration with progress visualization
+  - [x] Profile management interface with scrollable templates
+- [x] **Navigation & UI Improvements**
+  - [x] Fixed navigation bar (Camera → Add Coin button)
+  - [x] Fixed glassmorphism overflow issues across all components
+  - [x] Improved button styling and user interactions
+  - [x] Centered goal action buttons and enhanced layouts
+
+### Phase 4.5: Smart Goal Auto-Updates (PLANNED - NEXT PHASE) 📋
+- [ ] **Automated Goal Progress Tracking**
+  - [ ] Real-time coin addition triggers for goal progress updates
+  - [ ] Intelligent goal matching based on coin criteria
+  - [ ] Smart notifications for goal completion and milestones
+  - [ ] Batch progress updates for improved performance
+- [ ] **Advanced Goal Intelligence**
+  - [ ] Machine learning suggestions for new goals based on collection patterns
+  - [ ] Smart goal recommendations when adding coins that match criteria
+  - [ ] Progress predictions and completion estimates
+  - [ ] Achievement system with rewards and badges
 
 ### Phase 5: Optimization & Deployment (Future)
 - [ ] **Performance Optimization**
@@ -1268,6 +1287,246 @@ describe('CoinCard', () => {
 - **Support tickets**: Reduce by 30% with improved UX
 - **Cross-platform usage**: 40% of users using both web and mobile
 - **Market expansion**: 25% increase in total user base
+
+## Smart Goal Auto-Updates Implementation Plan
+
+### Overview
+The goal auto-update system will automatically track user progress toward their collection goals whenever coins are added, edited, or removed from their collection. This creates a dynamic, engaging experience that keeps users motivated and informed about their collecting progress.
+
+### Technical Architecture
+
+#### 1. Database Triggers and Real-Time Updates
+```sql
+-- Auto-update goals when coins are modified
+CREATE OR REPLACE FUNCTION update_goals_on_coin_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Trigger goal updates for the coin owner
+  PERFORM update_user_goals_progress(NEW.user_id);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER coin_goals_update_trigger
+  AFTER INSERT OR UPDATE OR DELETE ON coins
+  FOR EACH ROW
+  EXECUTE FUNCTION update_goals_on_coin_change();
+```
+
+#### 2. Enhanced Goals Service
+```typescript
+// src/services/goalsService.ts
+export class GoalsService {
+  // Real-time goal progress monitoring
+  static async startGoalProgressMonitoring(userId: string) {
+    return supabase
+      .channel(`goals_${userId}`)
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'coins',
+          filter: `user_id=eq.${userId}`
+        },
+        async (payload) => {
+          await this.handleCoinChange(payload, userId);
+        }
+      )
+      .subscribe();
+  }
+
+  // Intelligent goal matching
+  static async handleCoinChange(payload: any, userId: string) {
+    const userGoals = await this.getUserGoals(userId);
+    const affectedGoals = userGoals.filter(goal => 
+      this.coinMatchesGoalCriteria(payload.new, goal)
+    );
+
+    for (const goal of affectedGoals) {
+      await this.updateGoalProgress(goal.id);
+      await this.checkMilestones(goal);
+      await this.sendProgressNotification(goal, payload.new);
+    }
+  }
+
+  // Smart goal suggestions
+  static async suggestGoalsForCoin(coin: Coin): Promise<GoalTemplate[]> {
+    const suggestions: GoalTemplate[] = [];
+    
+    // Analyze coin characteristics
+    if (coin.country === 'United States' && coin.denomination === 'Quarter') {
+      if (coin.year >= 2022 && coin.year <= 2025) {
+        suggestions.push(GOAL_TEMPLATES.find(t => t.id === 'us_women_quarters')!);
+      }
+      if (coin.year >= 1999 && coin.year <= 2008) {
+        suggestions.push(GOAL_TEMPLATES.find(t => t.id === 'state_quarters')!);
+      }
+    }
+
+    return suggestions;
+  }
+}
+```
+
+#### 3. Smart Notification System
+```typescript
+// src/services/notificationService.ts
+export class NotificationService {
+  static async sendGoalProgressNotification(goal: CollectionGoal, newCoin: Coin) {
+    const progressPercentage = (goal.currentCount / goal.targetCount) * 100;
+    
+    if (progressPercentage === 100) {
+      await this.sendGoalCompletionNotification(goal);
+    } else if (this.isMilestone(progressPercentage)) {
+      await this.sendMilestoneNotification(goal, progressPercentage);
+    } else {
+      await this.sendProgressUpdateNotification(goal, newCoin);
+    }
+  }
+
+  static async sendGoalCompletionNotification(goal: CollectionGoal) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '🎉 Goal Completed!',
+        body: `Congratulations! You've completed "${goal.title}"`,
+        sound: 'default',
+        badge: 1,
+      },
+      trigger: null, // Send immediately
+    });
+  }
+
+  static async sendGoalSuggestion(coin: Coin, suggestedGoals: GoalTemplate[]) {
+    if (suggestedGoals.length > 0) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '💡 New Goal Suggestion',
+          body: `Your new ${coin.denomination} could start a "${suggestedGoals[0].title}" collection!`,
+          sound: 'default',
+        },
+        trigger: { seconds: 2 }, // Slight delay
+      });
+    }
+  }
+}
+```
+
+### Implementation Features
+
+#### 1. Real-Time Progress Tracking
+- **Instant Updates**: Goals update immediately when coins are added/removed
+- **Smart Matching**: Advanced criteria matching for complex goal types
+- **Batch Processing**: Efficient handling of multiple coin additions
+- **Progress Persistence**: All progress tracked in database with timestamps
+
+#### 2. Intelligent Goal Recommendations
+- **Pattern Recognition**: Analyze collection patterns to suggest relevant goals
+- **Contextual Suggestions**: Show goal suggestions when adding matching coins
+- **Difficulty Assessment**: Recommend goals based on user's collecting experience
+- **Seasonal Goals**: Suggest timely goals (e.g., holiday commemoratives)
+
+#### 3. Achievement System
+```typescript
+// src/types/achievement.ts
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  criteria: {
+    goalType: 'completion' | 'milestone' | 'streak' | 'speed';
+    requirement: number;
+    timeframe?: string;
+  };
+  reward: {
+    type: 'badge' | 'title' | 'feature';
+    value: string;
+  };
+  unlockedAt?: string;
+}
+
+export const ACHIEVEMENTS: Achievement[] = [
+  {
+    id: 'first_goal_complete',
+    title: 'Goal Getter',
+    description: 'Complete your first collection goal',
+    icon: '🎯',
+    criteria: { goalType: 'completion', requirement: 1 },
+    reward: { type: 'badge', value: 'Goal Getter' }
+  },
+  {
+    id: 'quarter_master',
+    title: 'Quarter Master',
+    description: 'Complete any quarter-based collection goal',
+    icon: '🪙',
+    criteria: { goalType: 'completion', requirement: 1 },
+    reward: { type: 'title', value: 'Quarter Master' }
+  }
+];
+```
+
+#### 4. Enhanced Dashboard Integration
+```typescript
+// Enhanced dashboard goal section
+const GoalProgressWidget = () => {
+  const [recentProgress, setRecentProgress] = useState<GoalProgress[]>([]);
+  
+  useEffect(() => {
+    // Listen for real-time goal updates
+    const subscription = GoalsService.startGoalProgressMonitoring(user.id);
+    
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  return (
+    <BlurView style={styles.goalWidget}>
+      <Text style={styles.widgetTitle}>🎯 Recent Progress</Text>
+      {recentProgress.map(progress => (
+        <View key={progress.goalId} style={styles.progressItem}>
+          <Text style={styles.progressText}>
+            +{progress.newItems.length} toward {progress.goalTitle}
+          </Text>
+          <ProgressBar 
+            progress={progress.percentage} 
+            color={Colors.primary.gold}
+            animated={true}
+          />
+        </View>
+      ))}
+    </BlurView>
+  );
+};
+```
+
+### Implementation Timeline
+
+#### Week 1: Foundation
+- [ ] Database triggers for coin changes
+- [ ] Enhanced GoalsService with real-time monitoring
+- [ ] Basic progress update logic
+
+#### Week 2: Intelligence Layer
+- [ ] Smart goal matching algorithms
+- [ ] Goal suggestion engine
+- [ ] Pattern recognition for recommendations
+
+#### Week 3: Notification System
+- [ ] Push notification setup
+- [ ] Achievement tracking system
+- [ ] Milestone detection and rewards
+
+#### Week 4: UI Integration
+- [ ] Real-time progress widgets
+- [ ] Goal suggestion dialogs
+- [ ] Achievement display system
+
+### Success Metrics
+- **Engagement**: 80% increase in goal creation after auto-suggestions
+- **Completion Rate**: 60% of users complete at least one goal
+- **Retention**: 25% improvement in user retention with active goals
+- **Satisfaction**: 4.8+ rating for goal system features
 
 ## Future Enhancements
 
