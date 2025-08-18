@@ -15,14 +15,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors, Typography, Spacing, GlassmorphismStyles } from '../../styles';
-import { Input, Button } from '../../components/common';
+import { Input, Button, CoinNameSuggestions } from '../../components/common';
 import { Coin } from '../../types/coin';
 import { CoinService } from '../../services/coinService';
 import { CoinSeries, SpecificCoin, COIN_SERIES, getSeriesByCountryAndDenomination, getSeriesById } from '../../types/series';
 import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useDeviceInfo } from '../../utils/deviceUtils';
 
 export default function AddCoinScreen() {
   const navigation = useNavigation();
+  const deviceInfo = useDeviceInfo();
   const [formData, setFormData] = useState({
     name: '',
     title: '',
@@ -64,10 +66,18 @@ export default function AddCoinScreen() {
   const [selectedSeries, setSelectedSeries] = useState<CoinSeries | null>(null);
   const [showSeriesDropdown, setShowSeriesDropdown] = useState(false);
   const [showSpecificCoinDropdown, setShowSpecificCoinDropdown] = useState(false);
+  
+  // Coin name suggestions state
+  const [showCoinSuggestions, setShowCoinSuggestions] = useState(false);
 
   const updateFormData = (field: string, value: string) => {
     setFormData(prev => {
       const newFormData = { ...prev, [field]: value };
+      
+      // Show coin suggestions when typing in the name field
+      if (field === 'name') {
+        setShowCoinSuggestions(value.length >= 2);
+      }
       
       // When country or denomination changes, update available series
       if (field === 'country' || field === 'denomination') {
@@ -122,6 +132,16 @@ export default function AddCoinScreen() {
       name: prev.name || specificCoin.name,
     }));
     setShowSpecificCoinDropdown(false);
+  };
+
+  const handleCoinSuggestionSelect = (suggestion: any) => {
+    setFormData(prev => ({
+      ...prev,
+      name: suggestion.name,
+      // Set country to United States for most PCGS-supported coins
+      country: prev.country || 'United States',
+    }));
+    setShowCoinSuggestions(false);
   };
 
   const requestCameraPermission = async () => {
@@ -303,6 +323,12 @@ export default function AddCoinScreen() {
     }
   };
 
+  const hideAllDropdowns = () => {
+    setShowCoinSuggestions(false);
+    setShowSeriesDropdown(false);
+    setShowSpecificCoinDropdown(false);
+  };
+
   return (
     <LinearGradient 
       colors={Colors.background.primary}
@@ -314,8 +340,12 @@ export default function AddCoinScreen() {
       >
         <ScrollView 
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingHorizontal: deviceInfo.responsive.containerPadding }
+          ]}
           showsVerticalScrollIndicator={false}
+          onScrollBeginDrag={hideAllDropdowns}
         >
           {/* Header */}
           <View style={styles.header}>
@@ -361,17 +391,34 @@ export default function AddCoinScreen() {
           <BlurView intensity={60} style={styles.formSection}>
             <Text style={styles.sectionTitle}>📋 Basic Information</Text>
             
-            <Input
-              label="Coin Name *"
-              placeholder="e.g. Morgan Silver Dollar"
-              value={formData.name}
-              onChangeText={(value) => updateFormData('name', value)}
-              style={styles.input}
-            />
+            <View style={styles.helpCard}>
+              <Text style={styles.helpText}>
+                💡 Tip: Use specific coin names for accurate PCGS pricing data
+              </Text>
+              <Text style={styles.helpSubtext}>
+                Examples: "Morgan Dollar", "Peace Dollar", "American Women Quarter", "Walking Liberty Half"
+                {'\n'}Avoid generic terms like "Commemorative" - be specific about the design or series
+              </Text>
+            </View>
+            
+            <View style={styles.inputWithSuggestions}>
+              <Input
+                label="Coin Name *"
+                placeholder="e.g. American Women Quarter, Morgan Dollar, Walking Liberty Half"
+                value={formData.name}
+                onChangeText={(value) => updateFormData('name', value)}
+                style={styles.input}
+              />
+              <CoinNameSuggestions
+                query={formData.name}
+                onSuggestionSelect={handleCoinSuggestionSelect}
+                visible={showCoinSuggestions}
+              />
+            </View>
 
             <Input
               label="Title/Description"
-              placeholder="e.g. Lady Liberty Head"
+              placeholder="e.g. Sally Ride, Peace Design, 1916-D Key Date"
               value={formData.title}
               onChangeText={(value) => updateFormData('title', value)}
               style={styles.input}
@@ -381,7 +428,7 @@ export default function AddCoinScreen() {
               <View style={styles.gridInput}>
                 <Input
                   label="Year *"
-                  placeholder="1921"
+                  placeholder="e.g. 2022 (just the year)"
                   value={formData.year}
                   onChangeText={(value) => updateFormData('year', value)}
                   keyboardType="numeric"
@@ -391,7 +438,7 @@ export default function AddCoinScreen() {
               <View style={styles.gridInput}>
                 <Input
                   label="Denomination *"
-                  placeholder="Dollar"
+                  placeholder="e.g. Quarter, Dollar, Cent"
                   value={formData.denomination}
                   onChangeText={(value) => updateFormData('denomination', value)}
                 />
@@ -453,7 +500,11 @@ export default function AddCoinScreen() {
                 </Text>
                 <TouchableOpacity 
                   style={styles.dropdown}
-                  onPress={() => setShowSeriesDropdown(!showSeriesDropdown)}
+                  onPress={() => {
+                    setShowCoinSuggestions(false);
+                    setShowSpecificCoinDropdown(false);
+                    setShowSeriesDropdown(!showSeriesDropdown);
+                  }}
                 >
                   <Text style={styles.dropdownText}>
                     {selectedSeries ? selectedSeries.name : 'Select a series...'}
@@ -491,7 +542,11 @@ export default function AddCoinScreen() {
                 <Text style={styles.inputLabel}>Specific Coin</Text>
                 <TouchableOpacity 
                   style={styles.dropdown}
-                  onPress={() => setShowSpecificCoinDropdown(!showSpecificCoinDropdown)}
+                  onPress={() => {
+                    setShowCoinSuggestions(false);
+                    setShowSeriesDropdown(false);
+                    setShowSpecificCoinDropdown(!showSpecificCoinDropdown);
+                  }}
                 >
                   <Text style={styles.dropdownText}>
                     {formData.specificCoinName || 'Select specific coin...'}
@@ -613,7 +668,10 @@ export default function AddCoinScreen() {
             title={loading ? "Saving Coin..." : "Add to Collection"}
             onPress={handleSaveCoin}
             disabled={loading}
-            style={styles.saveButton}
+            style={[
+              styles.saveButton,
+              { height: deviceInfo.adaptiveStyles.form.buttonHeight }
+            ]}
           />
 
           <View style={styles.bottomSpacing} />
@@ -634,7 +692,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.lg,
     paddingTop: 60,
   },
   header: {
@@ -846,5 +903,10 @@ const styles = StyleSheet.create({
   expandedSection: {
     marginBottom: Spacing['3xl'], // Extra space when dropdowns are open
     paddingBottom: Spacing['2xl'],
+  },
+  inputWithSuggestions: {
+    position: 'relative',
+    zIndex: 200, // Higher than dropdown containers
+    marginBottom: Spacing.md,
   },
 });

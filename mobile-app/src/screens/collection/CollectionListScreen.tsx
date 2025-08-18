@@ -12,77 +12,43 @@ import {
   Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
+import { CardBlur } from '../../components/common/OptimizedBlurView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Typography, Spacing, GlassmorphismStyles } from '../../styles';
 import { Input } from '../../components/common';
 import { Coin } from '../../types/coin';
 import { CoinService } from '../../services/coinService';
+import { EnhancedCoinCard } from '../../components/collection/EnhancedCoinCard';
+import { CoinPricingService } from '../../services/coinPricingService';
+import { useCollectionImagePreloader } from '../../hooks/useImagePreloader';
+import { CoinCollectionList } from '../../components/common/VirtualizedList';
+import { MemoryService } from '../../services/memoryService';
+import { useDeviceInfo } from '../../utils/deviceUtils';
 
 interface CollectionListScreenProps {
   navigation: any;
 }
 
-interface CoinCardProps {
-  coin: Coin;
-  onPress: () => void;
-}
-
-const CoinCard = ({ coin, onPress }: CoinCardProps) => (
-  <TouchableOpacity style={styles.coinCard} onPress={onPress}>
-    <BlurView intensity={60} style={styles.cardContainer}>
-      {/* Coin Image */}
-      <View style={styles.imageContainer}>
-        {coin.obverseImage ? (
-          <Image source={{ uri: coin.obverseImage }} style={styles.coinImage} />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <Text style={styles.coinEmoji}>🪙</Text>
-          </View>
-        )}
-        {coin.grade && (
-          <View style={styles.gradeBadge}>
-            <Text style={styles.gradeText}>{coin.grade}</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Coin Info */}
-      <View style={styles.cardInfo}>
-        <Text style={styles.coinTitle} numberOfLines={1}>
-          {coin.year} {coin.denomination}
-        </Text>
-        
-        {coin.country && (
-          <Text style={styles.coinCountry} numberOfLines={1}>
-            {coin.country}
-          </Text>
-        )}
-
-        {coin.mintMark && (
-          <Text style={styles.mintMark}>
-            Mint: {coin.mintMark}
-          </Text>
-        )}
-
-        {coin.purchasePrice && (
-          <Text style={styles.coinValue}>
-            ${coin.purchasePrice.toLocaleString()}
-          </Text>
-        )}
-      </View>
-    </BlurView>
-  </TouchableOpacity>
-);
+// Enhanced coin card is now imported and used below
 
 export default function CollectionListScreen({ navigation }: CollectionListScreenProps) {
   const insets = useSafeAreaInsets();
+  const deviceInfo = useDeviceInfo();
   const [coins, setCoins] = useState<Coin[]>([]);
   const [filteredCoins, setFilteredCoins] = useState<Coin[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
+  const [collectionValue, setCollectionValue] = useState<number>(0);
+
+  // Image preloading for better performance
+  const imagePreloader = useCollectionImagePreloader(filteredCoins, !loading);
+  
+  // Memory management for large collections
+  const memoryService = MemoryService.getInstance();
+  const shouldOptimize = memoryService.shouldOptimizeForLargeCollection(filteredCoins.length);
+  const collectionRecommendations = memoryService.getCollectionSizeRecommendations(filteredCoins.length);
 
   const filters = ['All', 'Recent', 'US Coins', 'High Value', 'Graded'];
 
@@ -91,6 +57,12 @@ export default function CollectionListScreen({ navigation }: CollectionListScree
       const userCoins = await CoinService.getUserCoins();
       setCoins(userCoins);
       setFilteredCoins(userCoins);
+      
+      // Calculate total collection value
+      if (userCoins.length > 0) {
+        const insights = await CoinPricingService.getCollectionInsights(userCoins);
+        setCollectionValue(insights.totalValue);
+      }
     } catch (error) {
       console.error('Error loading coins:', error);
       Alert.alert('Error', 'Failed to load your collection');
@@ -169,7 +141,11 @@ export default function CollectionListScreen({ navigation }: CollectionListScree
   }, [navigation, loading, loadCoins]);
 
   const renderCoinCard = ({ item }: { item: Coin }) => (
-    <CoinCard coin={item} onPress={() => handleCoinPress(item)} />
+    <EnhancedCoinCard 
+      coin={item} 
+      onPress={() => handleCoinPress(item)}
+      compact={false}
+    />
   );
 
   const renderEmptyState = () => (
@@ -191,20 +167,54 @@ export default function CollectionListScreen({ navigation }: CollectionListScree
       <Text style={styles.subtitle}>
         {filteredCoins.length} coin{filteredCoins.length !== 1 ? 's' : ''}
       </Text>
+      {collectionValue > 0 && (
+        <CardBlur style={styles.valueCard}>
+          <Text style={styles.valueLabel}>Estimated Collection Value</Text>
+          <Text style={styles.valueAmount}>
+            ${collectionValue.toLocaleString(undefined, {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0
+            })}
+          </Text>
+          <Text style={styles.valueNote}>
+            Based on current market data
+          </Text>
+        </CardBlur>
+      )}
+      
+      {/* Image preloading progress */}
+      {imagePreloader.isPreloading && (
+        <CardBlur style={styles.progressCard}>
+          <View style={styles.progressRow}>
+            <ActivityIndicator size="small" color={Colors.primary.gold} />
+            <Text style={styles.progressText}>
+              Loading images ({imagePreloader.preloaded}/{imagePreloader.total})
+            </Text>
+          </View>
+          <View style={styles.progressBar}>
+            <View 
+              style={[
+                styles.progressFill,
+                { width: `${imagePreloader.progress * 100}%` }
+              ]} 
+            />
+          </View>
+        </CardBlur>
+      )}
     </View>
   );
 
   const renderSearchAndFilters = () => (
     <View style={styles.searchSection}>
       {/* Search Bar */}
-      <BlurView intensity={60} style={styles.searchContainer}>
+      <CardBlur style={styles.searchContainer}>
         <Input
           placeholder="Search coins..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           style={styles.searchInput}
         />
-      </BlurView>
+      </CardBlur>
 
       {/* Filter Chips */}
       <FlatList
@@ -245,32 +255,43 @@ export default function CollectionListScreen({ navigation }: CollectionListScree
 
   return (
     <LinearGradient colors={Colors.background.primary} style={styles.container}>
-      <FlatList
-        data={filteredCoins}
-        renderItem={renderCoinCard}
-        numColumns={2}
-        contentContainerStyle={[
-          styles.listContainer,
-          { paddingTop: insets.top + 20 }
-        ]}
-        ListHeaderComponent={
-          <View>
-            {renderHeader()}
-            {renderSearchAndFilters()}
-          </View>
-        }
-        ListEmptyComponent={renderEmptyState}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={Colors.primary.gold}
-            colors={[Colors.primary.gold]}
-          />
-        }
-        showsVerticalScrollIndicator={false}
-        columnWrapperStyle={styles.row}
-      />
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 20 }]}>
+        {renderHeader()}
+        {renderSearchAndFilters()}
+      </View>
+      
+      {filteredCoins.length === 0 ? (
+        renderEmptyState()
+      ) : shouldOptimize ? (
+        <CoinCollectionList
+          coins={filteredCoins}
+          renderCoin={renderCoinCard}
+          numColumns={deviceInfo.responsive.gridColumns}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
+        />
+      ) : (
+        <FlatList
+          data={filteredCoins}
+          renderItem={renderCoinCard}
+          numColumns={deviceInfo.responsive.gridColumns}
+          contentContainerStyle={[
+            styles.listContainer,
+            { paddingHorizontal: deviceInfo.responsive.containerPadding }
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={Colors.primary.gold}
+              colors={[Colors.primary.gold]}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+          columnWrapperStyle={deviceInfo.responsive.gridColumns > 1 ? styles.row : undefined}
+          key={`${deviceInfo.responsive.gridColumns}-${deviceInfo.orientation}`}
+        />
+      )}
     </LinearGradient>
   );
 }
@@ -278,6 +299,10 @@ export default function CollectionListScreen({ navigation }: CollectionListScree
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  headerContainer: {
+    paddingHorizontal: Spacing.md,
+    zIndex: 1,
   },
   loadingContainer: {
     flex: 1,
@@ -307,6 +332,59 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: Typography.fontSize.md,
     color: Colors.text.secondary,
+    marginBottom: Spacing.md,
+  },
+  valueCard: {
+    ...GlassmorphismStyles.card,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    width: '100%',
+    marginTop: Spacing.sm,
+  },
+  valueLabel: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.xs,
+  },
+  valueAmount: {
+    fontSize: Typography.fontSize['2xl'],
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.primary.gold,
+    marginBottom: Spacing.xs,
+  },
+  valueNote: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.tertiary,
+    fontStyle: 'italic',
+  },
+  progressCard: {
+    ...GlassmorphismStyles.card,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    width: '100%',
+    marginTop: Spacing.sm,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  progressText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    marginLeft: Spacing.sm,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: Colors.background.cardBorder,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.primary.gold,
+    borderRadius: 2,
   },
   searchSection: {
     marginBottom: Spacing.lg,
@@ -345,70 +423,6 @@ const styles = StyleSheet.create({
   row: {
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.xs,
-  },
-  coinCard: {
-    width: '48%',
-    marginBottom: Spacing.md,
-  },
-  cardContainer: {
-    ...GlassmorphismStyles.card,
-    overflow: 'hidden',
-  },
-  imageContainer: {
-    height: 120,
-    position: 'relative',
-  },
-  coinImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  imagePlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.background.card,
-  },
-  coinEmoji: {
-    fontSize: 48,
-  },
-  gradeBadge: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    backgroundColor: Colors.primary.gold,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  gradeText: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.bold,
-    color: '#000',
-  },
-  cardInfo: {
-    padding: Spacing.md,
-  },
-  coinTitle: {
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.xs,
-  },
-  coinCountry: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.xs,
-  },
-  mintMark: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.text.tertiary,
-    marginBottom: Spacing.xs,
-  },
-  coinValue: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary.gold,
   },
   emptyState: {
     alignItems: 'center',
