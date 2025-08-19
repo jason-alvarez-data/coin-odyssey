@@ -8,6 +8,9 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "scheme": "coin-odyssey",
+    "description": "Professional coin collection management for numismatists. Track, organize, and analyze your coin collection with premium features.",
+    "keywords": ["coin", "collecting", "numismatics", "collection", "management", "tracker", "catalog"],
+    "privacy": "public",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -26,7 +29,10 @@
         "NSLocationWhenInUseUsageDescription": "This app needs location access to find coin shops and shows near you."
       },
       "entitlements": {
-        "aps-environment": "development"
+        "aps-environment": "production"
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {

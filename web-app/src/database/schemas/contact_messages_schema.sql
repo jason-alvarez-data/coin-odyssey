@@ -36,7 +36,7 @@ BEGIN
     NEW.updated_at = now();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ language 'plpgsql' SECURITY DEFINER SET search_path = public;
 
 -- Trigger to automatically update updated_at
 CREATE TRIGGER update_contact_messages_updated_at 

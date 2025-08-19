@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS public.collection_goals (
 CREATE INDEX IF NOT EXISTS idx_collection_goals_user_id ON public.collection_goals(user_id);
 CREATE INDEX IF NOT EXISTS idx_collection_goals_goal_type ON public.collection_goals(goal_type);
 CREATE INDEX IF NOT EXISTS idx_collection_goals_category ON public.collection_goals(category);
-CREATE INDEX IF NOT EXISTS idx_collection_goals_completed ON public.collection_goals(is_completed);
+CREATE INDEX IF NOT EXISTS idx_collection_goals_is_completed ON public.collection_goals(is_completed);
 CREATE INDEX IF NOT EXISTS idx_collection_goals_created_at ON public.collection_goals(created_at DESC);
 
 -- Enable Row Level Security (RLS)
@@ -52,19 +52,19 @@ ALTER TABLE public.collection_goals ENABLE ROW LEVEL SECURITY;
 -- RLS Policies
 -- Users can only see their own goals
 CREATE POLICY "Users can view their own goals" ON public.collection_goals
-    FOR SELECT USING (auth.uid() = user_id);
+    FOR SELECT USING ((SELECT auth.uid()) = user_id);
 
 -- Users can insert their own goals
 CREATE POLICY "Users can insert their own goals" ON public.collection_goals
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
+    FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 
 -- Users can update their own goals
 CREATE POLICY "Users can update their own goals" ON public.collection_goals
-    FOR UPDATE USING (auth.uid() = user_id);
+    FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 
 -- Users can delete their own goals
 CREATE POLICY "Users can delete their own goals" ON public.collection_goals
-    FOR DELETE USING (auth.uid() = user_id);
+    FOR DELETE USING ((SELECT auth.uid()) = user_id);
 
 -- Function to automatically update the updated_at timestamp
 CREATE OR REPLACE FUNCTION update_collection_goals_updated_at()
@@ -73,7 +73,7 @@ BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Trigger to automatically update updated_at on changes
 CREATE TRIGGER update_collection_goals_updated_at

@@ -26,19 +26,19 @@ ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
 
 -- Users can only see their own achievements
 CREATE POLICY "Users can view own achievements" ON user_achievements
-    FOR SELECT USING (auth.uid() = user_id);
+    FOR SELECT USING ((SELECT auth.uid()) = user_id);
 
 -- Users can insert their own achievements
 CREATE POLICY "Users can insert own achievements" ON user_achievements
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
+    FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 
 -- Users can update their own achievements
 CREATE POLICY "Users can update own achievements" ON user_achievements
-    FOR UPDATE USING (auth.uid() = user_id);
+    FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 
 -- Users can delete their own achievements (optional)
 CREATE POLICY "Users can delete own achievements" ON user_achievements
-    FOR DELETE USING (auth.uid() = user_id);
+    FOR DELETE USING ((SELECT auth.uid()) = user_id);
 
 -- Create a function to automatically update the updated_at timestamp
 CREATE OR REPLACE FUNCTION update_user_achievements_updated_at()
@@ -47,7 +47,7 @@ BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Create trigger to automatically update updated_at
 CREATE TRIGGER update_user_achievements_updated_at

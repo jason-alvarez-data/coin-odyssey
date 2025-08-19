@@ -101,6 +101,9 @@ create table collection_shares (
   primary key (collection_id, shared_with_user_id)
 );
 
+-- Index for foreign key performance
+create index idx_collection_shares_shared_with_user_id on collection_shares(shared_with_user_id);
+
 -- Shared Collections RLS Policies
 alter table collection_shares enable row level security;
 

@@ -72,20 +72,20 @@ ALTER TABLE user_consent_history ENABLE ROW LEVEL SECURITY;
 -- RLS Policies for consent preferences
 CREATE POLICY "Users can view their own consent preferences"
   ON user_consent_preferences FOR SELECT
-  USING (auth.uid() = user_id);
+  USING ((SELECT auth.uid()) = user_id);
 
 CREATE POLICY "Users can update their own consent preferences"
   ON user_consent_preferences FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING ((SELECT auth.uid()) = user_id);
 
 CREATE POLICY "Users can insert their own consent preferences"
   ON user_consent_preferences FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK ((SELECT auth.uid()) = user_id);
 
 -- RLS Policies for consent history (read-only for users)
 CREATE POLICY "Users can view their own consent history"
   ON user_consent_history FOR SELECT
-  USING (auth.uid() = user_id);
+  USING ((SELECT auth.uid()) = user_id);
 
 CREATE POLICY "System can insert consent history"
   ON user_consent_history FOR INSERT
@@ -99,7 +99,7 @@ BEGIN
     NEW.consent_updated_at = now();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ language 'plpgsql' SECURITY DEFINER SET search_path = public;
 
 -- Trigger to automatically update updated_at
 CREATE TRIGGER update_user_consent_preferences_updated_at 
@@ -146,7 +146,7 @@ BEGIN
     END IF;
     RETURN NULL;
 END;
-$$ language 'plpgsql';
+$$ language 'plpgsql' SECURITY DEFINER SET search_path = public;
 
 -- Trigger to create history entries
 CREATE TRIGGER create_consent_history_trigger 
@@ -181,7 +181,7 @@ BEGIN
     );
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ language 'plpgsql' SECURITY DEFINER SET search_path = public;
 
 -- Trigger to create default consent preferences for new users
 CREATE TRIGGER create_default_consent_preferences_trigger 
