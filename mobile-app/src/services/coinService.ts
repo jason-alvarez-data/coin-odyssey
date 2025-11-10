@@ -1,6 +1,8 @@
 // src/services/coinService.ts
 import { supabase } from './supabase';
 import { Coin } from '../types/coin';
+import { Logger } from './logger';
+import { ErrorService } from './errorService';
 
 interface CreateCoinData {
   name: string;
@@ -29,44 +31,81 @@ interface CreateCoinData {
   gradingService?: string;
 }
 
+/**
+ * Service for managing coin-related operations
+ * Handles CRUD operations, image uploads, and collection management
+ */
 export class CoinService {
-  // Get or create default collection for user
-  static async getOrCreateDefaultCollection(userId: string) {
-    // First, check if user has a default collection
-    const { data: existingCollections, error: fetchError } = await supabase
-      .from('collections')
-      .select('id')
-      .eq('user_id', userId)
-      .limit(1);
+  /**
+   * Get or create a default collection for a user
+   * If the user already has collections, returns the first one.
+   * Otherwise, creates a new default collection.
+   *
+   * @param userId - The unique identifier for the user
+   * @returns Promise<string> - The collection ID
+   * @throws Error if unable to fetch or create collection
+   *
+   * @example
+   * const collectionId = await CoinService.getOrCreateDefaultCollection(user.id);
+   */
+  static async getOrCreateDefaultCollection(userId: string): Promise<string> {
+    try {
+      // First, check if user has a default collection
+      const { data: existingCollections, error: fetchError } = await supabase
+        .from('collections')
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1);
 
-    if (fetchError) {
-      throw new Error(`Failed to fetch collections: ${fetchError.message}`);
+      if (fetchError) {
+        Logger.error('Failed to fetch collections', fetchError);
+        throw new Error('Unable to access your collections. Please try again.');
+      }
+
+      // If user has collections, use the first one
+      if (existingCollections && existingCollections.length > 0) {
+        return existingCollections[0].id;
+      }
+
+      // Create default collection if none exists
+      const { data: newCollection, error: createError } = await supabase
+        .from('collections')
+        .insert({
+          user_id: userId,
+          name: 'My Coin Collection',
+          description: 'My personal coin collection'
+        })
+        .select('id')
+        .single();
+
+      if (createError) {
+        Logger.error('Failed to create collection', createError);
+        throw new Error('Unable to create your collection. Please try again.');
+      }
+
+      return newCollection.id;
+    } catch (error) {
+      Logger.error('Error in getOrCreateDefaultCollection', error);
+      throw error;
     }
-
-    // If user has collections, use the first one
-    if (existingCollections && existingCollections.length > 0) {
-      return existingCollections[0].id;
-    }
-
-    // Create default collection if none exists
-    const { data: newCollection, error: createError } = await supabase
-      .from('collections')
-      .insert({
-        user_id: userId,
-        name: 'My Coin Collection',
-        description: 'My personal coin collection'
-      })
-      .select('id')
-      .single();
-
-    if (createError) {
-      throw new Error(`Failed to create collection: ${createError.message}`);
-    }
-
-    return newCollection.id;
   }
 
-  // Upload image to Supabase storage
+  /**
+   * Upload a coin image to Supabase storage
+   * Converts the image URI to a blob and uploads to the coin-images bucket
+   *
+   * @param imageUri - Local URI of the image to upload
+   * @param coinId - Unique identifier for the coin (used in filename)
+   * @param side - Which side of the coin ('obverse' or 'reverse')
+   * @returns Promise<string | null> - Public URL of uploaded image, or null on error
+   *
+   * @example
+   * const imageUrl = await CoinService.uploadImage(
+   *   'file:///path/to/image.jpg',
+   *   'coin-123',
+   *   'obverse'
+   * );
+   */
   static async uploadImage(imageUri: string, coinId: string, side: 'obverse' | 'reverse'): Promise<string | null> {
     try {
       // Convert image URI to blob
@@ -86,7 +125,7 @@ export class CoinService {
         });
 
       if (error) {
-        console.error('Image upload error:', error);
+        Logger.error('Image upload failed', { error: error.message });
         return null;
       }
 
@@ -97,152 +136,184 @@ export class CoinService {
 
       return urlData.publicUrl;
     } catch (error) {
-      console.error('Error uploading image:', error);
+      Logger.error('Error uploading image', error);
       return null;
     }
   }
 
-  // Create a new coin
+  /**
+   * Create a new coin in the user's collection
+   * Handles authentication, collection creation, image uploads, and database insertion
+   *
+   * @param coinData - The coin data to create
+   * @returns Promise<Coin> - The created coin with all fields populated
+   * @throws Error if user not authenticated or unable to save coin
+   *
+   * @example
+   * const newCoin = await CoinService.createCoin({
+   *   name: 'Morgan Dollar',
+   *   year: 1921,
+   *   denomination: 'Dollar',
+   *   purchasePrice: 45.00,
+   * });
+   */
   static async createCoin(coinData: CreateCoinData): Promise<Coin> {
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error('User not authenticated');
+    try {
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        Logger.error('User not authenticated', userError);
+        throw new Error('You must be signed in to add coins to your collection.');
+      }
+
+      // Get or create default collection
+      const collectionId = await this.getOrCreateDefaultCollection(user.id);
+
+      // Generate temporary coin ID for image upload
+      const tempCoinId = `temp_${Date.now()}`;
+
+      // Upload images if provided
+      let obverseImageUrl = null;
+      let reverseImageUrl = null;
+
+      if (coinData.obverseImage) {
+        obverseImageUrl = await this.uploadImage(coinData.obverseImage, tempCoinId, 'obverse');
+      }
+
+      if (coinData.reverseImage) {
+        reverseImageUrl = await this.uploadImage(coinData.reverseImage, tempCoinId, 'reverse');
+      }
+
+      // Prepare coin data for database
+      const dbCoinData = {
+        collection_id: collectionId,
+        name: coinData.name,
+        title: coinData.title || null,
+        denomination: coinData.denomination,
+        year: coinData.year,
+        mint_mark: coinData.mintMark || null,
+        grade: coinData.grade || null,
+        face_value: coinData.faceValue || null,
+        purchase_price: coinData.purchasePrice || null,
+        purchase_date: coinData.purchaseDate || null,
+        notes: coinData.notes || null,
+        country: coinData.country || null,
+        // Series information
+        series: coinData.series || null,
+        series_id: coinData.seriesId || null,
+        specific_coin_id: coinData.specificCoinId || null,
+        specific_coin_name: coinData.specificCoinName || null,
+        designer: coinData.designer || null,
+        theme: coinData.theme || null,
+        honoree: coinData.honoree || null,
+        release_date: coinData.releaseDate || null,
+        certification_number: coinData.certificationNumber || null,
+        grading_service: coinData.gradingService || null,
+        // Store images in array format for compatibility
+        images: [obverseImageUrl, reverseImageUrl].filter(Boolean),
+      };
+
+      // Insert coin into database
+      const { data: newCoin, error: insertError } = await supabase
+        .from('coins')
+        .insert(dbCoinData)
+        .select(`
+          id,
+          collection_id,
+          name,
+          title,
+          denomination,
+          year,
+          mint_mark,
+          grade,
+          face_value,
+          purchase_price,
+          purchase_date,
+          notes,
+          images,
+          country,
+          series,
+          series_id,
+          specific_coin_id,
+          specific_coin_name,
+          designer,
+          theme,
+          honoree,
+          release_date,
+          certification_number,
+          grading_service,
+          created_at,
+          updated_at
+        `)
+        .single();
+
+      if (insertError) {
+        Logger.error('Failed to insert coin into database', insertError);
+        throw new Error('Unable to save your coin. Please check your connection and try again.');
+      }
+
+      // Transform database response to match Coin interface
+      const coin: Coin = {
+        id: newCoin.id,
+        name: newCoin.name || coinData.name,
+        title: newCoin.title || coinData.title || '',
+        year: newCoin.year,
+        mintMark: newCoin.mint_mark,
+        grade: newCoin.grade,
+        faceValue: coinData.faceValue || null,
+        purchasePrice: newCoin.purchase_price,
+        currentMarketValue: null,
+        lastValueUpdate: null,
+        pcgsId: null,
+        createdAt: newCoin.created_at,
+        updatedAt: newCoin.updated_at,
+        userId: user.id,
+        collectionId: newCoin.collection_id,
+        denomination: newCoin.denomination,
+        purchaseDate: newCoin.purchase_date,
+        personalValue: null,
+        lastAppraisalValue: null,
+        lastAppraisalDate: null,
+        mintage: null,
+        rarityScale: null,
+        historicalNotes: null,
+        varietyNotes: null,
+        notes: newCoin.notes,
+        images: newCoin.images,
+        obverseImage: obverseImageUrl,
+        reverseImage: reverseImageUrl,
+        country: newCoin.country,
+        // Series information
+        series: newCoin.series,
+        seriesId: newCoin.series_id,
+        specificCoinId: newCoin.specific_coin_id,
+        specificCoinName: newCoin.specific_coin_name,
+        designer: newCoin.designer,
+        theme: newCoin.theme,
+        honoree: newCoin.honoree,
+        releaseDate: newCoin.release_date,
+        certificationNumber: newCoin.certification_number,
+        gradingService: newCoin.grading_service,
+      };
+
+      return coin;
+    } catch (error) {
+      Logger.error('Failed to create coin', error);
+      throw error;
     }
-
-    // Get or create default collection
-    const collectionId = await this.getOrCreateDefaultCollection(user.id);
-
-    // Generate temporary coin ID for image upload
-    const tempCoinId = `temp_${Date.now()}`;
-
-    // Upload images if provided
-    let obverseImageUrl = null;
-    let reverseImageUrl = null;
-
-    if (coinData.obverseImage) {
-      obverseImageUrl = await this.uploadImage(coinData.obverseImage, tempCoinId, 'obverse');
-    }
-
-    if (coinData.reverseImage) {
-      reverseImageUrl = await this.uploadImage(coinData.reverseImage, tempCoinId, 'reverse');
-    }
-
-    // Prepare coin data for database
-    const dbCoinData = {
-      collection_id: collectionId,
-      name: coinData.name,
-      title: coinData.title || null,
-      denomination: coinData.denomination,
-      year: coinData.year,
-      mint_mark: coinData.mintMark || null,
-      grade: coinData.grade || null,
-      face_value: coinData.faceValue || null,
-      purchase_price: coinData.purchasePrice || null,
-      purchase_date: coinData.purchaseDate || null,
-      notes: coinData.notes || null,
-      country: coinData.country || null,
-      // Series information
-      series: coinData.series || null,
-      series_id: coinData.seriesId || null,
-      specific_coin_id: coinData.specificCoinId || null,
-      specific_coin_name: coinData.specificCoinName || null,
-      designer: coinData.designer || null,
-      theme: coinData.theme || null,
-      honoree: coinData.honoree || null,
-      release_date: coinData.releaseDate || null,
-      certification_number: coinData.certificationNumber || null,
-      grading_service: coinData.gradingService || null,
-      // Store images in array format for compatibility
-      images: [obverseImageUrl, reverseImageUrl].filter(Boolean),
-    };
-
-    // Insert coin into database
-    const { data: newCoin, error: insertError } = await supabase
-      .from('coins')
-      .insert(dbCoinData)
-      .select(`
-        id,
-        collection_id,
-        name,
-        title,
-        denomination,
-        year,
-        mint_mark,
-        grade,
-        face_value,
-        purchase_price,
-        purchase_date,
-        notes,
-        images,
-        country,
-        series,
-        series_id,
-        specific_coin_id,
-        specific_coin_name,
-        designer,
-        theme,
-        honoree,
-        release_date,
-        certification_number,
-        grading_service,
-        created_at,
-        updated_at
-      `)
-      .single();
-
-    if (insertError) {
-      throw new Error(`Failed to create coin: ${insertError.message}`);
-    }
-
-    // Transform database response to match Coin interface
-    const coin: Coin = {
-      id: newCoin.id,
-      name: newCoin.name || coinData.name,
-      title: newCoin.title || coinData.title || '',
-      year: newCoin.year,
-      mintMark: newCoin.mint_mark,
-      grade: newCoin.grade,
-      faceValue: coinData.faceValue || null,
-      purchasePrice: newCoin.purchase_price,
-      currentMarketValue: null,
-      lastValueUpdate: null,
-      pcgsId: null,
-      createdAt: newCoin.created_at,
-      updatedAt: newCoin.updated_at,
-      userId: user.id,
-      collectionId: newCoin.collection_id,
-      denomination: newCoin.denomination,
-      purchaseDate: newCoin.purchase_date,
-      personalValue: null,
-      lastAppraisalValue: null,
-      lastAppraisalDate: null,
-      mintage: null,
-      rarityScale: null,
-      historicalNotes: null,
-      varietyNotes: null,
-      notes: newCoin.notes,
-      images: newCoin.images,
-      obverseImage: obverseImageUrl,
-      reverseImage: reverseImageUrl,
-      country: newCoin.country,
-      // Series information
-      series: newCoin.series,
-      seriesId: newCoin.series_id,
-      specificCoinId: newCoin.specific_coin_id,
-      specificCoinName: newCoin.specific_coin_name,
-      designer: newCoin.designer,
-      theme: newCoin.theme,
-      honoree: newCoin.honoree,
-      releaseDate: newCoin.release_date,
-      certificationNumber: newCoin.certification_number,
-      gradingService: newCoin.grading_service,
-    };
-
-    return coin;
   }
 
-  // Get user's coins
+  /**
+   * Retrieve all coins belonging to the authenticated user
+   * Returns coins ordered by creation date (newest first)
+   *
+   * @returns Promise<Coin[]> - Array of user's coins
+   * @throws Error if unable to fetch coins
+   *
+   * @example
+   * const coins = await CoinService.getUserCoins();
+   * console.log(`You have ${coins.length} coins`);
+   */
   static async getUserCoins(): Promise<Coin[]> {
     const { data: coins, error } = await supabase
       .from('coins')
@@ -325,7 +396,22 @@ export class CoinService {
     }));
   }
 
-  // Update an existing coin
+  /**
+   * Update an existing coin's information
+   * Handles partial updates - only provided fields are updated
+   * Can upload new images if provided
+   *
+   * @param coinId - The unique identifier of the coin to update
+   * @param updates - Partial coin data with fields to update
+   * @returns Promise<Coin> - The updated coin
+   * @throws Error if user not authenticated or unable to update coin
+   *
+   * @example
+   * const updatedCoin = await CoinService.updateCoin('coin-123', {
+   *   grade: 'MS-65',
+   *   purchasePrice: 50.00,
+   * });
+   */
   static async updateCoin(coinId: string, updates: Partial<CreateCoinData>): Promise<Coin> {
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -358,9 +444,37 @@ export class CoinService {
       if (newReverseUrl) reverseImageUrl = newReverseUrl;
     }
 
-    // Prepare update data
-    const updateData: any = {};
-    
+    // Prepare update data with proper typing
+    interface UpdateData {
+      year?: number;
+      denomination?: string;
+      country?: string | null;
+      mint_mark?: string | null;
+      grade?: string | null;
+      purchase_price?: number | null;
+      purchase_date?: string | null;
+      notes?: string | null;
+      name?: string | null;
+      title?: string | null;
+      series?: string | null;
+      series_id?: string | null;
+      specific_coin_id?: string | null;
+      specific_coin_name?: string | null;
+      designer?: string | null;
+      theme?: string | null;
+      honoree?: string | null;
+      release_date?: string | null;
+      certification_number?: string | null;
+      grading_service?: string | null;
+      images: string[];
+      updated_at: string;
+    }
+
+    const updateData: UpdateData = {
+      images: [obverseImageUrl, reverseImageUrl].filter((url): url is string => Boolean(url)),
+      updated_at: new Date().toISOString(),
+    };
+
     if (updates.year !== undefined) updateData.year = updates.year;
     if (updates.denomination !== undefined) updateData.denomination = updates.denomination;
     if (updates.country !== undefined) updateData.country = updates.country || null;
@@ -371,7 +485,7 @@ export class CoinService {
     if (updates.notes !== undefined) updateData.notes = updates.notes || null;
     if (updates.name !== undefined) updateData.name = updates.name || null;
     if (updates.title !== undefined) updateData.title = updates.title || null;
-    
+
     // Series information
     if (updates.series !== undefined) updateData.series = updates.series || null;
     if (updates.seriesId !== undefined) updateData.series_id = updates.seriesId || null;
@@ -383,10 +497,6 @@ export class CoinService {
     if (updates.releaseDate !== undefined) updateData.release_date = updates.releaseDate || null;
     if (updates.certificationNumber !== undefined) updateData.certification_number = updates.certificationNumber || null;
     if (updates.gradingService !== undefined) updateData.grading_service = updates.gradingService || null;
-    
-    // Update images array
-    updateData.images = [obverseImageUrl, reverseImageUrl].filter(Boolean);
-    updateData.updated_at = new Date().toISOString();
 
     // Update coin in database
     const { data: updatedCoin, error: updateError } = await supabase
@@ -473,7 +583,17 @@ export class CoinService {
     return coin;
   }
 
-  // Delete a coin
+  /**
+   * Delete a coin from the database
+   * This operation is permanent and cannot be undone
+   *
+   * @param coinId - The unique identifier of the coin to delete
+   * @returns Promise<void>
+   * @throws Error if unable to delete coin
+   *
+   * @example
+   * await CoinService.deleteCoin('coin-123');
+   */
   static async deleteCoin(coinId: string): Promise<void> {
     const { error } = await supabase
       .from('coins')

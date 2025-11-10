@@ -2,6 +2,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, GlassmorphismStyles, Spacing } from '../styles';
@@ -22,7 +23,7 @@ interface TabBarIconProps {
 }
 
 const TabBarIcon: React.FC<TabBarIconProps> = ({ routeName, focused }) => {
-  const getIcon = (name: string) => {
+  const getIcon = (name: string): string => {
     switch (name) {
       case 'Dashboard': return '🏠';
       case 'Collection': return '🪙';
@@ -43,32 +44,26 @@ const TabBarIcon: React.FC<TabBarIconProps> = ({ routeName, focused }) => {
   );
 };
 
-interface CustomTabBarProps {
-  state: any;
-  descriptors: any;
-  navigation: any;
-}
-
-const CustomTabBar: React.FC<CustomTabBarProps> = ({ state, descriptors, navigation }) => {
+const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
   const insets = useSafeAreaInsets();
 
   return (
-    <BlurView 
-      intensity={80} 
+    <BlurView
+      intensity={80}
       style={[
         styles.tabBarContainer,
-        { 
+        {
           bottom: insets.bottom + 10,
           paddingBottom: Math.max(insets.bottom / 2, 8),
         }
       ]}
     >
-      {state.routes.map((route: any, index: number) => {
+      {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
-        const label = options.tabBarLabel !== undefined 
-          ? options.tabBarLabel 
-          : options.title !== undefined 
-          ? options.title 
+        const label: string = options.tabBarLabel !== undefined
+          ? String(options.tabBarLabel)
+          : options.title !== undefined
+          ? String(options.title)
           : route.name;
 
         const isFocused = state.index === index;

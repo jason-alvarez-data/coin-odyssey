@@ -1,11 +1,11 @@
 // src/screens/collection/AddCoinScreen.tsx
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   Alert,
   Image,
   KeyboardAvoidingView,
@@ -21,6 +21,8 @@ import { CoinService } from '../../services/coinService';
 import { CoinSeries, SpecificCoin, COIN_SERIES, getSeriesByCountryAndDenomination, getSeriesById } from '../../types/series';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useDeviceInfo } from '../../utils/deviceUtils';
+import { Logger } from '../../services/logger';
+import { ErrorService, showSuccess } from '../../services/errorService';
 
 export default function AddCoinScreen() {
   const navigation = useNavigation();
@@ -84,7 +86,11 @@ export default function AddCoinScreen() {
         if (newFormData.country && newFormData.denomination) {
           const series = getSeriesByCountryAndDenomination(newFormData.country, newFormData.denomination);
           setAvailableSeries(series);
-          console.log(`Found ${series.length} series for ${newFormData.country} ${newFormData.denomination}:`, series.map(s => s.name));
+          Logger.debug(`Found ${series.length} series`, {
+            country: newFormData.country,
+            denomination: newFormData.denomination,
+            series: series.map(s => s.name)
+          });
         } else {
           setAvailableSeries([]);
         }
@@ -227,7 +233,9 @@ export default function AddCoinScreen() {
 
       // Save coin to Supabase
       const newCoin = await CoinService.createCoin(coinData);
-      
+
+      Logger.info('Coin created successfully', { coinId: newCoin.id, name: formData.name });
+
       Alert.alert('Success!', `${formData.name} has been added to your collection!`, [
         {
           text: 'Add Another',
@@ -309,15 +317,15 @@ export default function AddCoinScreen() {
               setShowSpecificCoinDropdown(false);
               setImages({ obverse: null, reverse: null });
             } catch (error) {
-              console.log('Navigation error:', error);
+              Logger.warn('Navigation error after coin creation', error);
               Alert.alert('Success!', 'Coin added successfully! You can view it in the Collection tab.');
             }
           }
         }
       ]);
     } catch (error) {
-      Alert.alert('Error', 'Failed to save coin. Please try again.');
-      console.error('Save coin error:', error);
+      Logger.error('Failed to save coin', error);
+      ErrorService.showError(error, 'saving your coin');
     } finally {
       setLoading(false);
     }

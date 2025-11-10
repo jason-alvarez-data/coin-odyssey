@@ -38,6 +38,13 @@ export interface PerformanceRecommendations {
   maxConcurrentAnimations: number;
 }
 
+/**
+ * Service for monitoring and optimizing app performance
+ * Tracks device capabilities, render metrics, memory usage, and provides
+ * adaptive recommendations based on device performance tier
+ *
+ * @singleton
+ */
 export class PerformanceService {
   private static instance: PerformanceService;
   private metrics: Partial<PerformanceMetrics> = {};
@@ -47,6 +54,10 @@ export class PerformanceService {
   private animationStartTime: number = 0;
   private frameCallbacks: (() => void)[] = [];
 
+  /**
+   * Get the singleton instance of PerformanceService
+   * @returns {PerformanceService} The service instance
+   */
   static getInstance(): PerformanceService {
     if (!PerformanceService.instance) {
       PerformanceService.instance = new PerformanceService();
@@ -64,7 +75,18 @@ export class PerformanceService {
   }
 
   /**
-   * Detect device capabilities and performance tier
+   * Detect device capabilities and assign performance tier
+   * Uses screen resolution and pixel density to estimate device performance
+   *
+   * Algorithm:
+   * - totalPixels = width × height × pixelDensity
+   * - iOS devices generally get higher tier due to better optimization
+   * - Android varies: high-res screens may struggle more
+   *
+   * Tiers:
+   * - high: Premium devices (iPhone 12+, flagship Android)
+   * - medium: Mid-range devices (iPhone 8-11, mid-tier Android)
+   * - low: Budget devices (older iPhones, low-end Android)
    */
   private detectDeviceCapabilities(): void {
     const { width, height } = Dimensions.get('window');
@@ -246,7 +268,20 @@ export class PerformanceService {
   }
 
   /**
-   * Test blur performance across different intensities
+   * Benchmark blur performance across different intensity levels
+   * Tests intensities from 20 to 100 and returns performance scores
+   *
+   * Scoring:
+   * - 100 = Excellent (< 100ms render time)
+   * - 80-99 = Good (100-200ms)
+   * - 60-79 = Acceptable (200-400ms)
+   * - < 60 = Poor (> 400ms)
+   *
+   * @returns {Promise<Array>} Array of {intensity, score} objects
+   *
+   * @example
+   * const results = await performanceService.testBlurPerformance();
+   * const optimalIntensity = results.find(r => r.score > 80)?.intensity || 40;
    */
   async testBlurPerformance(): Promise<{ intensity: number; score: number }[]> {
     const testIntensities = [20, 40, 60, 80, 100];
@@ -309,7 +344,20 @@ export class PerformanceService {
   }
 
   /**
-   * Get performance recommendations
+   * Get performance recommendations based on current device metrics
+   * Returns adaptive settings for blur intensity, image quality, animations, etc.
+   *
+   * Decision Logic:
+   * - Device tier (high/medium/low) sets base values
+   * - Memory pressure adjusts downward if needed
+   * - Frame time affects animation duration
+   *
+   * @returns {PerformanceRecommendations} Optimized settings for current device
+   *
+   * @example
+   * const recommendations = performanceService.getRecommendations();
+   * setBlurIntensity(recommendations.blurIntensity);
+   * setImageQuality(recommendations.imageQuality);
    */
   getRecommendations(): PerformanceRecommendations {
     const deviceTier = this.metrics.deviceInfo?.estimatedPerformanceTier || 'medium';
