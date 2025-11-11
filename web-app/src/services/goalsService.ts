@@ -271,9 +271,30 @@ export class GoalsService {
     const completedItems: string[] = [];
     const missingItems: string[] = [];
 
-    // Filter coins based on goal criteria
-    const matchingCoins = coins.filter(coin => this.coinMatchesCriteria(coin, goal.criteria));
+    // Debug logging
+    console.log('=== Goal Progress Calculation Debug ===');
+    console.log('Goal:', goal.title);
+    console.log('Goal Criteria:', goal.criteria);
+    console.log('Total coins to check:', coins.length);
 
+    // Filter coins based on goal criteria
+    const matchingCoins = coins.filter(coin => {
+      const matches = this.coinMatchesCriteria(coin, goal.criteria);
+      // Log each coin check for debugging
+      if (goal.criteria.series && goal.criteria.series.toLowerCase().includes('women')) {
+        console.log('Checking coin:', {
+          title: coin.title,
+          year: coin.year,
+          denomination: coin.denomination,
+          country: coin.country,
+          series: coin.series,
+          matches: matches
+        });
+      }
+      return matches;
+    });
+
+    console.log('Matching coins found:', matchingCoins.length);
     completedItems.push(...matchingCoins.map(coin => coin.id));
 
     // For series goals, calculate what's missing
@@ -291,6 +312,13 @@ export class GoalsService {
     const progressPercentage = goal.targetCount > 0
       ? Math.min((completedItems.length / goal.targetCount) * 100, 100)
       : 0;
+
+    console.log('Progress:', {
+      completedItems: completedItems.length,
+      targetCount: goal.targetCount,
+      progressPercentage: progressPercentage
+    });
+    console.log('=== End Debug ===');
 
     return {
       goalId: goal.id,
@@ -345,7 +373,7 @@ export class GoalsService {
 
     // Enhanced mint mark matching
     if (criteria.mintMark && criteria.mintMark.length > 0) {
-      const coinMintMark = (coin.mint_mark || 'P').toUpperCase(); // Default to P for Philadelphia
+      const coinMintMark = (coin.mintMark || 'P').toUpperCase(); // Default to P for Philadelphia
       const normalizedCriteriaMintMarks = criteria.mintMark.map(mm => mm.toUpperCase());
       if (!normalizedCriteriaMintMarks.includes(coinMintMark)) {
         return false;
@@ -368,10 +396,10 @@ export class GoalsService {
     }
 
     // Check value range
-    if (criteria.minValue && coin.purchase_price && coin.purchase_price < criteria.minValue) {
+    if (criteria.minValue && coin.purchasePrice && coin.purchasePrice < criteria.minValue) {
       return false;
     }
-    if (criteria.maxValue && coin.purchase_price && coin.purchase_price > criteria.maxValue) {
+    if (criteria.maxValue && coin.purchasePrice && coin.purchasePrice > criteria.maxValue) {
       return false;
     }
 

@@ -25,8 +25,8 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
 
   return (
     <div
-      className={`bg-white rounded-lg shadow-sm border-2 overflow-hidden transition-all hover:shadow-md ${
-        isUnlocked ? 'border-yellow-400' : 'border-gray-200'
+      className={`bg-[#2a2a2a] rounded-lg shadow-sm border-2 overflow-hidden transition-all hover:shadow-md ${
+        isUnlocked ? 'border-yellow-400' : 'border-gray-600'
       }`}
       style={{
         borderColor: isUnlocked ? rarityColor : undefined,
@@ -50,7 +50,7 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
           {/* Content */}
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-white">
                 {achievement.title}
               </h3>
               {isUnlocked && (
@@ -60,11 +60,11 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
                 />
               )}
               {!isUnlocked && (
-                <LockClosedIcon className="h-5 w-5 text-gray-400" />
+                <LockClosedIcon className="h-5 w-5 text-gray-500" />
               )}
             </div>
 
-            <p className={`text-sm mb-2 ${isUnlocked ? 'text-gray-700' : 'text-gray-500'}`}>
+            <p className={`text-sm mb-2 ${isUnlocked ? 'text-gray-300' : 'text-gray-500'}`}>
               {achievement.description}
             </p>
 
@@ -76,7 +76,7 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
               >
                 {rarityLabel}
               </span>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#353535] text-gray-300">
                 {achievement.category}
               </span>
             </div>
@@ -86,14 +86,14 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
 
       {/* Progress Bar */}
       {!isUnlocked && achievement.progress && (
-        <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
-          <div className="flex justify-between text-sm text-gray-600 mb-2">
+        <div className="px-6 py-3 bg-[#1e1e1e] border-t border-gray-700">
+          <div className="flex justify-between text-sm text-gray-400 mb-2">
             <span>Progress</span>
             <span className="font-medium">
               {achievement.progress.current} / {achievement.progress.required}
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-700 rounded-full h-2">
             <div
               className="h-2 rounded-full transition-all duration-500"
               style={{
@@ -109,12 +109,12 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
       )}
 
       {/* Reward */}
-      <div className="px-6 py-3 bg-gradient-to-r from-yellow-50 to-amber-50 border-t border-yellow-100">
+      <div className="px-6 py-3 bg-gradient-to-r from-yellow-900/20 to-amber-900/20 border-t border-yellow-900/30">
         <div className="flex items-center gap-2 text-sm">
           <span className="text-2xl">{rewardTypeIcon[achievement.reward.type]}</span>
           <div>
-            <span className="text-gray-600">Reward: </span>
-            <span className="font-medium text-gray-900">
+            <span className="text-gray-400">Reward: </span>
+            <span className="font-medium text-yellow-400">
               {achievement.reward.value}
             </span>
             <span className="text-gray-500 text-xs ml-1">
@@ -126,7 +126,7 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
 
       {/* Unlocked Date */}
       {isUnlocked && achievement.unlockedAt && (
-        <div className="px-6 py-2 bg-green-50 border-t border-green-100 text-xs text-green-700">
+        <div className="px-6 py-2 bg-green-900/20 border-t border-green-900/30 text-xs text-green-400">
           Unlocked on {new Date(achievement.unlockedAt).toLocaleDateString()}
         </div>
       )}

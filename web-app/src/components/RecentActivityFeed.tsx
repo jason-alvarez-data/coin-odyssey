@@ -87,12 +87,12 @@ export default function RecentActivityFeed() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-[#2a2a2a] rounded-lg shadow p-6">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-6 bg-gray-700 rounded w-1/3 mb-4"></div>
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              <div key={i} className="h-16 bg-gray-700 rounded"></div>
             ))}
           </div>
         </div>
@@ -101,34 +101,34 @@ export default function RecentActivityFeed() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="px-6 py-4 border-b border-gray-200">
+    <div className="bg-[#2a2a2a] rounded-lg shadow">
+      <div className="px-6 py-4 border-b border-gray-600">
         <div className="flex items-center gap-2">
-          <ClockIcon className="h-5 w-5 text-gray-500" />
-          <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+          <ClockIcon className="h-5 w-5 text-gray-400" />
+          <h2 className="text-lg font-semibold text-white">Recent Activity</h2>
         </div>
-        <p className="text-sm text-gray-600 mt-1">Last 30 days</p>
+        <p className="text-sm text-gray-400 mt-1">Last 30 days</p>
       </div>
 
       {recentCoins.length === 0 ? (
         <div className="px-6 py-12 text-center">
-          <PlusCircleIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-600">No recent activity</p>
+          <PlusCircleIcon className="h-12 w-12 text-gray-500 mx-auto mb-3" />
+          <p className="text-gray-400">No recent activity</p>
           <p className="text-sm text-gray-500 mt-1">Add coins to see them here</p>
         </div>
       ) : (
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-gray-600">
           {recentCoins.map((coin) => (
             <div
               key={coin.id}
-              className="px-6 py-4 hover:bg-gray-50 transition-colors"
+              className="px-6 py-4 hover:bg-[#353535] transition-colors"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">🪙</span>
                     <div>
-                      <h3 className="text-sm font-medium text-gray-900">
+                      <h3 className="text-sm font-medium text-white">
                         {coin.title || `${coin.year} ${coin.denomination}`}
                       </h3>
                       <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
@@ -148,7 +148,7 @@ export default function RecentActivityFeed() {
 
                 <div className="text-right ml-4">
                   {coin.purchase_price && (
-                    <div className="text-sm font-medium text-gray-900">
+                    <div className="text-sm font-medium text-green-400">
                       ${coin.purchase_price.toFixed(2)}
                     </div>
                   )}
@@ -163,8 +163,8 @@ export default function RecentActivityFeed() {
       )}
 
       {recentCoins.length > 0 && (
-        <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-          <div className="text-sm text-gray-600">
+        <div className="px-6 py-3 bg-[#1e1e1e] border-t border-gray-600">
+          <div className="text-sm text-gray-400">
             <span className="font-medium">{recentCoins.length}</span> {recentCoins.length === 1 ? 'coin' : 'coins'} added recently
           </div>
         </div>

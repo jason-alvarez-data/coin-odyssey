@@ -75,14 +75,14 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
   const isFormValid = title.trim() !== '' && targetCount > 0;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#2a2a2a] rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-600">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">Create New Goal</h2>
+        <div className="sticky top-0 bg-[#2a2a2a] border-b border-gray-600 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white">Create New Goal</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-300"
           >
             <XMarkIcon className="h-6 w-6" />
           </button>
@@ -92,23 +92,23 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
           {/* Step 1: Choose Template or Custom */}
           {step === 'choose' && (
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">How would you like to create your goal?</h3>
+              <h3 className="text-lg font-medium text-white mb-4">How would you like to create your goal?</h3>
 
               <div className="space-y-4 mb-6">
                 <button
                   onClick={() => setStep('template')}
-                  className="w-full text-left p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
+                  className="w-full text-left p-6 border-2 border-gray-600 rounded-lg hover:border-blue-500 hover:bg-[#353535] transition-all"
                 >
-                  <h4 className="text-lg font-medium text-gray-900 mb-2">Use a Template</h4>
-                  <p className="text-gray-600">Choose from popular collecting goals with pre-configured settings</p>
+                  <h4 className="text-lg font-medium text-white mb-2">Use a Template</h4>
+                  <p className="text-gray-400">Choose from popular collecting goals with pre-configured settings</p>
                 </button>
 
                 <button
                   onClick={() => setStep('custom')}
-                  className="w-full text-left p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
+                  className="w-full text-left p-6 border-2 border-gray-600 rounded-lg hover:border-blue-500 hover:bg-[#353535] transition-all"
                 >
-                  <h4 className="text-lg font-medium text-gray-900 mb-2">Create Custom Goal</h4>
-                  <p className="text-gray-600">Define your own goal with custom criteria</p>
+                  <h4 className="text-lg font-medium text-white mb-2">Create Custom Goal</h4>
+                  <p className="text-gray-400">Define your own goal with custom criteria</p>
                 </button>
               </div>
             </div>
@@ -119,24 +119,24 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
             <div>
               <button
                 onClick={() => setStep('choose')}
-                className="text-blue-600 hover:text-blue-700 mb-4 flex items-center text-sm"
+                className="text-blue-500 hover:text-blue-400 mb-4 flex items-center text-sm"
               >
                 ← Back
               </button>
 
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Choose a Template</h3>
+              <h3 className="text-lg font-medium text-white mb-4">Choose a Template</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {GOAL_TEMPLATES.map((template) => (
                   <button
                     key={template.id}
                     onClick={() => handleSelectTemplate(template.id)}
-                    className="text-left p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
+                    className="text-left p-4 border-2 border-gray-600 rounded-lg hover:border-blue-500 hover:bg-[#353535] transition-all"
                   >
-                    <h5 className="font-medium text-gray-900 mb-1">{template.title}</h5>
-                    <p className="text-sm text-gray-600 mb-2">{template.description}</p>
+                    <h5 className="font-medium text-white mb-1">{template.title}</h5>
+                    <p className="text-sm text-gray-400 mb-2">{template.description}</p>
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="px-2 py-1 bg-gray-100 rounded">{template.estimatedDifficulty}</span>
+                      <span className="px-2 py-1 bg-[#353535] rounded text-gray-300">{template.estimatedDifficulty}</span>
                       <span className="text-gray-500">{template.estimatedTimeframe}</span>
                       <span className="text-gray-500">{template.targetCount} coins</span>
                     </div>
@@ -154,7 +154,7 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
                   setSelectedTemplate(null);
                   setStep(step === 'template' ? 'template' : 'choose');
                 }}
-                className="text-blue-600 hover:text-blue-700 mb-4 flex items-center text-sm"
+                className="text-blue-500 hover:text-blue-400 mb-4 flex items-center text-sm"
               >
                 ← Back
               </button>
@@ -162,7 +162,7 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
               <div className="space-y-6">
                 {/* Basic Info */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     Goal Title *
                   </label>
                   <input
@@ -170,12 +170,12 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g., Complete State Quarters Collection"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-[#353535] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     Description
                   </label>
                   <textarea
@@ -183,19 +183,19 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Describe your collecting goal..."
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-[#353535] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       Goal Type
                     </label>
                     <select
                       value={goalType}
                       onChange={(e) => setGoalType(e.target.value as GoalType)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 bg-[#353535] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="series_complete">Complete Series</option>
                       <option value="year_range">Year Range</option>
@@ -209,13 +209,13 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       Category
                     </label>
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value as GoalCategory)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 bg-[#353535] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="us_coins">US Coins</option>
                       <option value="world_coins">World Coins</option>
@@ -231,7 +231,7 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       Target Count *
                     </label>
                     <input
@@ -239,18 +239,18 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
                       value={targetCount}
                       onChange={(e) => setTargetCount(parseInt(e.target.value) || 0)}
                       min="1"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 bg-[#353535] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       Priority
                     </label>
                     <select
                       value={priority}
                       onChange={(e) => setPriority(e.target.value as 'low' | 'medium' | 'high')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 bg-[#353535] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
@@ -260,12 +260,12 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
                 </div>
 
                 {/* Criteria */}
-                <div className="border-t pt-6">
-                  <h4 className="text-base font-medium text-gray-900 mb-4">Goal Criteria</h4>
+                <div className="border-t border-gray-600 pt-6">
+                  <h4 className="text-base font-medium text-white mb-4">Goal Criteria</h4>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
                         Country
                       </label>
                       <input
@@ -273,12 +273,12 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
                         value={country}
                         onChange={(e) => setCountry(e.target.value)}
                         placeholder="e.g., United States"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 bg-[#353535] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
                         Denomination (comma separated)
                       </label>
                       <input
@@ -286,12 +286,12 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
                         value={denomination.join(', ')}
                         onChange={(e) => setDenomination(e.target.value.split(',').map(d => d.trim()))}
                         placeholder="e.g., Quarter, Dime"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 bg-[#353535] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
                         Series Name
                       </label>
                       <input
@@ -299,13 +299,13 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
                         value={series}
                         onChange={(e) => setSeries(e.target.value)}
                         placeholder="e.g., American Women Quarters"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 bg-[#353535] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-300 mb-1">
                           Start Year
                         </label>
                         <input
@@ -313,12 +313,12 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
                           value={startYear || ''}
                           onChange={(e) => setStartYear(e.target.value ? parseInt(e.target.value) : undefined)}
                           placeholder="e.g., 2022"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 bg-[#353535] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-300 mb-1">
                           End Year
                         </label>
                         <input
@@ -326,13 +326,13 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
                           value={endYear || ''}
                           onChange={(e) => setEndYear(e.target.value ? parseInt(e.target.value) : undefined)}
                           placeholder="e.g., 2025"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 bg-[#353535] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
                         Mint Marks (comma separated)
                       </label>
                       <input
@@ -340,14 +340,14 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
                         value={mintMarks.join(', ')}
                         onChange={(e) => setMintMarks(e.target.value.split(',').map(m => m.trim()).filter(m => m))}
                         placeholder="e.g., P, D, S"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 bg-[#353535] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     Reward (optional)
                   </label>
                   <input
@@ -355,7 +355,7 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
                     value={reward}
                     onChange={(e) => setReward(e.target.value)}
                     placeholder="e.g., Treat myself to a special coin"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-[#353535] border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
                   />
                 </div>
               </div>
@@ -365,10 +365,10 @@ export default function CreateGoalModal({ onClose, onCreate }: CreateGoalModalPr
 
         {/* Footer */}
         {(step === 'custom' || (step === 'template' && selectedTemplate)) && (
-          <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+          <div className="sticky bottom-0 bg-[#2a2a2a] border-t border-gray-600 px-6 py-4 flex justify-end gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2 text-gray-300 bg-[#353535] border border-gray-600 rounded-md hover:bg-[#404040]"
             >
               Cancel
             </button>

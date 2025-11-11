@@ -32,37 +32,37 @@ export default function GoalCard({ goal, onDelete }: GoalCardProps) {
   };
 
   const categoryColors = {
-    us_coins: 'bg-blue-100 text-blue-800',
-    world_coins: 'bg-purple-100 text-purple-800',
-    ancient_coins: 'bg-amber-100 text-amber-800',
-    modern_coins: 'bg-green-100 text-green-800',
-    commemoratives: 'bg-pink-100 text-pink-800',
-    precious_metals: 'bg-yellow-100 text-yellow-800',
-    paper_money: 'bg-indigo-100 text-indigo-800',
-    general: 'bg-gray-100 text-gray-800',
+    us_coins: 'bg-blue-900/30 text-blue-400',
+    world_coins: 'bg-purple-900/30 text-purple-400',
+    ancient_coins: 'bg-amber-900/30 text-amber-400',
+    modern_coins: 'bg-green-900/30 text-green-400',
+    commemoratives: 'bg-pink-900/30 text-pink-400',
+    precious_metals: 'bg-yellow-900/30 text-yellow-400',
+    paper_money: 'bg-indigo-900/30 text-indigo-400',
+    general: 'bg-gray-700 text-gray-300',
   };
 
   const priorityColors = {
-    low: 'text-gray-500',
-    medium: 'text-yellow-500',
-    high: 'text-red-500',
+    low: 'text-gray-400',
+    medium: 'text-yellow-400',
+    high: 'text-red-400',
   };
 
   const progressPercentage = progress?.progressPercentage || (goal.targetCount > 0 ? (goal.currentCount / goal.targetCount) * 100 : 0);
 
   return (
-    <div className={`bg-white rounded-lg shadow-sm border-2 ${goal.isCompleted ? 'border-green-500' : 'border-gray-200'} p-6 hover:shadow-md transition-shadow`}>
+    <div className={`bg-[#2a2a2a] rounded-lg shadow-sm border-2 ${goal.isCompleted ? 'border-green-500' : 'border-gray-600'} p-6 hover:shadow-md transition-shadow`}>
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">{goal.title}</h3>
+            <h3 className="text-lg font-semibold text-white">{goal.title}</h3>
             {goal.isCompleted && (
               <CheckCircleIcon className="h-6 w-6 text-green-500" />
             )}
           </div>
           {goal.description && (
-            <p className="text-sm text-gray-600 mb-2">{goal.description}</p>
+            <p className="text-sm text-gray-400 mb-2">{goal.description}</p>
           )}
           <div className="flex flex-wrap gap-2">
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${categoryColors[goal.category]}`}>
@@ -86,12 +86,12 @@ export default function GoalCard({ goal, onDelete }: GoalCardProps) {
       {/* Progress Bar */}
       <div className="mb-4">
         <div className="flex justify-between text-sm mb-1">
-          <span className="text-gray-700 font-medium">Progress</span>
-          <span className="text-gray-600">
+          <span className="text-gray-300 font-medium">Progress</span>
+          <span className="text-gray-400">
             {goal.currentCount} / {goal.targetCount} coins
           </span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-3">
+        <div className="w-full bg-gray-700 rounded-full h-3">
           <div
             className={`h-3 rounded-full transition-all duration-500 ${
               goal.isCompleted ? 'bg-green-500' : 'bg-blue-600'
@@ -99,7 +99,7 @@ export default function GoalCard({ goal, onDelete }: GoalCardProps) {
             style={{ width: `${Math.min(progressPercentage, 100)}%` }}
           ></div>
         </div>
-        <div className="mt-1 text-right text-sm text-gray-600">
+        <div className="mt-1 text-right text-sm text-gray-400">
           {progressPercentage.toFixed(1)}%
         </div>
       </div>
@@ -107,19 +107,19 @@ export default function GoalCard({ goal, onDelete }: GoalCardProps) {
       {/* Milestones */}
       {progress && progress.milestones.length > 0 && (
         <div className="mt-4">
-          <p className="text-sm font-medium text-gray-700 mb-2">Milestones</p>
+          <p className="text-sm font-medium text-gray-300 mb-2">Milestones</p>
           <div className="space-y-2">
             {progress.milestones.map((milestone) => (
               <div
                 key={milestone.id}
                 className={`flex items-center text-sm ${
-                  milestone.isCompleted ? 'text-green-600' : 'text-gray-400'
+                  milestone.isCompleted ? 'text-green-400' : 'text-gray-500'
                 }`}
               >
                 {milestone.isCompleted ? (
                   <CheckCircleIcon className="h-4 w-4 mr-2" />
                 ) : (
-                  <div className="h-4 w-4 mr-2 border-2 border-gray-300 rounded-full"></div>
+                  <div className="h-4 w-4 mr-2 border-2 border-gray-600 rounded-full"></div>
                 )}
                 <span>{milestone.title}</span>
               </div>
@@ -129,24 +129,24 @@ export default function GoalCard({ goal, onDelete }: GoalCardProps) {
       )}
 
       {/* Goal Criteria Info */}
-      <div className="mt-4 pt-4 border-t border-gray-200">
+      <div className="mt-4 pt-4 border-t border-gray-600">
         <div className="grid grid-cols-2 gap-2 text-sm">
           {goal.criteria.country && (
             <div>
               <span className="text-gray-500">Country:</span>{' '}
-              <span className="text-gray-900 font-medium">{goal.criteria.country}</span>
+              <span className="text-gray-300 font-medium">{goal.criteria.country}</span>
             </div>
           )}
           {goal.criteria.denomination && goal.criteria.denomination.length > 0 && (
             <div>
               <span className="text-gray-500">Type:</span>{' '}
-              <span className="text-gray-900 font-medium">{goal.criteria.denomination.join(', ')}</span>
+              <span className="text-gray-300 font-medium">{goal.criteria.denomination.join(', ')}</span>
             </div>
           )}
           {goal.criteria.startYear && goal.criteria.endYear && (
             <div>
               <span className="text-gray-500">Years:</span>{' '}
-              <span className="text-gray-900 font-medium">
+              <span className="text-gray-300 font-medium">
                 {goal.criteria.startYear} - {goal.criteria.endYear}
               </span>
             </div>
@@ -154,15 +154,15 @@ export default function GoalCard({ goal, onDelete }: GoalCardProps) {
           {goal.criteria.series && (
             <div className="col-span-2">
               <span className="text-gray-500">Series:</span>{' '}
-              <span className="text-gray-900 font-medium">{goal.criteria.series}</span>
+              <span className="text-gray-300 font-medium">{goal.criteria.series}</span>
             </div>
           )}
         </div>
       </div>
 
       {goal.reward && (
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <p className="text-sm text-yellow-800">
+        <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-700 rounded-md">
+          <p className="text-sm text-yellow-400">
             <span className="font-medium">Reward:</span> {goal.reward}
           </p>
         </div>
@@ -170,23 +170,23 @@ export default function GoalCard({ goal, onDelete }: GoalCardProps) {
 
       {/* Completion Date */}
       {goal.completedAt && (
-        <div className="mt-4 text-sm text-gray-600">
+        <div className="mt-4 text-sm text-gray-400">
           Completed on {new Date(goal.completedAt).toLocaleDateString()}
         </div>
       )}
 
       {/* Delete Confirmation */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Goal?</h3>
-            <p className="text-gray-600 mb-6">
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-[#2a2a2a] rounded-lg p-6 max-w-md mx-4 border border-gray-600">
+            <h3 className="text-lg font-semibold text-white mb-2">Delete Goal?</h3>
+            <p className="text-gray-400 mb-6">
               Are you sure you want to delete "{goal.title}"? This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                className="px-4 py-2 text-gray-300 bg-[#353535] rounded-md hover:bg-[#404040]"
               >
                 Cancel
               </button>
