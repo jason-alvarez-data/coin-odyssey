@@ -28,6 +28,7 @@ export interface Coin {
   obverseImage: string | null;
   reverseImage: string | null;
   country: string | null;
+  series: string | null;
 }
 
 export interface CoinValueHistory {

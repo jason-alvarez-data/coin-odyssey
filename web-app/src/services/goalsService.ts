@@ -410,6 +410,16 @@ export class GoalsService {
   private static coinMatchesSeries(coin: Coin, criteria: GoalCriteria): boolean {
     const normalizedCriteriaSeries = criteria.series!.toLowerCase();
 
+    // Strategy 0: Direct series field match (PRIORITY)
+    const coinSeries = (coin.series || '').toLowerCase();
+    if (coinSeries) {
+      // Check if the coin's series field matches the criteria
+      if (coinSeries.includes(normalizedCriteriaSeries) ||
+          normalizedCriteriaSeries.includes(coinSeries)) {
+        return true;
+      }
+    }
+
     // Strategy 1: Pattern matching based on year and characteristics
     if (normalizedCriteriaSeries.includes('american women quarters') ||
         normalizedCriteriaSeries.includes('women quarters')) {
@@ -424,7 +434,7 @@ export class GoalsService {
       return this.isMorganDollar(coin);
     }
 
-    // Strategy 2: Fall back to partial name matching
+    // Strategy 2: Fall back to partial name matching in title/notes
     const coinTitle = (coin.title || '').toLowerCase();
     const coinNotes = (coin.notes || '').toLowerCase();
 
