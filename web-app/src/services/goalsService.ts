@@ -276,6 +276,15 @@ export class GoalsService {
     console.log('Goal:', goal.title);
     console.log('Goal Criteria:', goal.criteria);
     console.log('Total coins to check:', coins.length);
+    console.log('First coin sample (if exists):', coins[0] ? {
+      title: coins[0].title,
+      year: coins[0].year,
+      denomination: coins[0].denomination,
+      country: coins[0].country,
+      series: coins[0].series,
+      // Check raw fields in case of camelCase issue
+      rawCoin: coins[0]
+    } : 'No coins');
 
     // Filter coins based on goal criteria
     const matchingCoins = coins.filter(coin => {
@@ -288,7 +297,10 @@ export class GoalsService {
           denomination: coin.denomination,
           country: coin.country,
           series: coin.series,
-          matches: matches
+          matches: matches,
+          // Show what the series check is looking for
+          criteriaSeriesLower: goal.criteria.series.toLowerCase(),
+          coinSeriesLower: (coin.series || '').toLowerCase()
         });
       }
       return matches;
