@@ -10,6 +10,8 @@ export default function Navigation() {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: '🏠' },
     { name: 'Collection', path: '/collection', icon: '🪙' },
+    { name: 'Goals', path: '/goals', icon: '🎯' },
+    { name: 'Achievements', path: '/achievements', icon: '🏆' },
     { name: 'Analysis', path: '/analysis', icon: '📊' },
     { name: 'Upload Collection', path: '/upload', icon: '📤' },
     { name: 'Settings', path: '/settings', icon: '⚙️' },

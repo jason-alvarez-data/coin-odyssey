@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Coin } from '../types/coin';
 import ValueResearchModal from './ValueResearchModal';
+import SeriesAutocomplete from './SeriesAutocomplete';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 interface CoinFormProps {
@@ -101,6 +102,23 @@ const CoinForm: React.FC<CoinFormProps> = ({ onSubmit, initialData, isEditing })
               onChange={handleChange}
               className={inputClasses}
               required
+            />
+          </div>
+
+          {/* Series Autocomplete - Full width */}
+          <div className="md:col-span-2">
+            <label className={labelClasses}>
+              Series (Optional)
+              <span className="ml-2 text-sm font-normal text-gray-400">
+                {formData.country && formData.denomination ? '- Suggestions based on country and denomination' : '- Enter country and denomination for suggestions'}
+              </span>
+            </label>
+            <SeriesAutocomplete
+              country={formData.country}
+              denomination={formData.denomination}
+              value={formData.series || ''}
+              onChange={(series) => setFormData(prev => ({ ...prev, series }))}
+              className={inputClasses}
             />
           </div>
         </div>

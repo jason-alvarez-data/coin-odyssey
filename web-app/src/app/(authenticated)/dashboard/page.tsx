@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import WorldMap from '@/components/WorldMap'
 import Header from '@/components/layout/Header'
+import RecentActivityFeed from '@/components/RecentActivityFeed'
 import { getStandardizedCountryName } from '@/utils/countryMappings'
 
 interface DashboardStats {
@@ -163,10 +164,19 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <h2 className="text-xl font-bold text-white mb-4">Collection Map</h2>
-        <div className="grid grid-cols-1 gap-6">
-          <div className="bg-[#2a2a2a] p-6 rounded-lg">
-            <WorldMap collectedCountries={stats.countryDistribution} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Collection Map - Takes 2 columns */}
+          <div className="lg:col-span-2">
+            <h2 className="text-xl font-bold text-white mb-4">Collection Map</h2>
+            <div className="bg-[#2a2a2a] p-6 rounded-lg">
+              <WorldMap collectedCountries={stats.countryDistribution} />
+            </div>
+          </div>
+
+          {/* Recent Activity Feed - Takes 1 column */}
+          <div className="lg:col-span-1">
+            <h2 className="text-xl font-bold text-white mb-4">Recent Activity</h2>
+            <RecentActivityFeed />
           </div>
         </div>
       </div>
