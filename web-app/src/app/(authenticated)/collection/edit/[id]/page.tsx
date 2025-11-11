@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Header from '@/components/layout/Header';
+import SeriesAutocomplete from '@/components/SeriesAutocomplete';
 
 interface Coin {
   id: string;
@@ -18,6 +19,7 @@ interface Coin {
   purchase_date: string | null;
   notes?: string | null;
   country?: string | null;
+  series?: string | null;
   images?: string[] | null;
 }
 
@@ -91,6 +93,7 @@ export default function EditCoinPage() {
           purchase_date: coin.purchase_date,
           notes: coin.notes,
           country: coin.country,
+          series: coin.series,
           images: images.length > 0 ? images : null,
         })
         .eq('id', coin.id);
@@ -321,6 +324,22 @@ export default function EditCoinPage() {
                 className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">
+              Series (Optional)
+              <span className="ml-2 text-xs font-normal text-gray-500">
+                {coin.country && coin.denomination ? '- Suggestions based on country and type' : '- Enter country and type for suggestions'}
+              </span>
+            </label>
+            <SeriesAutocomplete
+              country={coin.country || ''}
+              denomination={coin.denomination || ''}
+              value={coin.series || ''}
+              onChange={(series) => setCoin(prev => prev ? { ...prev, series } : prev)}
+              className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-6">

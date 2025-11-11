@@ -440,12 +440,32 @@ export class GoalsService {
     const year = coin.year;
     const denomination = (coin.denomination || '').toLowerCase();
     const country = (coin.country || '').toLowerCase();
+    const title = (coin.title || '').toLowerCase();
 
-    return (
-      denomination.includes('quarter') &&
-      (country.includes('united states') || country.includes('usa') || country.includes('us')) &&
-      year >= 2022 && year <= 2025
-    );
+    // Check if year and country match
+    const yearMatches = year >= 2022 && year <= 2025;
+    const countryMatches = country.includes('united states') || country.includes('usa') || country.includes('us');
+
+    if (!yearMatches || !countryMatches) {
+      return false;
+    }
+
+    // Check denomination (accept "quarter" or "commemorative" for these special quarters)
+    const denominationMatches = denomination.includes('quarter') ||
+                                 denomination.includes('commemorative') ||
+                                 denomination.includes('25 cent');
+
+    // Also check if title contains known American Women Quarter honorees
+    const womenHonorees = [
+      'maya angelou', 'sally ride', 'wilma mankiller', 'nina otero-warren', 'anna may wong',
+      'bessie coleman', 'eleanor roosevelt', 'jovita idár', 'maria tallchief', 'adelina otero-warren',
+      'edith kanaka', 'patsy takemoto mink', 'zitkála-šá', 'dr. mary edwards walker', 'celia cruz',
+      'harriet tubman', 'mamie till-mobley', 'reverdy johnson', 'pauli murray', 'dr. anna julia cooper'
+    ];
+
+    const titleMatchesWomen = womenHonorees.some(name => title.includes(name));
+
+    return denominationMatches || titleMatchesWomen;
   }
 
   private static isStateQuarter(coin: Coin): boolean {
