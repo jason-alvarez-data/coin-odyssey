@@ -1,9 +1,8 @@
 // src/services/notificationService.ts
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { CollectionGoal, GoalTemplate } from '../types/goal';
+import { CollectionGoal, GoalTemplate, Achievement } from '@coin-collecting/shared';
 import { Coin } from '../types/coin';
-import { Achievement } from '../types/achievement';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({

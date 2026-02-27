@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Transpile shared workspace package
+  transpilePackages: ['@coin-collecting/shared'],
   // Enable static optimization where possible
   reactStrictMode: true,
   // Disable type checking during build for deployment

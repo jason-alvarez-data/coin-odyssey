@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Coin } from '@/types/coin';
+import { Coin } from '@coin-collecting/shared';
 
 interface CollectionTableProps {
   coins: Coin[];

@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import {
   BarChart,
   Bar,
@@ -15,12 +16,24 @@ import {
   AreaChart,
   Area
 } from 'recharts';
+import {
+  BarChart3,
+  TrendingUp,
+  Landmark,
+  Star,
+  CalendarDays,
+  Lightbulb,
+  Trophy,
+  Target
+} from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
-import { 
-  Coin, 
-  calculateFinancialInsights, 
-  calculateCollectionHealth 
+import {
+  Coin,
+  calculateFinancialInsights,
+  calculateCollectionHealth
 } from '@/utils/analyticsUtils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import MetricCard from './MetricCard';
 
 interface BetterDashboardProps {
@@ -48,7 +61,7 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
     }
 
     const totalCoins = coins.length;
-    const totalValue = coins.reduce((sum, coin) => 
+    const totalValue = coins.reduce((sum, coin) =>
       sum + (coin.current_market_value || coin.purchase_price || 0), 0);
     const totalPurchaseValue = coins.reduce((sum, coin) => sum + (coin.purchase_price || 0), 0);
     const totalFaceValue = coins.reduce((sum, coin) => sum + (coin.face_value || 0), 0);
@@ -59,7 +72,7 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
     // Calculate denomination distribution
     const denominationDistribution: { [key: string]: number } = {};
     coins.forEach(coin => {
-      denominationDistribution[coin.denomination] = 
+      denominationDistribution[coin.denomination] =
         (denominationDistribution[coin.denomination] || 0) + 1;
     });
 
@@ -75,9 +88,9 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
     const valueOverTime = coins.map(coin => {
       runningValue += coin.purchase_price || 0;
       return {
-        date: new Date(coin.purchase_date).toLocaleDateString('en-US', { 
-          month: 'short', 
-          year: 'numeric' 
+        date: new Date(coin.purchase_date).toLocaleDateString('en-US', {
+          month: 'short',
+          year: 'numeric'
         }),
         totalValue: runningValue
       };
@@ -86,13 +99,13 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
     // Calculate monthly acquisitions
     const acquisitionsByMonth: { [key: string]: number } = {};
     coins.forEach(coin => {
-      const month = new Date(coin.purchase_date).toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short' 
+      const month = new Date(coin.purchase_date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short'
       });
       acquisitionsByMonth[month] = (acquisitionsByMonth[month] || 0) + 1;
     });
-    
+
     const monthlyAcquisitions = Object.entries(acquisitionsByMonth)
       .map(([month, count]) => ({ month, count }))
       .slice(-12);
@@ -119,15 +132,16 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
   if (coins.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="text-gray-500 text-6xl mb-4">📈</div>
-        <div className="text-white text-2xl mb-2">Ready for Better Analytics</div>
-        <div className="text-gray-400 mb-6">Add some coins to unlock enhanced insights</div>
-        <button 
-          onClick={() => window.location.href = '/dashboard/add'}
-          className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Add Your First Coin
-        </button>
+        <div className="text-muted-foreground mb-4">
+          <TrendingUp className="mx-auto h-16 w-16" />
+        </div>
+        <div className="text-foreground text-2xl mb-2">Ready for Better Analytics</div>
+        <div className="text-muted-foreground mb-6">Add some coins to unlock enhanced insights</div>
+        <Button asChild size="lg">
+          <Link href="/dashboard/add">
+            Add Your First Coin
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -136,7 +150,10 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
     <div className="space-y-8">
       {/* Key Metrics */}
       <div>
-        <h2 className="text-xl font-semibold text-white mb-4">📊 Collection Metrics</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center">
+          <BarChart3 className="mr-2 h-5 w-5" />
+          Collection Metrics
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             title="Total Portfolio Value"
@@ -150,7 +167,7 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
               label: "vs purchase price"
             } : undefined}
           />
-          
+
           <MetricCard
             title="Collection Size"
             value={analytics.totalCoins}
@@ -158,7 +175,7 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
             icon="🪙"
             color="green"
           />
-          
+
           <MetricCard
             title="Average Value"
             value={formatCurrency(analytics.averageValue)}
@@ -166,7 +183,7 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
             icon="📈"
             color="purple"
           />
-          
+
           <MetricCard
             title="Total Investment"
             value={formatCurrency(analytics.totalPurchaseValue)}
@@ -179,7 +196,10 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
 
       {/* Collection Health */}
       <div>
-        <h2 className="text-xl font-semibold text-white mb-4">🎯 Collection Health</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center">
+          <Target className="mr-2 h-5 w-5" />
+          Collection Health
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <MetricCard
             title="Diversification"
@@ -190,7 +210,7 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
             progress={healthMetrics.diversificationScore}
             size="small"
           />
-          
+
           <MetricCard
             title="Quality Score"
             value={`${healthMetrics.qualityIndex.toFixed(0)}/100`}
@@ -200,7 +220,7 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
             progress={healthMetrics.qualityIndex}
             size="small"
           />
-          
+
           <MetricCard
             title="Average Age"
             value={`${healthMetrics.averageAge.toFixed(0)} years`}
@@ -214,234 +234,264 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
 
       {/* Performance Summary */}
       {analytics.totalPurchaseValue > 0 && (
-        <div className="bg-[#2a2a2a] rounded-lg p-6 border border-gray-700">
-          <h3 className="text-white text-lg mb-4 flex items-center">
-            <span className="mr-2">🏆</span>
-            Performance Summary
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-[#1e1e1e] rounded-lg">
-              <div className={`text-2xl font-bold ${
-                financialInsights.totalROI >= 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {financialInsights.totalROI >= 0 ? '+' : ''}{financialInsights.totalROI.toFixed(1)}%
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center">
+              <Trophy className="mr-2 h-5 w-5" />
+              Performance Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className={`text-2xl font-bold ${
+                  financialInsights.totalROI >= 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {financialInsights.totalROI >= 0 ? '+' : ''}{financialInsights.totalROI.toFixed(1)}%
+                </div>
+                <div className="text-sm text-muted-foreground">Total ROI</div>
               </div>
-              <div className="text-sm text-gray-400">Total ROI</div>
-            </div>
-            
-            <div className="text-center p-4 bg-[#1e1e1e] rounded-lg">
-              <div className={`text-2xl font-bold ${
-                financialInsights.totalGainLoss >= 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {financialInsights.totalGainLoss >= 0 ? '+' : ''}{formatCurrency(financialInsights.totalGainLoss)}
+
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className={`text-2xl font-bold ${
+                  financialInsights.totalGainLoss >= 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {financialInsights.totalGainLoss >= 0 ? '+' : ''}{formatCurrency(financialInsights.totalGainLoss)}
+                </div>
+                <div className="text-sm text-muted-foreground">Total Gain/Loss</div>
               </div>
-              <div className="text-sm text-gray-400">Total Gain/Loss</div>
-            </div>
-            
-            <div className="text-center p-4 bg-[#1e1e1e] rounded-lg">
-              <div className="text-2xl font-bold text-blue-400">
-                {financialInsights.investmentEfficiency.toFixed(2)}x
+
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold text-foreground">
+                  {financialInsights.investmentEfficiency.toFixed(2)}x
+                </div>
+                <div className="text-sm text-muted-foreground">Investment Efficiency</div>
               </div>
-              <div className="text-sm text-gray-400">Investment Efficiency</div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Charts */}
       <div className="space-y-6">
         {/* Portfolio Growth */}
-        <div className="bg-[#2a2a2a] rounded-lg p-6 border border-gray-700">
-          <h3 className="text-white text-lg mb-4 flex items-center">
-            <span className="mr-2">📈</span>
-            Portfolio Growth Over Time
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={analytics.valueOverTime}>
-                <defs>
-                  <linearGradient id="valueGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0088FE" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#0088FE" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                <XAxis dataKey="date" stroke="#888" />
-                <YAxis stroke="#888" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#3a3a3a',
-                    border: '1px solid #555',
-                    borderRadius: '8px',
-                    color: '#fff'
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="totalValue"
-                  stroke="#0088FE"
-                  fillOpacity={1}
-                  fill="url(#valueGradient)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center">
+              <TrendingUp className="mr-2 h-5 w-5" />
+              Portfolio Growth Over Time
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={analytics.valueOverTime}>
+                  <defs>
+                    <linearGradient id="valueGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0088FE" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#0088FE" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                  <XAxis dataKey="date" stroke="#888" />
+                  <YAxis stroke="#888" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#3a3a3a',
+                      border: '1px solid #555',
+                      borderRadius: '8px',
+                      color: '#fff'
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="totalValue"
+                    stroke="#0088FE"
+                    fillOpacity={1}
+                    fill="url(#valueGradient)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Distribution Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Denomination Distribution */}
-          <div className="bg-[#2a2a2a] rounded-lg p-6 border border-gray-700">
-            <h3 className="text-white text-lg mb-4 flex items-center">
-              <span className="mr-2">🏛️</span>
-              Denomination Breakdown
-            </h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={Object.entries(analytics.denominationDistribution).map(([denom, count]) => ({
-                      name: denom,
-                      value: count
-                    }))}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    fill="#8884d8"
-                    label={({ name, percent }) => 
-                      percent > 0.05 ? `${name} (${(percent * 100).toFixed(0)}%)` : ''
-                    }
-                  >
-                    {Object.entries(analytics.denominationDistribution).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#3a3a3a',
-                      border: '1px solid #555',
-                      borderRadius: '8px',
-                      color: '#fff'
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Landmark className="mr-2 h-5 w-5" />
+                Denomination Breakdown
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={Object.entries(analytics.denominationDistribution).map(([denom, count]) => ({
+                        name: denom,
+                        value: count
+                      }))}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      fill="#8884d8"
+                      label={({ name, percent }) =>
+                        percent > 0.05 ? `${name} (${(percent * 100).toFixed(0)}%)` : ''
+                      }
+                    >
+                      {Object.entries(analytics.denominationDistribution).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#3a3a3a',
+                        border: '1px solid #555',
+                        borderRadius: '8px',
+                        color: '#fff'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Grade Distribution */}
-          <div className="bg-[#2a2a2a] rounded-lg p-6 border border-gray-700">
-            <h3 className="text-white text-lg mb-4 flex items-center">
-              <span className="mr-2">⭐</span>
-              Grade Distribution
-            </h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={Object.entries(analytics.gradeDistribution).map(([grade, count]) => ({
-                    grade: grade === 'Ungraded' ? 'Ungraded' : grade,
-                    count
-                  }))}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis dataKey="grade" stroke="#888" />
-                  <YAxis stroke="#888" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#3a3a3a',
-                      border: '1px solid #555',
-                      borderRadius: '8px',
-                      color: '#fff'
-                    }}
-                  />
-                  <Bar dataKey="count" fill="#FFBB28" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Star className="mr-2 h-5 w-5" />
+                Grade Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={Object.entries(analytics.gradeDistribution).map(([grade, count]) => ({
+                      grade: grade === 'Ungraded' ? 'Ungraded' : grade,
+                      count
+                    }))}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                    <XAxis dataKey="grade" stroke="#888" />
+                    <YAxis stroke="#888" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#3a3a3a',
+                        border: '1px solid #555',
+                        borderRadius: '8px',
+                        color: '#fff'
+                      }}
+                    />
+                    <Bar dataKey="count" fill="#FFBB28" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Monthly Acquisitions */}
-        <div className="bg-[#2a2a2a] rounded-lg p-6 border border-gray-700">
-          <h3 className="text-white text-lg mb-4 flex items-center">
-            <span className="mr-2">📅</span>
-            Monthly Acquisition Trend
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={analytics.monthlyAcquisitions}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                <XAxis dataKey="month" stroke="#888" />
-                <YAxis stroke="#888" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#3a3a3a',
-                    border: '1px solid #555',
-                    borderRadius: '8px',
-                    color: '#fff'
-                  }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="count" 
-                  stroke="#00C49F" 
-                  strokeWidth={3}
-                  dot={{ fill: '#00C49F', strokeWidth: 2, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center">
+              <CalendarDays className="mr-2 h-5 w-5" />
+              Monthly Acquisition Trend
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={analytics.monthlyAcquisitions}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                  <XAxis dataKey="month" stroke="#888" />
+                  <YAxis stroke="#888" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#3a3a3a',
+                      border: '1px solid #555',
+                      borderRadius: '8px',
+                      color: '#fff'
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#00C49F"
+                    strokeWidth={3}
+                    dot={{ fill: '#00C49F', strokeWidth: 2, r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Quick Insights */}
-      <div className="bg-[#2a2a2a] rounded-lg p-6 border border-gray-700">
-        <h3 className="text-white text-lg mb-4 flex items-center">
-          <span className="mr-2">💡</span>
-          Quick Insights
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 bg-[#1e1e1e] rounded-lg">
-            <h4 className="text-white font-medium mb-2">Collection Span</h4>
-            <p className="text-gray-400 text-sm">
-              Your collection spans {analytics.newestCoin - analytics.oldestCoin + 1} years 
-              ({analytics.oldestCoin} - {analytics.newestCoin})
-            </p>
-          </div>
-          
-          <div className="p-4 bg-[#1e1e1e] rounded-lg">
-            <h4 className="text-white font-medium mb-2">Denomination Variety</h4>
-            <p className="text-gray-400 text-sm">
-              You collect {Object.keys(analytics.denominationDistribution).length} different 
-              types of coins with an average of {(analytics.totalCoins / Object.keys(analytics.denominationDistribution).length).toFixed(1)} 
-              coins per type
-            </p>
-          </div>
-          
-          {healthMetrics.gradedCoinsPercentage < 50 && (
-            <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-              <h4 className="text-blue-400 font-medium mb-2">📈 Opportunity</h4>
-              <p className="text-blue-200 text-sm">
-                Consider getting more coins professionally graded to potentially increase their value
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center">
+            <Lightbulb className="mr-2 h-5 w-5" />
+            Quick Insights
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-muted rounded-lg">
+              <h4 className="text-foreground font-medium mb-2">Collection Span</h4>
+              <p className="text-muted-foreground text-sm">
+                Your collection spans {analytics.newestCoin - analytics.oldestCoin + 1} years
+                ({analytics.oldestCoin} - {analytics.newestCoin})
               </p>
             </div>
-          )}
-          
-          {healthMetrics.diversificationScore > 70 && (
-            <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-              <h4 className="text-green-400 font-medium mb-2">🎯 Well Done</h4>
-              <p className="text-green-200 text-sm">
-                Your collection is well diversified across different denominations and time periods
+
+            <div className="p-4 bg-muted rounded-lg">
+              <h4 className="text-foreground font-medium mb-2">Denomination Variety</h4>
+              <p className="text-muted-foreground text-sm">
+                You collect {Object.keys(analytics.denominationDistribution).length} different
+                types of coins with an average of {(analytics.totalCoins / Object.keys(analytics.denominationDistribution).length).toFixed(1)}
+                coins per type
               </p>
             </div>
-          )}
-        </div>
-      </div>
+
+            {healthMetrics.gradedCoinsPercentage < 50 && (
+              <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <h4 className="text-blue-400 font-medium mb-2 flex items-center">
+                  <TrendingUp className="mr-2 h-4 w-4" />
+                  Opportunity
+                </h4>
+                <p className="text-blue-200 text-sm">
+                  Consider getting more coins professionally graded to potentially increase their value
+                </p>
+              </div>
+            )}
+
+            {healthMetrics.diversificationScore > 70 && (
+              <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <h4 className="text-green-400 font-medium mb-2 flex items-center">
+                  <Target className="mr-2 h-4 w-4" />
+                  Well Done
+                </h4>
+                <p className="text-green-200 text-sm">
+                  Your collection is well diversified across different denominations and time periods
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default BetterDashboard; 
+export default BetterDashboard;

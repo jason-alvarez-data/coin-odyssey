@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
-import { Coin } from '../types/coin';
+import { Coin } from '@coin-collecting/shared';
 import ValueResearchModal from './ValueResearchModal';
 import SeriesAutocomplete from './SeriesAutocomplete';
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 interface CoinFormProps {
   onSubmit: (coin: Partial<Coin>) => void;
@@ -45,242 +51,267 @@ const CoinForm: React.FC<CoinFormProps> = ({ onSubmit, initialData, isEditing })
     }
   };
 
-  const inputClasses = "mt-2 block w-full rounded-lg bg-[#2a2a2a] border-gray-600 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 placeholder-gray-400 py-2.5 px-4 text-base";
-  const labelClasses = "block text-base font-medium text-gray-300";
-  const sectionTitleClasses = "text-xl font-medium text-white mb-6";
-  const hintTextClasses = "mt-2 text-sm text-gray-400";
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {/* Basic Information */}
-      <div>
-        <h3 className={sectionTitleClasses}>Basic Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className={labelClasses}>Title</label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title || ''}
-              onChange={handleChange}
-              className={inputClasses}
-              placeholder="e.g., 1964 Kennedy Half Dollar"
-            />
-          </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Basic Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                type="text"
+                name="title"
+                value={formData.title || ''}
+                onChange={handleChange}
+                placeholder="e.g., 1964 Kennedy Half Dollar"
+              />
+            </div>
 
-          <div>
-            <label className={labelClasses}>Denomination</label>
-            <input
-              type="text"
-              name="denomination"
-              value={formData.denomination || ''}
-              onChange={handleChange}
-              className={inputClasses}
-              placeholder="e.g., Half Dollar"
-              required
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="denomination">Denomination</Label>
+              <Input
+                id="denomination"
+                type="text"
+                name="denomination"
+                value={formData.denomination || ''}
+                onChange={handleChange}
+                placeholder="e.g., Half Dollar"
+                required
+              />
+            </div>
 
-          <div>
-            <label className={labelClasses}>Country</label>
-            <input
-              type="text"
-              name="country"
-              value={formData.country || ''}
-              onChange={handleChange}
-              className={inputClasses}
-              placeholder="e.g., United States"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="country">Country</Label>
+              <Input
+                id="country"
+                type="text"
+                name="country"
+                value={formData.country || ''}
+                onChange={handleChange}
+                placeholder="e.g., United States"
+              />
+            </div>
 
-          <div>
-            <label className={labelClasses}>Year</label>
-            <input
-              type="number"
-              name="year"
-              value={formData.year || ''}
-              onChange={handleChange}
-              className={inputClasses}
-              required
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="year">Year</Label>
+              <Input
+                id="year"
+                type="number"
+                name="year"
+                value={formData.year || ''}
+                onChange={handleChange}
+                required
+              />
+            </div>
 
-          {/* Series Autocomplete - Full width */}
-          <div className="md:col-span-2">
-            <label className={labelClasses}>
-              Series (Optional)
-              <span className="ml-2 text-sm font-normal text-gray-400">
-                {formData.country && formData.denomination ? '- Suggestions based on country and denomination' : '- Enter country and denomination for suggestions'}
-              </span>
-            </label>
-            <SeriesAutocomplete
-              country={formData.country}
-              denomination={formData.denomination}
-              value={formData.series || ''}
-              onChange={(series) => setFormData(prev => ({ ...prev, series }))}
-              className={inputClasses}
-            />
+            {/* Series Autocomplete - Full width */}
+            <div className="md:col-span-2 space-y-2">
+              <Label>
+                Series (Optional)
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  {formData.country && formData.denomination ? '- Suggestions based on country and denomination' : '- Enter country and denomination for suggestions'}
+                </span>
+              </Label>
+              <SeriesAutocomplete
+                country={formData.country || undefined}
+                denomination={formData.denomination || undefined}
+                value={formData.series || ''}
+                onChange={(series) => setFormData(prev => ({ ...prev, series }))}
+              />
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
+      <Separator />
 
       {/* Grading & Condition */}
-      <div>
-        <h3 className={sectionTitleClasses}>Grading & Condition</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className={labelClasses}>Mint Mark</label>
-            <input
-              type="text"
-              name="mintMark"
-              value={formData.mintMark || ''}
-              onChange={handleChange}
-              className={inputClasses}
-              placeholder="e.g., D"
-            />
-          </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Grading & Condition</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="mintMark">Mint Mark</Label>
+              <Input
+                id="mintMark"
+                type="text"
+                name="mintMark"
+                value={formData.mintMark || ''}
+                onChange={handleChange}
+                placeholder="e.g., D"
+              />
+            </div>
 
-          <div>
-            <label className={labelClasses}>Grade</label>
-            <input
-              type="text"
-              name="grade"
-              value={formData.grade || ''}
-              onChange={handleChange}
-              className={inputClasses}
-              placeholder="e.g., MS-65"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="grade">Grade</Label>
+              <Input
+                id="grade"
+                type="text"
+                name="grade"
+                value={formData.grade || ''}
+                onChange={handleChange}
+                placeholder="e.g., MS-65"
+              />
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
+      <Separator />
 
       {/* Valuation */}
-      <div>
-        <h3 className={sectionTitleClasses}>Valuation</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className={labelClasses}>Face Value</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
-              <input
-                type="number"
-                name="faceValue"
-                value={formData.faceValue || ''}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Valuation</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="faceValue">Face Value</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="faceValue"
+                  type="number"
+                  name="faceValue"
+                  value={formData.faceValue || ''}
+                  onChange={handleChange}
+                  className="pl-8"
+                  step="0.01"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="purchasePrice">Purchase Price</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="purchasePrice"
+                  type="number"
+                  name="purchasePrice"
+                  value={formData.purchasePrice || ''}
+                  onChange={handleChange}
+                  className="pl-8"
+                  step="0.01"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="purchaseDate">Purchase Date</Label>
+              <Input
+                id="purchaseDate"
+                type="date"
+                name="purchaseDate"
+                value={formData.purchaseDate || ''}
                 onChange={handleChange}
-                className={`${inputClasses} pl-8`}
-                step="0.01"
               />
             </div>
-          </div>
 
-          <div>
-            <label className={labelClasses}>Purchase Price</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
-              <input
-                type="number"
-                name="purchasePrice"
-                value={formData.purchasePrice || ''}
-                onChange={handleChange}
-                className={`${inputClasses} pl-8`}
-                step="0.01"
-              />
+            <div className="space-y-2">
+              <Label htmlFor="currentMarketValue">Current Market Value</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="currentMarketValue"
+                  type="number"
+                  name="currentMarketValue"
+                  value={formData.currentMarketValue || ''}
+                  onChange={handleChange}
+                  className="pl-8"
+                  step="0.01"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsResearchModalOpen(true)}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div>
-            <label className={labelClasses}>Purchase Date</label>
-            <input
-              type="date"
-              name="purchaseDate"
-              value={formData.purchaseDate || ''}
-              onChange={handleChange}
-              className={inputClasses}
-            />
-          </div>
-
-          <div>
-            <label className={labelClasses}>Current Market Value</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
-              <input
-                type="number"
-                name="currentMarketValue"
-                value={formData.currentMarketValue || ''}
-                onChange={handleChange}
-                className={`${inputClasses} pl-8`}
-                step="0.01"
-              />
-              <button
-                type="button"
-                onClick={() => setIsResearchModalOpen(true)}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500"
-              >
-                <MagnifyingGlassIcon className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Separator />
 
       {/* Coin Images */}
-      <div>
-        <h3 className={sectionTitleClasses}>Coin Images</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className={labelClasses}>Obverse (Front) Image</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange('obverse')}
-              className={`${inputClasses} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
-            />
-            {formData.obverseImage && (
-              <div className="mt-2">
-                <img src={formData.obverseImage} alt="Obverse" className="w-32 h-32 object-cover rounded-lg" />
-              </div>
-            )}
-          </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Coin Images</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="obverseImage">Obverse (Front) Image</Label>
+              <Input
+                id="obverseImage"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange('obverse')}
+              />
+              {formData.obverseImage && (
+                <div className="mt-2">
+                  <img src={formData.obverseImage} alt="Obverse" className="w-32 h-32 object-cover rounded-lg" />
+                </div>
+              )}
+            </div>
 
-          <div>
-            <label className={labelClasses}>Reverse (Back) Image</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange('reverse')}
-              className={`${inputClasses} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
-            />
-            {formData.reverseImage && (
-              <div className="mt-2">
-                <img src={formData.reverseImage} alt="Reverse" className="w-32 h-32 object-cover rounded-lg" />
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="reverseImage">Reverse (Back) Image</Label>
+              <Input
+                id="reverseImage"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange('reverse')}
+              />
+              {formData.reverseImage && (
+                <div className="mt-2">
+                  <img src={formData.reverseImage} alt="Reverse" className="w-32 h-32 object-cover rounded-lg" />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
+      <Separator />
 
       {/* Notes */}
-      <div>
-        <h3 className={sectionTitleClasses}>Additional Information</h3>
-        <div>
-          <label className={labelClasses}>Notes</label>
-          <textarea
-            name="notes"
-            value={formData.notes || ''}
-            onChange={handleChange}
-            className={`${inputClasses} h-32`}
-            placeholder="Add any additional notes about the coin..."
-          />
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Additional Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              name="notes"
+              value={formData.notes || ''}
+              onChange={handleChange}
+              className="min-h-[128px]"
+              placeholder="Add any additional notes about the coin..."
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="flex justify-end space-x-4">
-        <button
-          type="submit"
-          className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
+        <Button type="submit">
           {isEditing ? 'Update Coin' : 'Add Coin'}
-        </button>
+        </Button>
       </div>
 
       <ValueResearchModal
@@ -301,4 +332,4 @@ const CoinForm: React.FC<CoinFormProps> = ({ onSubmit, initialData, isEditing })
   );
 };
 
-export default CoinForm; 
+export default CoinForm;

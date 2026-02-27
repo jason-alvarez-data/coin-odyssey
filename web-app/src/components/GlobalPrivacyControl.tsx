@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
+import { Card, CardContent } from '@/components/ui/card'
+import { Info } from 'lucide-react'
 
 interface GPCStatus {
   isEnabled: boolean
@@ -110,54 +112,42 @@ export default function GlobalPrivacyControl({ user, onGPCDetected }: GlobalPriv
   }
 
   return (
-    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
-      <div className="flex items-start space-x-3">
-        <div className="flex-shrink-0">
-          <svg 
-            className="h-5 w-5 text-blue-400" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
-            />
-          </svg>
-        </div>
-        <div className="flex-1">
-          <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-            Global Privacy Control Detected
-          </h3>
-          <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
-            {gpcStatus.isEnabled ? (
-              <div>
-                <p className="mb-2">
-                  Your browser is sending a Global Privacy Control (GPC) signal indicating you want to opt-out of data sales and sharing.
+    <Card className="mb-4 border-primary/30 bg-primary/5">
+      <CardContent className="pt-4 pb-4">
+        <div className="flex items-start gap-3">
+          <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-sm font-medium text-foreground">
+              Global Privacy Control Detected
+            </h3>
+            <div className="mt-2 text-sm text-muted-foreground">
+              {gpcStatus.isEnabled ? (
+                <div>
+                  <p className="mb-2">
+                    Your browser is sending a Global Privacy Control (GPC) signal indicating you want to opt-out of data sales and sharing.
+                  </p>
+                  <p className="mb-2">
+                    <strong>We&apos;ve automatically:</strong>
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-4">
+                    <li>Disabled marketing communications</li>
+                    <li>Disabled analytics tracking</li>
+                    <li>Maintained essential services for app functionality</li>
+                  </ul>
+                  <p className="mt-2 text-xs text-muted-foreground/70">
+                    You can still adjust these preferences manually in your account settings.
+                  </p>
+                </div>
+              ) : (
+                <p>
+                  Your browser supports Global Privacy Control, but the signal is not currently enabled.
                 </p>
-                <p className="mb-2">
-                  <strong>We've automatically:</strong>
-                </p>
-                <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li>Disabled marketing communications</li>
-                  <li>Disabled analytics tracking</li>
-                  <li>Maintained essential services for app functionality</li>
-                </ul>
-                <p className="mt-2 text-xs">
-                  You can still adjust these preferences manually in your account settings.
-                </p>
-              </div>
-            ) : (
-              <p>
-                Your browser supports Global Privacy Control, but the signal is not currently enabled.
-              </p>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -216,4 +206,4 @@ export function getGPCStatus() {
     isSupported,
     lastChecked: new Date()
   }
-} 
+}

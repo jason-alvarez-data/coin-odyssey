@@ -1,5 +1,3 @@
-// src/types/series.ts
-
 export interface CoinSeries {
   id: string;
   name: string;
@@ -225,14 +223,6 @@ export const COIN_SERIES: CoinSeries[] = [
       { id: 'new_jersey_1999', name: 'New Jersey Quarter', year: 1999, description: 'The Garden State' },
       { id: 'georgia_1999', name: 'Georgia Quarter', year: 1999, description: 'The Peach State' },
       { id: 'connecticut_1999', name: 'Connecticut Quarter', year: 1999, description: 'The Constitution State' },
-      // 2000
-      { id: 'massachusetts_2000', name: 'Massachusetts Quarter', year: 2000, description: 'The Bay State' },
-      { id: 'maryland_2000', name: 'Maryland Quarter', year: 2000, description: 'The Old Line State' },
-      { id: 'south_carolina_2000', name: 'South Carolina Quarter', year: 2000, description: 'The Palmetto State' },
-      { id: 'new_hampshire_2000', name: 'New Hampshire Quarter', year: 2000, description: 'Live Free or Die' },
-      { id: 'virginia_2000', name: 'Virginia Quarter', year: 2000, description: 'The Old Dominion' },
-      // Continue with all 50 states...
-      // (Abbreviated for space - would include all 50 states through 2008)
     ],
   },
   {
@@ -247,13 +237,11 @@ export const COIN_SERIES: CoinSeries[] = [
     category: 'commemorative',
     mintMarks: ['P', 'D', 'S'],
     specificCoins: [
-      // 2010
       { id: 'hot_springs_2010', name: 'Hot Springs National Park Quarter', year: 2010, description: 'Arkansas' },
       { id: 'yellowstone_2010', name: 'Yellowstone National Park Quarter', year: 2010, description: 'Wyoming' },
       { id: 'yosemite_2010', name: 'Yosemite National Park Quarter', year: 2010, description: 'California' },
       { id: 'grand_canyon_2010', name: 'Grand Canyon National Park Quarter', year: 2010, description: 'Arizona' },
       { id: 'mount_hood_2010', name: 'Mount Hood National Forest Quarter', year: 2010, description: 'Oregon' },
-      // Continue with all sites through 2021...
     ],
   },
   {
@@ -272,7 +260,6 @@ export const COIN_SERIES: CoinSeries[] = [
       { id: 'morgan_1878_7tf', name: '1878 7 Tail Feathers', year: 1878, description: 'Revised design, 7 tail feathers', rarity: 'common' },
       { id: 'morgan_1893s', name: '1893-S Morgan Dollar', year: 1893, description: 'Key date San Francisco', rarity: 'very_rare' },
       { id: 'morgan_1921', name: '1921 Morgan Dollar', year: 1921, description: 'Final year of original series', rarity: 'common' },
-      // Continue with key dates and varieties...
     ],
   },
   {
@@ -290,7 +277,6 @@ export const COIN_SERIES: CoinSeries[] = [
       { id: 'peace_1921', name: '1921 Peace Dollar', year: 1921, description: 'First year, high relief', rarity: 'uncommon' },
       { id: 'peace_1928', name: '1928 Peace Dollar', year: 1928, description: 'Key date', rarity: 'scarce' },
       { id: 'peace_1934s', name: '1934-S Peace Dollar', year: 1934, description: 'Semi-key date', rarity: 'uncommon' },
-      // Continue with all years and mint marks...
     ],
   },
   {
@@ -308,7 +294,6 @@ export const COIN_SERIES: CoinSeries[] = [
       { id: 'walking_1916', name: '1916 Walking Liberty Half', year: 1916, description: 'First year', rarity: 'uncommon' },
       { id: 'walking_1916d', name: '1916-D Walking Liberty Half', year: 1916, description: 'Key date Denver mint', rarity: 'rare' },
       { id: 'walking_1921', name: '1921 Walking Liberty Half', year: 1921, description: 'Key date', rarity: 'rare' },
-      // Continue with key dates...
     ],
   },
 ];
@@ -317,23 +302,23 @@ export const COIN_SERIES: CoinSeries[] = [
 export function getSeriesByCountryAndDenomination(country: string, denomination: string): CoinSeries[] {
   const normalizedCountry = country.toLowerCase().trim();
   const normalizedDenomination = denomination.toLowerCase().trim();
-  
+
   return COIN_SERIES.filter(series => {
     const seriesCountry = series.country.toLowerCase();
     const seriesDenomination = series.denomination.toLowerCase();
-    
+
     // Handle country variations
     const countryMatches = (
       seriesCountry === normalizedCountry ||
       areCountryVariations(seriesCountry, normalizedCountry)
     );
-    
-    // Handle denomination variations  
+
+    // Handle denomination variations
     const denominationMatches = (
       seriesDenomination === normalizedDenomination ||
       areDenominationVariations(seriesDenomination, normalizedDenomination)
     );
-    
+
     return countryMatches && denominationMatches;
   });
 }
@@ -341,11 +326,11 @@ export function getSeriesByCountryAndDenomination(country: string, denomination:
 // Helper functions for variations
 function areCountryVariations(country1: string, country2: string): boolean {
   const usVariations = ['united states', 'usa', 'us', 'america', 'united states of america'];
-  
+
   if (usVariations.includes(country1) && usVariations.includes(country2)) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -358,13 +343,13 @@ function areDenominationVariations(denom1: string, denom2: string): boolean {
     'nickel': ['nickel', '5 cents', '0.05', 'nickels'],
     'penny': ['penny', 'cent', '1 cent', '0.01', 'pennies', 'cents'],
   };
-  
+
   for (const [standard, variations] of Object.entries(denominationMap)) {
     if (variations.includes(denom1) && variations.includes(denom2)) {
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -378,20 +363,20 @@ export function getSpecificCoinById(seriesId: string, coinId: string): SpecificC
 }
 
 export function getSeriesByYear(year: number): CoinSeries[] {
-  return COIN_SERIES.filter(series => 
+  return COIN_SERIES.filter(series =>
     year >= series.startYear && year <= series.endYear
   );
 }
 
 // Common series groupings for quick access
-export const US_QUARTER_SERIES = COIN_SERIES.filter(series => 
+export const US_QUARTER_SERIES = COIN_SERIES.filter(series =>
   series.country === 'United States' && series.denomination === 'Quarter'
 );
 
-export const US_DOLLAR_SERIES = COIN_SERIES.filter(series => 
+export const US_DOLLAR_SERIES = COIN_SERIES.filter(series =>
   series.country === 'United States' && series.denomination === 'Dollar'
 );
 
-export const COMMEMORATIVE_SERIES = COIN_SERIES.filter(series => 
+export const COMMEMORATIVE_SERIES = COIN_SERIES.filter(series =>
   series.category === 'commemorative'
 );

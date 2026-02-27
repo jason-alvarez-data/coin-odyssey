@@ -19,7 +19,7 @@ import { Button } from '../../components/common';
 import { useAuth } from '../../hooks/useAuth';
 import { CoinService } from '../../services/coinService';
 import { GoalsService } from '../../services/goalsService';
-import { CollectionGoal, GOAL_TEMPLATES, GoalTemplate, GoalType, GoalCategory } from '../../types/goal';
+import { CollectionGoal, GOAL_TEMPLATES, GoalTemplate, GoalType, GoalCategory } from '@coin-collecting/shared';
 
 interface ProfileScreenProps {
   navigation: any;

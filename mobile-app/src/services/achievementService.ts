@@ -2,8 +2,7 @@
 import { supabase } from './supabase';
 import { CoinService } from './coinService';
 import { GoalsService } from './goalsService';
-import { Achievement, UserAchievement, ACHIEVEMENTS } from '../types/achievement';
-import { CollectionGoal } from '../types/goal';
+import { Achievement, UserAchievement, ACHIEVEMENTS, CollectionGoal } from '@coin-collecting/shared';
 import { Coin } from '../types/coin';
 import { NotificationService } from './notificationService';
 

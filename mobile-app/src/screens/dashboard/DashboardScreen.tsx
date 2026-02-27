@@ -11,11 +11,10 @@ import { CoinService } from '../../services/coinService';
 import { DashboardStackScreenProps } from '../../types/navigation';
 import { GeographicService, GeographicData } from '../../services/geographicService';
 import { GoalsService } from '../../services/goalsService';
-import { CollectionGoal, GoalProgress } from '../../types/goal';
+import { CollectionGoal, GoalProgress, Achievement, RARITY_COLORS } from '@coin-collecting/shared';
 import { NotificationService } from '../../services/notificationService';
 import { useAuth } from '../../hooks/useAuth';
 import { AchievementService } from '../../services/achievementService';
-import { Achievement, RARITY_COLORS } from '../../types/achievement';
 
 type DashboardScreenProps = DashboardStackScreenProps<'DashboardHome'>;
 

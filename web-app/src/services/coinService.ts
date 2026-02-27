@@ -1,6 +1,6 @@
 // Simple coin service for web app
 import { supabase } from '@/lib/supabase';
-import { Coin } from '@/types/coin';
+import { Coin } from '@coin-collecting/shared';
 
 export class CoinService {
   static async getUserCoins(userId?: string): Promise<Coin[]> {

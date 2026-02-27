@@ -19,7 +19,7 @@ import { Colors, Typography, Spacing, GlassmorphismStyles } from '../../styles';
 import { Input, Button } from '../../components/common';
 import { Coin } from '../../types/coin';
 import { CoinService } from '../../services/coinService';
-import { getSeriesById, getSpecificCoinById } from '../../types/series';
+import { getSeriesById, getSpecificCoinById } from '@coin-collecting/shared';
 
 interface CoinDetailScreenProps {
   route: {

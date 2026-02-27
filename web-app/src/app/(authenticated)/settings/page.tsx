@@ -1,20 +1,31 @@
-'use client';
+"use client"
 
-import { useState, useEffect } from 'react';
-import Header from '@/components/layout/Header';
-import ConsentManager from '@/components/ConsentManager';
-import GlobalPrivacyControl from '@/components/GlobalPrivacyControl';
-import { supabase } from '@/lib/supabase';
-import type { User } from '@supabase/supabase-js';
+import { useState, useEffect } from "react"
+import ConsentManager from "@/components/ConsentManager"
+import GlobalPrivacyControl from "@/components/GlobalPrivacyControl"
+import { supabase } from "@/lib/supabase"
+import type { User } from "@supabase/supabase-js"
+import { Download, Upload, Trash2 } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [settings, setSettings] = useState({
-    theme: 'Light',
-    currencyFormat: 'USD ($)',
-    dateFormat: 'MM/DD/YYYY',
-    defaultView: 'Table View',
-    defaultSorting: 'Date Added',
+    theme: "Dark",
+    currencyFormat: "USD ($)",
+    dateFormat: "MM/DD/YYYY",
+    defaultView: "Table View",
+    defaultSorting: "Date Added",
     visibleColumns: {
       dateCollected: true,
       title: true,
@@ -31,206 +42,246 @@ export default function SettingsPage() {
       format: true,
       region: true,
       quantity: true,
-    }
-  });
+    },
+  })
 
   useEffect(() => {
-    // Get current user
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
     })
   }, [])
 
   const handleCheckboxChange = (field: string) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       visibleColumns: {
         ...prev.visibleColumns,
-        [field]: !prev.visibleColumns[field as keyof typeof prev.visibleColumns]
-      }
-    }));
-  };
+        [field]:
+          !prev.visibleColumns[
+            field as keyof typeof prev.visibleColumns
+          ],
+      },
+    }))
+  }
 
   const handleSelectChange = (field: string, value: string) => {
-    setSettings(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+    setSettings((prev) => ({ ...prev, [field]: value }))
+  }
 
   const handleExportBackup = () => {
-    // TODO: Implement export functionality
-    console.log('Exporting backup...');
-  };
+    console.log("Exporting backup...")
+  }
 
   const handleImportBackup = () => {
-    // TODO: Implement import functionality
-    console.log('Importing backup...');
-  };
+    console.log("Importing backup...")
+  }
 
   const handleClearData = () => {
-    // TODO: Implement clear data functionality with confirmation
-    console.log('Clearing data...');
-  };
+    console.log("Clearing data...")
+  }
 
   return (
-    <div className="flex-1 bg-[#1e1e1e] text-white p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <Header />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Manage your application preferences
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {/* Application Preferences */}
-        <div className="bg-[#2a2a2a] p-6 rounded-lg">
-          <h2 className="text-xl font-semibold mb-4">Application Preferences</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Theme</label>
-              <select
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">
+              Application Preferences
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Theme</Label>
+              <Select
                 value={settings.theme}
-                onChange={(e) => handleSelectChange('theme', e.target.value)}
-                className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
+                onValueChange={(v) => handleSelectChange("theme", v)}
               >
-                <option value="Light">Light</option>
-                <option value="Dark">Dark</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Light">Light</SelectItem>
+                  <SelectItem value="Dark">Dark</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Default Currency Format</label>
-              <select
+            <div className="space-y-2">
+              <Label>Default Currency</Label>
+              <Select
                 value={settings.currencyFormat}
-                onChange={(e) => handleSelectChange('currencyFormat', e.target.value)}
-                className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
+                onValueChange={(v) =>
+                  handleSelectChange("currencyFormat", v)
+                }
               >
-                <option value="USD ($)">USD ($)</option>
-                <option value="EUR (€)">EUR (€)</option>
-                <option value="GBP (£)">GBP (£)</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD ($)">USD ($)</SelectItem>
+                  <SelectItem value="EUR (€)">EUR (€)</SelectItem>
+                  <SelectItem value="GBP (£)">GBP (£)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Date Format</label>
-              <select
+            <div className="space-y-2">
+              <Label>Date Format</Label>
+              <Select
                 value={settings.dateFormat}
-                onChange={(e) => handleSelectChange('dateFormat', e.target.value)}
-                className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
+                onValueChange={(v) =>
+                  handleSelectChange("dateFormat", v)
+                }
               >
-                <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                  <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                  <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Collection Display */}
-        <div className="bg-[#2a2a2a] p-6 rounded-lg">
-          <h2 className="text-xl font-semibold mb-4">Collection Display</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Default Collection View</label>
-              <select
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">Collection Display</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Default View</Label>
+              <Select
                 value={settings.defaultView}
-                onChange={(e) => handleSelectChange('defaultView', e.target.value)}
-                className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
+                onValueChange={(v) =>
+                  handleSelectChange("defaultView", v)
+                }
               >
-                <option value="Table View">Table View</option>
-                <option value="Grid View">Grid View</option>
-                <option value="List View">List View</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Table View">Table View</SelectItem>
+                  <SelectItem value="Grid View">Grid View</SelectItem>
+                  <SelectItem value="List View">List View</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Default Sorting</label>
-              <select
+            <div className="space-y-2">
+              <Label>Default Sorting</Label>
+              <Select
                 value={settings.defaultSorting}
-                onChange={(e) => handleSelectChange('defaultSorting', e.target.value)}
-                className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
+                onValueChange={(v) =>
+                  handleSelectChange("defaultSorting", v)
+                }
               >
-                <option value="Date Added">Date Added</option>
-                <option value="Title">Title</option>
-                <option value="Year">Year</option>
-                <option value="Value">Value</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Date Added">Date Added</SelectItem>
+                  <SelectItem value="Title">Title</SelectItem>
+                  <SelectItem value="Year">Year</SelectItem>
+                  <SelectItem value="Value">Value</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Visible Columns</label>
-              <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-                {Object.entries(settings.visibleColumns).map(([key, value]) => (
-                  <label key={key} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={value}
-                      onChange={() => handleCheckboxChange(key)}
-                      className="rounded bg-[#1e1e1e] border-gray-600 text-blue-500 focus:ring-blue-500"
-                    />
-                    <span className="text-sm">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                  </label>
-                ))}
+            <Separator />
+
+            <div className="space-y-2">
+              <Label>Visible Columns</Label>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {Object.entries(settings.visibleColumns).map(
+                  ([key, value]) => (
+                    <label
+                      key={key}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={value}
+                        onChange={() => handleCheckboxChange(key)}
+                        className="h-4 w-4 rounded border-border"
+                      />
+                      <span className="text-sm">
+                        {key
+                          .replace(/([A-Z])/g, " $1")
+                          .trim()}
+                      </span>
+                    </label>
+                  )
+                )}
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Data Management */}
-        <div className="bg-[#2a2a2a] p-6 rounded-lg">
-          <h2 className="text-xl font-semibold mb-4">Data Management</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Backup Collection</label>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleExportBackup}
-                  className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  Export Backup
-                </button>
-                <select
-                  className="bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
-                  defaultValue="JSON"
-                >
-                  <option value="JSON">JSON</option>
-                  <option value="CSV">CSV</option>
-                </select>
-              </div>
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">Data Management</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Backup Collection</Label>
+              <Button
+                className="w-full"
+                onClick={handleExportBackup}
+              >
+                <Download className="mr-1.5 h-4 w-4" />
+                Export Backup
+              </Button>
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Import Backup</label>
-              <button
+            <div className="space-y-2">
+              <Label>Import Backup</Label>
+              <Button
+                variant="outline"
+                className="w-full"
                 onClick={handleImportBackup}
-                className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
               >
+                <Upload className="mr-1.5 h-4 w-4" />
                 Import Backup
-              </button>
+              </Button>
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Clear Application Data</label>
-              <button
+            <Separator />
+
+            <div className="space-y-2">
+              <Label>Clear Application Data</Label>
+              <Button
+                variant="destructive"
+                className="w-full"
                 onClick={handleClearData}
-                className="w-full bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
               >
+                <Trash2 className="mr-1.5 h-4 w-4" />
                 Clear Data
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
-        
-        {/* Privacy & Consent Management */}
+          </CardContent>
+        </Card>
+
+        {/* Privacy & Consent */}
         {user && (
-          <div className="lg:col-span-2 xl:col-span-3 space-y-6">
+          <div className="lg:col-span-2 xl:col-span-3 space-y-4">
             <GlobalPrivacyControl user={user} />
             <ConsentManager user={user} />
           </div>
         )}
       </div>
     </div>
-  );
-} 
+  )
+}

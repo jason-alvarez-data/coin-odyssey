@@ -6,7 +6,29 @@
 
 ## Overview
 
-Coin Odyssey is an Electron-based desktop application designed to help numismatists manage their coin collections with ease. The application provides an intuitive interface for tracking coins, managing collections, and visualizing collection data through an interactive world map.
+Coin Odyssey is a multi-platform coin collection manager for numismatists. Track, organize, and analyze your coin collection across desktop, web, and mobile.
+
+## Project Structure
+
+```
+coin-collecting-app/
+├── packages/shared/     Shared types & constants (npm workspace)
+├── web-app/             Next.js 15 web application
+├── mobile-app/          Expo React Native mobile app
+├── src/                 Desktop Electron app source
+├── docs/                Documentation & compliance guides
+├── main.js              Electron entry point
+├── renderer.js          Electron renderer process
+└── package.json         Monorepo workspace root
+```
+
+| App | Stack | Backend |
+|-----|-------|---------|
+| **Desktop** | Electron + SQLite | Local database |
+| **Web** | Next.js 15 + Shadcn UI | Supabase |
+| **Mobile** | Expo / React Native | Supabase |
+
+The `packages/shared/` package (`@coin-collecting/shared`) contains shared TypeScript types for goals, achievements, coin series, and the base coin interface — imported by both web and mobile apps via npm workspaces.
 
 ## Screenshots
 
@@ -109,12 +131,10 @@ Coin Odyssey is an Electron-based desktop application designed to help numismati
 
 ## Technologies Used
 
-- Electron.js
-- Node.js
-- SQLite
-- HTML/CSS/JavaScript
-- SVG for interactive mapping
-- Chart.js for data visualization
+- **Desktop**: Electron.js, SQLite, Chart.js, HTML/CSS/JavaScript
+- **Web**: Next.js 15, React 18, Shadcn UI, TailwindCSS, Supabase
+- **Mobile**: Expo, React Native, Supabase
+- **Shared**: TypeScript, npm workspaces
 
 ## Using This Project
 

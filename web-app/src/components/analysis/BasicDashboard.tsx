@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import {
   BarChart,
   Bar,
@@ -11,8 +12,11 @@ import {
   Cell,
   ResponsiveContainer
 } from 'recharts';
+import { Coins, DollarSign, TrendingUp, Calendar, Landmark, CalendarDays, ClipboardList } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import { Coin } from '@/utils/analyticsUtils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface BasicDashboardProps {
   coins: Coin[];
@@ -47,7 +51,7 @@ const BasicDashboard: React.FC<BasicDashboardProps> = ({ coins }) => {
     }
 
     const totalCoins = coins.length;
-    const totalValue = coins.reduce((sum, coin) => 
+    const totalValue = coins.reduce((sum, coin) =>
       sum + (coin.current_market_value || coin.purchase_price || 0), 0);
     const totalFaceValue = coins.reduce((sum, coin) => sum + (coin.face_value || 0), 0);
     const oldestCoin = Math.min(...coins.map(c => c.year));
@@ -57,7 +61,7 @@ const BasicDashboard: React.FC<BasicDashboardProps> = ({ coins }) => {
     // Calculate denomination distribution
     const denominationDistribution: { [key: string]: number } = {};
     coins.forEach(coin => {
-      denominationDistribution[coin.denomination] = 
+      denominationDistribution[coin.denomination] =
         (denominationDistribution[coin.denomination] || 0) + 1;
     });
 
@@ -96,15 +100,16 @@ const BasicDashboard: React.FC<BasicDashboardProps> = ({ coins }) => {
   if (coins.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="text-gray-500 text-6xl mb-4">🪙</div>
-        <div className="text-white text-2xl mb-2">No Coins Yet</div>
-        <div className="text-gray-400 mb-6">Add some coins to see your collection analytics</div>
-        <button 
-          onClick={() => window.location.href = '/dashboard/add'}
-          className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Add Your First Coin
-        </button>
+        <div className="text-muted-foreground text-6xl mb-4">
+          <Coins className="mx-auto h-16 w-16" />
+        </div>
+        <div className="text-foreground text-2xl mb-2">No Coins Yet</div>
+        <div className="text-muted-foreground mb-6">Add some coins to see your collection analytics</div>
+        <Button asChild size="lg">
+          <Link href="/dashboard/add">
+            Add Your First Coin
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -113,158 +118,178 @@ const BasicDashboard: React.FC<BasicDashboardProps> = ({ coins }) => {
     <div className="space-y-8">
       {/* Essential Metrics */}
       <div>
-        <h2 className="text-xl font-semibold text-white mb-4">📊 Collection Overview</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-4">Collection Overview</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-[#2a2a2a] p-6 rounded-lg border border-gray-700">
-            <div className="text-center">
-              <div className="text-3xl mb-2">🪙</div>
-              <div className="text-2xl font-bold text-white mb-1">
-                {analytics.totalCoins}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <Coins className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                <div className="text-2xl font-bold text-foreground mb-1">
+                  {analytics.totalCoins}
+                </div>
+                <div className="text-sm text-muted-foreground">Total Coins</div>
               </div>
-              <div className="text-sm text-gray-400">Total Coins</div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-[#2a2a2a] p-6 rounded-lg border border-gray-700">
-            <div className="text-center">
-              <div className="text-3xl mb-2">💰</div>
-              <div className="text-2xl font-bold text-white mb-1">
-                {formatCurrency(analytics.totalValue)}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <DollarSign className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                <div className="text-2xl font-bold text-foreground mb-1">
+                  {formatCurrency(analytics.totalValue)}
+                </div>
+                <div className="text-sm text-muted-foreground">Total Value</div>
               </div>
-              <div className="text-sm text-gray-400">Total Value</div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-[#2a2a2a] p-6 rounded-lg border border-gray-700">
-            <div className="text-center">
-              <div className="text-3xl mb-2">📈</div>
-              <div className="text-2xl font-bold text-white mb-1">
-                {formatCurrency(analytics.averageValue)}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <TrendingUp className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                <div className="text-2xl font-bold text-foreground mb-1">
+                  {formatCurrency(analytics.averageValue)}
+                </div>
+                <div className="text-sm text-muted-foreground">Average Value</div>
               </div>
-              <div className="text-sm text-gray-400">Average Value</div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-[#2a2a2a] p-6 rounded-lg border border-gray-700">
-            <div className="text-center">
-              <div className="text-3xl mb-2">📅</div>
-              <div className="text-2xl font-bold text-white mb-1">
-                {analytics.oldestCoin} - {analytics.newestCoin}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <Calendar className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                <div className="text-2xl font-bold text-foreground mb-1">
+                  {analytics.oldestCoin} - {analytics.newestCoin}
+                </div>
+                <div className="text-sm text-muted-foreground">Year Range</div>
               </div>
-              <div className="text-sm text-gray-400">Year Range</div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Denomination Distribution */}
-        <div className="bg-[#2a2a2a] rounded-lg p-6 border border-gray-700">
-          <h3 className="text-white text-lg mb-4 flex items-center">
-            <span className="mr-2">🏛️</span>
-            Coins by Denomination
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={Object.entries(analytics.denominationDistribution).map(([denom, count]) => ({
-                    name: denom,
-                    value: count
-                  }))}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  label={({ name, percent }) => 
-                    percent > 0.05 ? `${name} (${(percent * 100).toFixed(0)}%)` : ''
-                  }
-                >
-                  {Object.entries(analytics.denominationDistribution).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#3a3a3a',
-                    border: '1px solid #555',
-                    borderRadius: '8px',
-                    color: '#fff'
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center">
+              <Landmark className="mr-2 h-5 w-5" />
+              Coins by Denomination
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={Object.entries(analytics.denominationDistribution).map(([denom, count]) => ({
+                      name: denom,
+                      value: count
+                    }))}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    label={({ name, percent }) =>
+                      percent > 0.05 ? `${name} (${(percent * 100).toFixed(0)}%)` : ''
+                    }
+                  >
+                    {Object.entries(analytics.denominationDistribution).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#3a3a3a',
+                      border: '1px solid #555',
+                      borderRadius: '8px',
+                      color: '#fff'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Year Ranges */}
-        <div className="bg-[#2a2a2a] rounded-lg p-6 border border-gray-700">
-          <h3 className="text-white text-lg mb-4 flex items-center">
-            <span className="mr-2">📆</span>
-            Coins by Era
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={analytics.yearRanges}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                <XAxis 
-                  dataKey="range" 
-                  stroke="#888" 
-                  fontSize={12}
-                  angle={-45}
-                  textAnchor="end"
-                  height={100}
-                />
-                <YAxis stroke="#888" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#3a3a3a',
-                    border: '1px solid #555',
-                    borderRadius: '8px',
-                    color: '#fff'
-                  }}
-                />
-                <Bar dataKey="count" fill="#00C49F" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center">
+              <CalendarDays className="mr-2 h-5 w-5" />
+              Coins by Era
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={analytics.yearRanges}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                  <XAxis
+                    dataKey="range"
+                    stroke="#888"
+                    fontSize={12}
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
+                  />
+                  <YAxis stroke="#888" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#3a3a3a',
+                      border: '1px solid #555',
+                      borderRadius: '8px',
+                      color: '#fff'
+                    }}
+                  />
+                  <Bar dataKey="count" fill="#00C49F" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Simple Summary */}
-      <div className="bg-[#2a2a2a] rounded-lg p-6 border border-gray-700">
-        <h3 className="text-white text-lg mb-4 flex items-center">
-          <span className="mr-2">📋</span>
-          Collection Summary
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-          <div className="p-4 bg-[#1e1e1e] rounded-lg">
-            <div className="text-green-400 text-lg font-bold">
-              {formatCurrency(analytics.totalFaceValue)}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center">
+            <ClipboardList className="mr-2 h-5 w-5" />
+            Collection Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="text-lg font-bold text-foreground">
+                {formatCurrency(analytics.totalFaceValue)}
+              </div>
+              <div className="text-sm text-muted-foreground">Face Value</div>
             </div>
-            <div className="text-sm text-gray-400">Face Value</div>
-          </div>
-          
-          <div className="p-4 bg-[#1e1e1e] rounded-lg">
-            <div className="text-blue-400 text-lg font-bold">
-              {Object.keys(analytics.denominationDistribution).length}
+
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="text-lg font-bold text-foreground">
+                {Object.keys(analytics.denominationDistribution).length}
+              </div>
+              <div className="text-sm text-muted-foreground">Different Types</div>
             </div>
-            <div className="text-sm text-gray-400">Different Types</div>
-          </div>
-          
-          <div className="p-4 bg-[#1e1e1e] rounded-lg">
-            <div className="text-purple-400 text-lg font-bold">
-              {analytics.newestCoin - analytics.oldestCoin + 1}
+
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="text-lg font-bold text-foreground">
+                {analytics.newestCoin - analytics.oldestCoin + 1}
+              </div>
+              <div className="text-sm text-muted-foreground">Year Span</div>
             </div>
-            <div className="text-sm text-gray-400">Year Span</div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default BasicDashboard; 
+export default BasicDashboard;

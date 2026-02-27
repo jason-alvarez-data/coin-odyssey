@@ -61,16 +61,12 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body 
-        className={`${inter.className} min-h-screen antialiased bg-gray-900`}
-        style={{ 
-          backgroundColor: 'rgb(17 24 39)',
-          color: 'rgb(255 255 255)'
-        }}
+      <body
+        className={`${inter.className} min-h-screen antialiased`}
         suppressHydrationWarning
       >
         <ThemeProvider>
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+          <div className="min-h-screen bg-background text-foreground">
             {children}
           </div>
           <CookieBanner useTermly={true} />

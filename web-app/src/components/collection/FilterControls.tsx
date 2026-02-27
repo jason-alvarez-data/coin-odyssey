@@ -1,4 +1,4 @@
-import { GradeFilter, ValueFilter } from '@/types/coin';
+import { GradeFilter, ValueFilter } from '@coin-collecting/shared';
 
 interface FilterControlsProps {
   gradeFilter: GradeFilter;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Card } from '@/components/ui/card';
 
 interface MetricCardProps {
   title: string;
@@ -71,19 +72,19 @@ const MetricCard: React.FC<MetricCardProps> = ({
   size = 'medium'
 }) => {
   const scheme = colorSchemes[color];
-  
+
   const sizeClasses = {
     small: 'p-4',
     medium: 'p-6',
     large: 'p-8'
   };
-  
+
   const titleClasses = {
     small: 'text-sm',
     medium: 'text-base',
     large: 'text-lg'
   };
-  
+
   const valueClasses = {
     small: 'text-xl',
     medium: 'text-2xl',
@@ -91,24 +92,24 @@ const MetricCard: React.FC<MetricCardProps> = ({
   };
 
   return (
-    <div className={`
-      bg-[#2a2a2a] rounded-xl border ${scheme.border} 
+    <Card className={`
+      ${scheme.border}
       ${sizeClasses[size]}
-      hover:bg-[#303030] transition-all duration-300
+      transition-all duration-300
       relative overflow-hidden group
     `}>
       {/* Background gradient overlay */}
       <div className={`
-        absolute inset-0 bg-gradient-to-br ${scheme.gradient} opacity-5 
+        absolute inset-0 bg-gradient-to-br ${scheme.gradient} opacity-5
         group-hover:opacity-10 transition-opacity duration-300
       `} />
-      
+
       <div className="relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
             {icon && <span className="text-lg">{icon}</span>}
-            <h3 className={`${titleClasses[size]} text-gray-400 font-medium`}>
+            <h3 className={`${titleClasses[size]} text-muted-foreground font-medium`}>
               {title}
             </h3>
           </div>
@@ -126,11 +127,11 @@ const MetricCard: React.FC<MetricCardProps> = ({
 
         {/* Value */}
         <div className="mb-2">
-          <div className={`${valueClasses[size]} font-bold text-white mb-1`}>
+          <div className={`${valueClasses[size]} font-bold text-foreground mb-1`}>
             {typeof value === 'number' ? value.toLocaleString() : value}
           </div>
           {subtitle && (
-            <p className="text-sm text-gray-400">{subtitle}</p>
+            <p className="text-sm text-muted-foreground">{subtitle}</p>
           )}
         </div>
 
@@ -138,10 +139,10 @@ const MetricCard: React.FC<MetricCardProps> = ({
         {progress !== undefined && (
           <div className="mt-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs text-gray-400">Progress</span>
-              <span className="text-xs font-medium text-white">{progress.toFixed(0)}%</span>
+              <span className="text-xs text-muted-foreground">Progress</span>
+              <span className="text-xs font-medium text-foreground">{progress.toFixed(0)}%</span>
             </div>
-            <div className="w-full bg-gray-700 rounded-full h-2">
+            <div className="w-full bg-muted rounded-full h-2">
               <div
                 className={`h-2 rounded-full ${scheme.progress} transition-all duration-500`}
                 style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
@@ -152,11 +153,11 @@ const MetricCard: React.FC<MetricCardProps> = ({
 
         {/* Trend label */}
         {trend?.label && (
-          <p className="text-xs text-gray-500 mt-2">{trend.label}</p>
+          <p className="text-xs text-muted-foreground/70 mt-2">{trend.label}</p>
         )}
       </div>
-    </div>
+    </Card>
   );
 };
 
-export default MetricCard; 
+export default MetricCard;

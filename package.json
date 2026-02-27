@@ -17,6 +17,11 @@
     "process-svg": "ts-node scripts/processSvgPaths.ts"
   },
   "private": true,
+  "workspaces": [
+    "packages/*",
+    "web-app",
+    "mobile-app"
+  ],
   "author": "Jason Alvarez",
   "license": "UNLICENSED",
   "type": "commonjs",

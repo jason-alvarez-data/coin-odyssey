@@ -1,185 +1,264 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import WorldMap from '@/components/WorldMap'
-import Header from '@/components/layout/Header'
-import RecentActivityFeed from '@/components/RecentActivityFeed'
-import { getStandardizedCountryName } from '@/utils/countryMappings'
+import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
+import WorldMap from "@/components/WorldMap"
+import { getStandardizedCountryName } from "@/utils/countryMappings"
+import { StatsRow } from "@/components/dashboard/stats-row"
+import { FeaturedItems } from "@/components/dashboard/featured-items"
+import { CtaCard } from "@/components/dashboard/cta-card"
+import { ActiveItemsList } from "@/components/dashboard/active-items-list"
+import { DetailPanel } from "@/components/detail-panel"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Globe } from "lucide-react"
 
 interface DashboardStats {
-  totalCoins: number;
-  totalCountries: number;
-  yearsSpan: string;
-  totalValue: number;
-  countryDistribution: { [key: string]: number };
+  totalCoins: number
+  totalCountries: number
+  yearsSpan: string
+  totalValue: number
+  countryDistribution: { [key: string]: number }
+}
+
+interface DashboardCoin {
+  id: string
+  title: string
+  denomination: string
+  year: number
+  country: string
+  purchase_price: number
+  grade?: string
+  mint_mark?: string
+  series?: string
+  notes?: string
+  created_at: string
 }
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalCoins: 0,
     totalCountries: 0,
-    yearsSpan: '-',
+    yearsSpan: "-",
     totalValue: 0,
-    countryDistribution: {}
-  });
+    countryDistribution: {},
+  })
+  const [topCoins, setTopCoins] = useState<DashboardCoin[]>([])
+  const [selectedCoin, setSelectedCoin] = useState<DashboardCoin | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (user) {
-        await fetchDashboardStats(user.id);
+        await fetchDashboardStats(user.id)
       }
-    };
+    }
 
-    fetchData();
+    fetchData()
 
-    // Subscribe to realtime changes
     const channel = supabase
-      .channel('public:coins')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'coins',
-      }, async (payload) => {
-        // Refresh data when coins table changes
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await fetchDashboardStats(user.id);
+      .channel("public:coins")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "coins" },
+        async () => {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser()
+          if (user) {
+            await fetchDashboardStats(user.id)
+          }
         }
-      })
-      .subscribe();
+      )
+      .subscribe()
 
     return () => {
-      channel.unsubscribe();
-    };
-  }, []);
+      channel.unsubscribe()
+    }
+  }, [])
 
   const fetchDashboardStats = async (userId: string) => {
     try {
-      // Get all collections for the user
       const { data: collections, error: collectionsError } = await supabase
-        .from('collections')
-        .select('id')
-        .eq('user_id', userId);
+        .from("collections")
+        .select("id")
+        .eq("user_id", userId)
 
-      if (collectionsError) throw collectionsError;
+      if (collectionsError) throw collectionsError
       if (!collections?.length) {
         setStats({
           totalCoins: 0,
           totalCountries: 0,
-          yearsSpan: '-',
+          yearsSpan: "-",
           totalValue: 0,
-          countryDistribution: {}
-        });
-        return;
+          countryDistribution: {},
+        })
+        setTopCoins([])
+        return
       }
 
-      // Get all coins from user's collections
       const { data: coins, error: coinsError } = await supabase
-        .from('coins')
-        .select('*')
-        .in('collection_id', collections.map(c => c.id));
+        .from("coins")
+        .select("*")
+        .in(
+          "collection_id",
+          collections.map((c) => c.id)
+        )
 
-      if (coinsError) throw coinsError;
+      if (coinsError) throw coinsError
       if (!coins) {
-        setStats(prev => ({ ...prev, countryDistribution: {} }));
-        return;
+        setStats((prev) => ({ ...prev, countryDistribution: {} }))
+        return
       }
 
-      // Calculate stats
-      const years = coins.map(coin => coin.year);
-      const oldestYear = years.length ? Math.min(...years) : 0;
-      const newestYear = years.length ? Math.max(...years) : 0;
-      const yearsSpan = years.length ? `${oldestYear} - ${newestYear}` : '-';
-      const totalValue = coins.reduce((sum, coin) => sum + (parseFloat(coin.purchase_price) || 0), 0);
+      const years = coins.map((coin) => coin.year)
+      const oldestYear = years.length ? Math.min(...years) : 0
+      const newestYear = years.length ? Math.max(...years) : 0
+      const yearsSpan = years.length ? `${oldestYear} - ${newestYear}` : "-"
+      const totalValue = coins.reduce(
+        (sum, coin) => sum + (parseFloat(coin.purchase_price) || 0),
+        0
+      )
 
-      // Calculate country distribution with standardized names
-      const countryDistribution = coins.reduce((acc: { [key: string]: number }, coin) => {
-        if (coin.country) {
-          const country = getStandardizedCountryName(coin.country);
-          acc[country] = (acc[country] || 0) + 1;
-        }
-        return acc;
-      }, {});
+      const countryDistribution = coins.reduce(
+        (acc: { [key: string]: number }, coin) => {
+          if (coin.country) {
+            const country = getStandardizedCountryName(coin.country)
+            acc[country] = (acc[country] || 0) + 1
+          }
+          return acc
+        },
+        {}
+      )
 
       setStats({
         totalCoins: coins.length,
         totalCountries: Object.keys(countryDistribution).length,
         yearsSpan,
         totalValue,
-        countryDistribution
-      });
+        countryDistribution,
+      })
+
+      // Get top coins by value for featured section
+      const sorted = [...coins]
+        .filter((c) => parseFloat(c.purchase_price) > 0)
+        .sort(
+          (a, b) =>
+            parseFloat(b.purchase_price || "0") -
+            parseFloat(a.purchase_price || "0")
+        )
+        .slice(0, 4)
+      setTopCoins(sorted)
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-      // Keep previous state on error
-      setStats(prev => ({ ...prev }));
+      console.error("Error fetching dashboard stats:", error)
+      setStats((prev) => ({ ...prev }))
     }
-  };
+  }
+
+  // Map a dashboard coin to the Coin type expected by DetailPanel
+  const mapToDetailCoin = (coin: DashboardCoin | null) => {
+    if (!coin) return null
+    return {
+      id: coin.id,
+      name: coin.title || coin.denomination,
+      title: coin.title || `${coin.year} ${coin.denomination}`,
+      year: coin.year,
+      mintMark: coin.mint_mark || null,
+      grade: coin.grade || null,
+      faceValue: null,
+      purchasePrice: coin.purchase_price ?? null,
+      currentMarketValue: null,
+      lastValueUpdate: null,
+      pcgsId: null,
+      createdAt: coin.created_at,
+      updatedAt: coin.created_at,
+      userId: "",
+      collectionId: "",
+      denomination: coin.denomination,
+      purchaseDate: null,
+      personalValue: null,
+      lastAppraisalValue: null,
+      lastAppraisalDate: null,
+      mintage: null,
+      rarityScale: null,
+      historicalNotes: null,
+      varietyNotes: null,
+      notes: coin.notes || null,
+      images: null,
+      obverseImage: null,
+      reverseImage: null,
+      country: coin.country || null,
+      series: coin.series || null,
+    }
+  }
 
   return (
-    <div className="flex-1 bg-[#1e1e1e]">
-      <div className="p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-white">Collection Dashboard</h1>
-          <Header />
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-[#2a2a2a] p-4 rounded-lg">
-            <div className="flex items-center gap-3">
-              <span className="text-[#3b82f6] text-xl">🪙</span>
-              <div>
-                <h2 className="text-sm text-gray-400">Total Coins</h2>
-                <p className="text-2xl font-bold text-[#3b82f6]">{stats.totalCoins}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-[#2a2a2a] p-4 rounded-lg">
-            <div className="flex items-center gap-3">
-              <span className="text-[#3b82f6] text-xl">🌎</span>
-              <div>
-                <h2 className="text-sm text-gray-400">Countries</h2>
-                <p className="text-2xl font-bold text-[#3b82f6]">{stats.totalCountries}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-[#2a2a2a] p-4 rounded-lg">
-            <div className="flex items-center gap-3">
-              <span className="text-[#3b82f6] text-xl">📅</span>
-              <div>
-                <h2 className="text-sm text-gray-400">Years Range</h2>
-                <p className="text-2xl font-bold text-[#3b82f6]">{stats.yearsSpan}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-[#2a2a2a] p-4 rounded-lg">
-            <div className="flex items-center gap-3">
-              <span className="text-[#3b82f6] text-xl">💰</span>
-              <div>
-                <h2 className="text-sm text-gray-400">Estimated Value</h2>
-                <p className="text-2xl font-bold text-[#3b82f6]">${stats.totalValue.toFixed(2)}</p>
-              </div>
-            </div>
-          </div>
+    <div className="flex">
+      {/* Main Content Column */}
+      <div className="flex-1 space-y-6">
+        {/* Page Title */}
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Collection Dashboard
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Overview of your coin collection
+          </p>
         </div>
 
+        {/* Stats Row */}
+        <StatsRow
+          totalCoins={stats.totalCoins}
+          totalCountries={stats.totalCountries}
+          yearsSpan={stats.yearsSpan}
+          totalValue={stats.totalValue}
+        />
+
+        {/* Featured Items */}
+        <FeaturedItems
+          coins={topCoins}
+          onSelect={(coin) => setSelectedCoin(coin as DashboardCoin)}
+          selectedId={selectedCoin?.id}
+        />
+
+        {/* CTA Card */}
+        <CtaCard />
+
+        {/* Map + Active Items */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Collection Map - Takes 2 columns */}
           <div className="lg:col-span-2">
-            <h2 className="text-xl font-bold text-white mb-4">Collection Map</h2>
-            <div className="bg-[#2a2a2a] p-6 rounded-lg">
-              <WorldMap collectedCountries={stats.countryDistribution} />
-            </div>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                  Collection Map
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <WorldMap
+                  collectedCountries={stats.countryDistribution}
+                />
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Recent Activity Feed - Takes 1 column */}
           <div className="lg:col-span-1">
-            <h2 className="text-xl font-bold text-white mb-4">Recent Activity</h2>
-            <RecentActivityFeed />
+            <ActiveItemsList
+              onSelect={(coin) => setSelectedCoin(coin as DashboardCoin)}
+              selectedId={selectedCoin?.id}
+            />
           </div>
         </div>
       </div>
+
+      {/* Detail Panel — only shown when a coin is selected */}
+      {selectedCoin && (
+        <DetailPanel
+          coin={mapToDetailCoin(selectedCoin)}
+          onClose={() => setSelectedCoin(null)}
+        />
+      )}
     </div>
-  );
-} 
+  )
+}

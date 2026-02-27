@@ -18,7 +18,7 @@ import { Colors, Typography, Spacing, GlassmorphismStyles } from '../../styles';
 import { Input, Button, CoinNameSuggestions } from '../../components/common';
 import { Coin } from '../../types/coin';
 import { CoinService } from '../../services/coinService';
-import { CoinSeries, SpecificCoin, COIN_SERIES, getSeriesByCountryAndDenomination, getSeriesById } from '../../types/series';
+import { CoinSeries, SpecificCoin, COIN_SERIES, getSeriesByCountryAndDenomination, getSeriesById } from '@coin-collecting/shared';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useDeviceInfo } from '../../utils/deviceUtils';
 import { Logger } from '../../services/logger';

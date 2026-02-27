@@ -1,5 +1,3 @@
-// src/types/goal.ts
-
 export interface CollectionGoal {
   id: string;
   userId: string;
@@ -18,7 +16,7 @@ export interface CollectionGoal {
   reward?: string; // Optional reward description
 }
 
-export type GoalType = 
+export type GoalType =
   | 'series_complete'     // Complete a specific series (e.g., US Women's Quarters)
   | 'year_range'          // Collect all coins from a year range
   | 'country_complete'    // Collect from a specific country
@@ -30,9 +28,9 @@ export type GoalType =
   | 'geographic_spread'   // Collect from X countries/continents
   | 'custom';             // User-defined criteria
 
-export type GoalCategory = 
+export type GoalCategory =
   | 'us_coins'
-  | 'world_coins' 
+  | 'world_coins'
   | 'ancient_coins'
   | 'modern_coins'
   | 'commemoratives'
@@ -48,20 +46,20 @@ export interface GoalCriteria {
   country?: string;
   denomination?: string[];  // e.g., ["Quarter", "Dime"]
   mintMark?: string[];      // e.g., ["D", "S", "P"]
-  
+
   // Quality criteria
   minGrade?: string;        // e.g., "MS-65"
   maxGrade?: string;
   gradingService?: string[]; // e.g., ["PCGS", "NGC"]
-  
+
   // Value criteria
   minValue?: number;
   maxValue?: number;
-  
+
   // Geographic criteria
   countries?: string[];
   continents?: string[];
-  
+
   // Custom criteria for advanced goals
   customFilters?: {
     field: string;

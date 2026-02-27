@@ -4,11 +4,27 @@ import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import Header from '@/components/layout/Header';
+import { Upload, Loader2 } from 'lucide-react';
+
 import ColumnMappingDialog from '@/components/upload/ColumnMappingDialog';
 import DataPreview from '@/components/upload/DataPreview';
 import { supabase } from '@/lib/supabase';
 import { useCollection } from '@/contexts/CollectionContext';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface ParsedData {
   columns: string[];
@@ -126,10 +142,10 @@ export default function UploadCollectionPage() {
     const transformed = parsedData.rows.map((row, index) => {
       // Check if the row is empty
       if (!Array.isArray(row)) return {};
-      const hasData = row.some(value => 
+      const hasData = row.some(value =>
         value !== undefined && value !== null && value !== ''
       );
-      
+
       if (!hasData) {
         console.log(`Empty row ${index + 1}, using placeholder values`);
         return {
@@ -161,7 +177,7 @@ export default function UploadCollectionPage() {
         images: [], // Initialize empty images array
         purchase_date: rawValues.purchase_date || new Date().toISOString().split('T')[0], // Ensure date is always set
       };
-      
+
       // Get additional fields for title construction
       const seriesIndex = parsedData.columns.indexOf('series');
       const series = seriesIndex !== -1 ? (row as unknown[])[seriesIndex] : '';
@@ -171,32 +187,32 @@ export default function UploadCollectionPage() {
       const country = countryIndex !== -1 ? (row as unknown[])[countryIndex] : '';
       const regionIndex = parsedData.columns.indexOf('region');
       const region = regionIndex !== -1 ? (row as unknown[])[regionIndex] : '';
-      
+
       // Second pass to transform values with all context available
       Object.entries(mappings).forEach(([targetCol, sourceCol]) => {
         const sourceIndex = parsedData.columns.indexOf(sourceCol);
         if (sourceIndex !== -1 || targetCol === 'purchase_date') {
           let value = rawValues[targetCol];
-          
+
           // Skip purchase_date as it's already handled
           if (targetCol === 'purchase_date') {
             return;
           }
 
           console.log(`Transforming ${targetCol}: ${value}`);
-          
+
           // Handle title field
           if (targetCol === 'title') {
             if (!value || typeof value !== 'string' || !value.trim()) {
               // Try to construct title from other fields first
               const titleParts = [];
-              
+
               // Add year if available
               if (rawValues.year) titleParts.push(String(rawValues.year));
-              
+
               // Add series if available
               if (series) titleParts.push(String(series));
-              
+
               // Add region/state info if available
               if (region && typeof region === 'string' && region !== 'Americas' && region !== 'Europe' && region !== 'Asia') {
                 titleParts.push(region);
@@ -290,13 +306,13 @@ export default function UploadCollectionPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 bg-[#1e1e1e] text-white p-8">
+      <div>
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Upload Collection</h1>
-          <Header />
+          <Skeleton className="h-8 w-48" />
         </div>
-        <div className="max-w-2xl mx-auto text-center py-12">
-          <p className="text-gray-400">Loading...</p>
+        <div className="max-w-2xl mx-auto space-y-6">
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-xl" />
         </div>
       </div>
     );
@@ -304,124 +320,97 @@ export default function UploadCollectionPage() {
 
   if (!collection) {
     return (
-      <div className="flex-1 bg-[#1e1e1e] text-white p-8">
+      <div>
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Upload Collection</h1>
-          <Header />
+          <h1 className="text-2xl font-bold text-foreground">Upload Collection</h1>
         </div>
         <div className="max-w-2xl mx-auto text-center py-12">
-          <p className="text-gray-400 mb-4">
+          <p className="text-muted-foreground mb-4">
             Create your collection to start uploading coins.
           </p>
-          <button
-            onClick={() => setIsCreateDialogOpen(true)}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
             Create Collection
-          </button>
+          </Button>
         </div>
 
         {/* Create Collection Dialog */}
-        {isCreateDialogOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-[#2a2a2a] rounded-lg p-6 max-w-md w-full">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-white">Create Collection</h2>
-                <button
-                  onClick={() => setIsCreateDialogOpen(false)}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  ✕
-                </button>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create Collection</DialogTitle>
+              <DialogDescription>
+                Create a new collection to organize your coins.
+              </DialogDescription>
+            </DialogHeader>
+
+            {error && (
+              <div className="p-3 bg-destructive/10 border border-destructive rounded-lg">
+                <p className="text-destructive text-sm">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="collection-name">
+                  Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="collection-name"
+                  type="text"
+                  value={newCollectionName}
+                  onChange={(e) => setNewCollectionName(e.target.value)}
+                  placeholder="My Coin Collection"
+                />
               </div>
 
-              {error && (
-                <div className="mb-4 p-3 bg-red-500 bg-opacity-20 border border-red-500 rounded-lg">
-                  <p className="text-red-400 text-sm">{error}</p>
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">
-                    Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={newCollectionName}
-                    onChange={(e) => setNewCollectionName(e.target.value)}
-                    className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
-                    placeholder="My Coin Collection"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={newCollectionDescription}
-                    onChange={(e) => setNewCollectionDescription(e.target.value)}
-                    className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600 h-24"
-                    placeholder="Optional description of your collection"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-4 mt-6">
-                <button
-                  onClick={() => setIsCreateDialogOpen(false)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreateCollection}
-                  disabled={!newCollectionName.trim() || isCreating}
-                  className={`px-4 py-2 bg-blue-500 text-white rounded-lg transition-colors flex items-center gap-2
-                    ${!newCollectionName.trim() || isCreating ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
-                >
-                  {isCreating ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      Creating...
-                    </>
-                  ) : (
-                    'Create Collection'
-                  )}
-                </button>
+              <div className="space-y-2">
+                <Label htmlFor="collection-description">Description</Label>
+                <Textarea
+                  id="collection-description"
+                  value={newCollectionDescription}
+                  onChange={(e) => setNewCollectionDescription(e.target.value)}
+                  placeholder="Optional description of your collection"
+                  className="h-24"
+                />
               </div>
             </div>
-          </div>
-        )}
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsCreateDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateCollection}
+                disabled={!newCollectionName.trim() || isCreating}
+              >
+                {isCreating ? (
+                  <>
+                    <Loader2 className="animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Collection'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 bg-[#1e1e1e] text-white p-8">
+    <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Upload Collection</h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Upload Collection</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Uploading to: {collection.name}
           </p>
         </div>
-        <Header />
       </div>
 
       {/* Upload Area */}
@@ -429,43 +418,31 @@ export default function UploadCollectionPage() {
         <div
           {...getRootProps()}
           className={`
-            bg-[#2a2a2a] rounded-lg p-12
-            border-2 border-dashed border-gray-600
+            rounded-xl border-2 border-dashed p-12
             cursor-pointer transition-colors
-            ${isDragActive ? 'border-blue-500 bg-[#2d3748]' : 'hover:border-gray-500'}
+            bg-card text-card-foreground
+            ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'}
           `}
         >
           <input {...getInputProps()} />
           <div className="text-center">
             <div className="mb-4">
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
+              <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
             </div>
-            <p className="text-lg text-gray-300 mb-2">
+            <p className="text-lg text-foreground mb-2">
               Drag and drop your collection file here
             </p>
-            <p className="text-gray-400">or</p>
-            <button className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+            <p className="text-muted-foreground">or</p>
+            <Button className="mt-2">
               Choose File
-            </button>
+            </Button>
             {uploadedFile && (
-              <p className="mt-4 text-sm text-gray-400">
+              <p className="mt-4 text-sm text-muted-foreground">
                 Selected file: {uploadedFile.name}
               </p>
             )}
             {error && (
-              <p className="mt-4 text-sm text-red-400">
+              <p className="mt-4 text-sm text-destructive">
                 Error: {error}
               </p>
             )}
@@ -475,31 +452,33 @@ export default function UploadCollectionPage() {
 
       {/* File Format Information */}
       <div className="max-w-2xl mx-auto">
-        <div className="bg-[#2a2a2a] rounded-lg p-6">
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-3">Supported Formats</h2>
-            <ul className="space-y-2 text-gray-300">
-              <li>• CSV files (.csv)</li>
-              <li>• Excel files (.xlsx)</li>
-              <li>• JSON files (.json)</li>
+        <Card>
+          <CardHeader>
+            <CardTitle>Supported Formats</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <ul className="space-y-2 text-card-foreground">
+              <li>&bull; CSV files (.csv)</li>
+              <li>&bull; Excel files (.xlsx)</li>
+              <li>&bull; JSON files (.json)</li>
             </ul>
-          </div>
 
-          <div>
-            <h2 className="text-lg font-semibold mb-3">File Format Requirements</h2>
-            <p className="text-gray-300 mb-2">Your file should include the following columns:</p>
-            <ul className="space-y-2 text-gray-300">
-              <li>• Title (required) - A descriptive name for your coin (e.g., "US State Quarter - Colorado")</li>
-              <li>• Year (required) - The year the coin was minted</li>
-              <li>• Denomination - e.g., "Quarter", "Penny", "Dollar"</li>
-              <li>• Mint Mark - e.g., "D" for Denver, "S" for San Francisco</li>
-              <li>• Grade - The coin's condition grade</li>
-              <li>• Purchase Price - How much you paid for the coin</li>
-              <li>• Purchase Date - When you acquired the coin</li>
-              <li>• Notes - Any additional information about the coin</li>
-            </ul>
-          </div>
-        </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-3 text-card-foreground">File Format Requirements</h3>
+              <p className="text-card-foreground mb-2">Your file should include the following columns:</p>
+              <ul className="space-y-2 text-card-foreground">
+                <li>&bull; Title (required) - A descriptive name for your coin (e.g., &quot;US State Quarter - Colorado&quot;)</li>
+                <li>&bull; Year (required) - The year the coin was minted</li>
+                <li>&bull; Denomination - e.g., &quot;Quarter&quot;, &quot;Penny&quot;, &quot;Dollar&quot;</li>
+                <li>&bull; Mint Mark - e.g., &quot;D&quot; for Denver, &quot;S&quot; for San Francisco</li>
+                <li>&bull; Grade - The coin&apos;s condition grade</li>
+                <li>&bull; Purchase Price - How much you paid for the coin</li>
+                <li>&bull; Purchase Date - When you acquired the coin</li>
+                <li>&bull; Notes - Any additional information about the coin</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Column Mapping Dialog */}
@@ -524,4 +503,4 @@ export default function UploadCollectionPage() {
       )}
     </div>
   );
-} 
+}

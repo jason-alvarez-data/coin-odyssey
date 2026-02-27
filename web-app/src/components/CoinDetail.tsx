@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Coin } from '../types/coin';
+import { Coin } from '@coin-collecting/shared';
 import { createClient } from '@supabase/supabase-js';
 import { Disclosure } from '@headlessui/react';
 import { ChevronUpIcon } from '@heroicons/react/24/solid';

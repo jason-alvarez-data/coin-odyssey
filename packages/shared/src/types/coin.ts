@@ -42,7 +42,7 @@ export interface CoinValueHistory {
 
 export type SearchField = 'all' | 'denomination' | 'year' | 'grade' | 'mintMark';
 
-export type GradeFilter = 
+export type GradeFilter =
   | ''
   | 'MS-70 to MS-65'
   | 'MS-64 to MS-60'
@@ -54,10 +54,10 @@ export type GradeFilter =
   | 'G-6 to G-4'
   | 'AG-3 to PR-1';
 
-export type ValueFilter = 
+export type ValueFilter =
   | ''
   | 'Under $10'
   | '$10 - $50'
   | '$50 - $100'
   | '$100 - $500'
-  | 'Over $500'; 
+  | 'Over $500';

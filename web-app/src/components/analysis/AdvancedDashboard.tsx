@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import {
   BarChart,
   Bar,
@@ -16,6 +17,17 @@ import {
   AreaChart,
   Area
 } from 'recharts';
+import {
+  Brain,
+  DollarSign,
+  Target,
+  Zap,
+  TrendingUp,
+  CreditCard,
+  CalendarDays,
+  Landmark,
+  MapPin
+} from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import {
   Coin,
@@ -28,6 +40,8 @@ import {
   calculateValueDistribution,
   getRecentActivity
 } from '@/utils/analyticsUtils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import MetricCard from './MetricCard';
 import InsightCard from './InsightCard';
 import TopPerformers from './TopPerformers';
@@ -121,7 +135,7 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
         summary.gradeDistribution[coin.grade] = (summary.gradeDistribution[coin.grade] || 0) + 1;
       }
 
-      summary.denominationDistribution[coin.denomination] = 
+      summary.denominationDistribution[coin.denomination] =
         (summary.denominationDistribution[coin.denomination] || 0) + 1;
 
       const decade = Math.floor(coin.year / 10) * 10;
@@ -144,9 +158,9 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
     // Calculate acquisition trend
     const acquisitionsByMonth: { [key: string]: number } = {};
     coins.forEach(coin => {
-      const month = new Date(coin.purchase_date).toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short' 
+      const month = new Date(coin.purchase_date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short'
       });
       acquisitionsByMonth[month] = (acquisitionsByMonth[month] || 0) + 1;
     });
@@ -167,15 +181,16 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
   if (coins.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="text-gray-500 text-6xl mb-4">🚀</div>
-        <div className="text-white text-2xl mb-2">Advanced Analytics Ready</div>
-        <div className="text-gray-400 mb-6">Add coins to unlock comprehensive insights and smart analytics</div>
-        <button 
-          onClick={() => window.location.href = '/dashboard/add'}
-          className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Add Your First Coin
-        </button>
+        <div className="text-muted-foreground mb-4">
+          <Brain className="mx-auto h-16 w-16" />
+        </div>
+        <div className="text-foreground text-2xl mb-2">Advanced Analytics Ready</div>
+        <div className="text-muted-foreground mb-6">Add coins to unlock comprehensive insights and smart analytics</div>
+        <Button asChild size="lg">
+          <Link href="/dashboard/add">
+            Add Your First Coin
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -185,8 +200,8 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
       {/* Smart Insights */}
       {smartInsights.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
-            <span className="mr-2">🧠</span>
+          <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center">
+            <Brain className="mr-2 h-5 w-5" />
             Smart Insights
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -205,8 +220,8 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
 
       {/* Key Financial Metrics */}
       <div>
-        <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
-          <span className="mr-2">💰</span>
+        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center">
+          <DollarSign className="mr-2 h-5 w-5" />
           Financial Overview
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -222,7 +237,7 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
               label: "vs purchase price"
             }}
           />
-          
+
           <MetricCard
             title="Total Investment"
             value={formatCurrency(analytics.totalPurchaseValue)}
@@ -230,7 +245,7 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
             icon="🏦"
             color="purple"
           />
-          
+
           <MetricCard
             title="Gain/Loss"
             value={formatCurrency(financialInsights.totalGainLoss)}
@@ -238,7 +253,7 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
             icon={financialInsights.totalGainLoss >= 0 ? "📈" : "📉"}
             color={financialInsights.totalGainLoss >= 0 ? "green" : "red"}
           />
-          
+
           <MetricCard
             title="Collection Face Value"
             value={formatCurrency(analytics.totalFaceValue)}
@@ -251,8 +266,8 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
 
       {/* Collection Health */}
       <div>
-        <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
-          <span className="mr-2">🎯</span>
+        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center">
+          <Target className="mr-2 h-5 w-5" />
           Collection Health
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -264,7 +279,7 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
             color="blue"
             progress={healthMetrics.diversificationScore}
           />
-          
+
           <MetricCard
             title="Quality Index"
             value={`${healthMetrics.qualityIndex.toFixed(0)}/100`}
@@ -273,7 +288,7 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
             color="purple"
             progress={healthMetrics.qualityIndex}
           />
-          
+
           <MetricCard
             title="Average Age"
             value={`${healthMetrics.averageAge.toFixed(0)} years`}
@@ -281,7 +296,7 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
             icon="⏰"
             color="gray"
           />
-          
+
           <MetricCard
             title="Countries"
             value={healthMetrics.countryDiversity}
@@ -294,8 +309,8 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
 
       {/* Recent Activity */}
       <div>
-        <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
-          <span className="mr-2">⚡</span>
+        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center">
+          <Zap className="mr-2 h-5 w-5" />
           Recent Activity (30 days)
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -307,7 +322,7 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
             color="green"
             size="small"
           />
-          
+
           <MetricCard
             title="Amount Spent"
             value={formatCurrency(recentActivity.totalSpent)}
@@ -316,7 +331,7 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
             color="blue"
             size="small"
           />
-          
+
           <MetricCard
             title="Average Cost"
             value={formatCurrency(recentActivity.averageValue)}
@@ -325,7 +340,7 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
             color="purple"
             size="small"
           />
-          
+
           <MetricCard
             title="Active Days"
             value={recentActivity.daysActive}
@@ -344,7 +359,7 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
           title="🏆 Top Performers"
           type="best"
         />
-        
+
         <TopPerformers
           performers={[...financialInsights.topPerformers].reverse()}
           title="📉 Needs Attention"
@@ -356,212 +371,236 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
       <div className="space-y-8">
         {/* Portfolio Growth & Monthly Spending */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-[#2a2a2a] rounded-xl p-6 border border-gray-700">
-            <h3 className="text-white text-lg mb-4 flex items-center">
-              <span className="mr-2">📈</span>
-              Portfolio Growth Over Time
-            </h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={analytics.valueOverTime}>
-                  <defs>
-                    <linearGradient id="valueGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0088FE" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#0088FE" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis dataKey="date" stroke="#888" />
-                  <YAxis stroke="#888" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#3a3a3a',
-                      border: '1px solid #555',
-                      borderRadius: '8px',
-                      color: '#fff'
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="totalValue"
-                    stroke="#0088FE"
-                    fillOpacity={1}
-                    fill="url(#valueGradient)"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <TrendingUp className="mr-2 h-5 w-5" />
+                Portfolio Growth Over Time
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={analytics.valueOverTime}>
+                    <defs>
+                      <linearGradient id="valueGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0088FE" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#0088FE" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                    <XAxis dataKey="date" stroke="#888" />
+                    <YAxis stroke="#888" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#3a3a3a',
+                        border: '1px solid #555',
+                        borderRadius: '8px',
+                        color: '#fff'
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="totalValue"
+                      stroke="#0088FE"
+                      fillOpacity={1}
+                      fill="url(#valueGradient)"
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-[#2a2a2a] rounded-xl p-6 border border-gray-700">
-            <h3 className="text-white text-lg mb-4 flex items-center">
-              <span className="mr-2">💳</span>
-              Monthly Spending Pattern
-            </h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={financialInsights.monthlySpending}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis dataKey="month" stroke="#888" />
-                  <YAxis stroke="#888" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#3a3a3a',
-                      border: '1px solid #555',
-                      borderRadius: '8px',
-                      color: '#fff'
-                    }}
-                  />
-                  <Bar dataKey="amount" fill="#00C49F" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <CreditCard className="mr-2 h-5 w-5" />
+                Monthly Spending Pattern
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={financialInsights.monthlySpending}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                    <XAxis dataKey="month" stroke="#888" />
+                    <YAxis stroke="#888" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#3a3a3a',
+                        border: '1px solid #555',
+                        borderRadius: '8px',
+                        color: '#fff'
+                      }}
+                    />
+                    <Bar dataKey="amount" fill="#00C49F" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Value Distribution & Acquisition Trend */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-[#2a2a2a] rounded-xl p-6 border border-gray-700">
-            <h3 className="text-white text-lg mb-4 flex items-center">
-              <span className="mr-2">💰</span>
-              Value Distribution
-            </h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={valueDistribution} layout="horizontal">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis type="number" stroke="#888" />
-                  <YAxis dataKey="range" type="category" stroke="#888" width={80} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#3a3a3a',
-                      border: '1px solid #555',
-                      borderRadius: '8px',
-                      color: '#fff'
-                    }}
-                  />
-                  <Bar dataKey="count" fill="#FFBB28" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <DollarSign className="mr-2 h-5 w-5" />
+                Value Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={valueDistribution} layout="horizontal">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                    <XAxis type="number" stroke="#888" />
+                    <YAxis dataKey="range" type="category" stroke="#888" width={80} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#3a3a3a',
+                        border: '1px solid #555',
+                        borderRadius: '8px',
+                        color: '#fff'
+                      }}
+                    />
+                    <Bar dataKey="count" fill="#FFBB28" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-[#2a2a2a] rounded-xl p-6 border border-gray-700">
-            <h3 className="text-white text-lg mb-4 flex items-center">
-              <span className="mr-2">📅</span>
-              Acquisition Timeline
-            </h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={analytics.acquisitionTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis dataKey="month" stroke="#888" />
-                  <YAxis stroke="#888" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#3a3a3a',
-                      border: '1px solid #555',
-                      borderRadius: '8px',
-                      color: '#fff'
-                    }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="count" 
-                    stroke="#8884D8" 
-                    strokeWidth={3}
-                    dot={{ fill: '#8884D8', strokeWidth: 2, r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <CalendarDays className="mr-2 h-5 w-5" />
+                Acquisition Timeline
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={analytics.acquisitionTrend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                    <XAxis dataKey="month" stroke="#888" />
+                    <YAxis stroke="#888" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#3a3a3a',
+                        border: '1px solid #555',
+                        borderRadius: '8px',
+                        color: '#fff'
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#8884D8"
+                      strokeWidth={3}
+                      dot={{ fill: '#8884D8', strokeWidth: 2, r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Distribution Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-[#2a2a2a] rounded-xl p-6 border border-gray-700">
-            <h3 className="text-white text-lg mb-4 flex items-center">
-              <span className="mr-2">🏛️</span>
-              Denomination Breakdown
-            </h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={Object.entries(analytics.denominationDistribution).map(([denom, count]) => ({
-                      name: denom,
-                      value: count
-                    }))}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    labelLine={{ stroke: '#888', strokeWidth: 1 }}
-                    label={renderCustomizedLabel}
-                    outerRadius={100}
-                    fill="#8884d8"
-                  >
-                    {Object.entries(analytics.denominationDistribution).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#3a3a3a',
-                      border: '1px solid #555',
-                      borderRadius: '8px',
-                      color: '#fff'
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Landmark className="mr-2 h-5 w-5" />
+                Denomination Breakdown
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={Object.entries(analytics.denominationDistribution).map(([denom, count]) => ({
+                        name: denom,
+                        value: count
+                      }))}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      labelLine={{ stroke: '#888', strokeWidth: 1 }}
+                      label={renderCustomizedLabel}
+                      outerRadius={100}
+                      fill="#8884d8"
+                    >
+                      {Object.entries(analytics.denominationDistribution).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#3a3a3a',
+                        border: '1px solid #555',
+                        borderRadius: '8px',
+                        color: '#fff'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-[#2a2a2a] rounded-xl p-6 border border-gray-700">
-            <h3 className="text-white text-lg mb-4 flex items-center">
-              <span className="mr-2">📍</span>
-              Mint Mark Distribution
-            </h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={Object.entries(analytics.mintMarkDistribution).map(([mark, count]) => ({
-                      name: mark,
-                      value: count
-                    }))}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    labelLine={{ stroke: '#888', strokeWidth: 1 }}
-                    label={renderCustomizedLabel}
-                    outerRadius={100}
-                    fill="#8884d8"
-                  >
-                    {Object.entries(analytics.mintMarkDistribution).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#3a3a3a',
-                      border: '1px solid #555',
-                      borderRadius: '8px',
-                      color: '#fff'
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <MapPin className="mr-2 h-5 w-5" />
+                Mint Mark Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={Object.entries(analytics.mintMarkDistribution).map(([mark, count]) => ({
+                        name: mark,
+                        value: count
+                      }))}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      labelLine={{ stroke: '#888', strokeWidth: 1 }}
+                      label={renderCustomizedLabel}
+                      outerRadius={100}
+                      fill="#8884d8"
+                    >
+                      {Object.entries(analytics.mintMarkDistribution).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#3a3a3a',
+                        border: '1px solid #555',
+                        borderRadius: '8px',
+                        color: '#fff'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
   );
 };
 
-export default AdvancedDashboard; 
+export default AdvancedDashboard;

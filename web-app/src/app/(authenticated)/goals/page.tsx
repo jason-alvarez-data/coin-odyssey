@@ -1,228 +1,220 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { GoalsService } from '@/services/goalsService';
-import { CollectionGoal, GoalTemplate, GOAL_TEMPLATES } from '@/types/goal';
-import Header from '@/components/layout/Header';
-import GoalCard from '@/components/goals/GoalCard';
-import CreateGoalModal from '@/components/goals/CreateGoalModal';
-import { PlusIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
+import { GoalsService } from "@/services/goalsService"
+import { CollectionGoal, GoalTemplate, GOAL_TEMPLATES } from "@coin-collecting/shared"
+import GoalCard from "@/components/goals/GoalCard"
+import CreateGoalModal from "@/components/goals/CreateGoalModal"
+import { Plus, Sparkles, Zap, CheckCircle, Target } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function GoalsPage() {
-  const [goals, setGoals] = useState<CollectionGoal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [goals, setGoals] = useState<CollectionGoal[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [filter, setFilter] = useState<"all" | "active" | "completed">("all")
 
   useEffect(() => {
-    loadGoals();
+    loadGoals()
 
-    // Subscribe to goal changes
     const channel = supabase
-      .channel('goals-changes')
-      .on('postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'collection_goals'
-        },
-        () => {
-          loadGoals();
-        }
+      .channel("goals-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "collection_goals" },
+        () => loadGoals()
       )
-      .subscribe();
+      .subscribe()
 
     return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   const loadGoals = async () => {
     try {
-      setLoading(true);
-      const userGoals = await GoalsService.getUserGoals();
-      setGoals(userGoals);
+      setLoading(true)
+      const userGoals = await GoalsService.getUserGoals()
+      setGoals(userGoals)
     } catch (error) {
-      console.error('Error loading goals:', error);
+      console.error("Error loading goals:", error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const handleCreateGoal = async (goal: Omit<CollectionGoal, 'id' | 'createdAt' | 'updatedAt' | 'currentCount' | 'isCompleted'>) => {
-    const newGoal = await GoalsService.createGoal(goal);
+  const handleCreateGoal = async (
+    goal: Omit<
+      CollectionGoal,
+      "id" | "createdAt" | "updatedAt" | "currentCount" | "isCompleted"
+    >
+  ) => {
+    const newGoal = await GoalsService.createGoal(goal)
     if (newGoal) {
-      setGoals([newGoal, ...goals]);
-      setShowCreateModal(false);
+      setGoals([newGoal, ...goals])
+      setShowCreateModal(false)
     }
-  };
+  }
 
   const handleCreateFromTemplate = async (template: GoalTemplate) => {
-    const newGoal = await GoalsService.createGoalFromTemplate(template.id);
+    const newGoal = await GoalsService.createGoalFromTemplate(template.id)
     if (newGoal) {
-      setGoals([newGoal, ...goals]);
+      setGoals([newGoal, ...goals])
     }
-  };
+  }
 
   const handleDeleteGoal = async (goalId: string) => {
-    const success = await GoalsService.deleteGoal(goalId);
+    const success = await GoalsService.deleteGoal(goalId)
     if (success) {
-      setGoals(goals.filter(g => g.id !== goalId));
+      setGoals(goals.filter((g) => g.id !== goalId))
     }
-  };
+  }
 
-  const filteredGoals = goals.filter(goal => {
-    if (filter === 'active') return !goal.isCompleted;
-    if (filter === 'completed') return goal.isCompleted;
-    return true;
-  });
+  const filteredGoals = goals.filter((goal) => {
+    if (filter === "active") return !goal.isCompleted
+    if (filter === "completed") return goal.isCompleted
+    return true
+  })
 
-  const activeGoals = goals.filter(g => !g.isCompleted);
-  const completedGoals = goals.filter(g => g.isCompleted);
+  const activeGoals = goals.filter((g) => !g.isCompleted)
+  const completedGoals = goals.filter((g) => g.isCompleted)
 
   return (
-    <div className="min-h-screen bg-[#1e1e1e]">
-      <Header />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
             Collection Goals
           </h1>
-          <p className="text-gray-400">
-            Set goals to track your collecting progress and stay motivated
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Set goals to track your collecting progress
           </p>
         </div>
+        <Button onClick={() => setShowCreateModal(true)}>
+          <Plus className="mr-1.5 h-4 w-4" />
+          Create Goal
+        </Button>
+      </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-[#2a2a2a] rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-400">Total Goals</p>
-                <p className="text-3xl font-bold text-[#3b82f6] mt-1">{goals.length}</p>
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <Target className="h-5 w-5 text-primary" />
               </div>
-              <div className="bg-[#1e3a5f] rounded-full p-3">
-                <SparklesIcon className="h-8 w-8 text-[#3b82f6]" />
+              <div>
+                <p className="text-xs text-muted-foreground">Total Goals</p>
+                <p className="text-xl font-bold text-primary">{goals.length}</p>
               </div>
             </div>
-          </div>
-
-          <div className="bg-[#2a2a2a] rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-400">Active Goals</p>
-                <p className="text-3xl font-bold text-yellow-500 mt-1">{activeGoals.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-yellow-500/10">
+                <Zap className="h-5 w-5 text-yellow-500" />
               </div>
-              <div className="bg-[#3d3416] rounded-full p-3">
-                <svg className="h-8 w-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+              <div>
+                <p className="text-xs text-muted-foreground">Active</p>
+                <p className="text-xl font-bold text-yellow-500">
+                  {activeGoals.length}
+                </p>
               </div>
             </div>
-          </div>
-
-          <div className="bg-[#2a2a2a] rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-400">Completed</p>
-                <p className="text-3xl font-bold text-green-500 mt-1">{completedGoals.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/10">
+                <CheckCircle className="h-5 w-5 text-green-500" />
               </div>
-              <div className="bg-[#1e3d2f] rounded-full p-3">
-                <svg className="h-8 w-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+              <div>
+                <p className="text-xs text-muted-foreground">Completed</p>
+                <p className="text-xl font-bold text-green-500">
+                  {completedGoals.length}
+                </p>
               </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filter Tabs */}
+      <Tabs
+        value={filter}
+        onValueChange={(v) => setFilter(v as typeof filter)}
+      >
+        <TabsList>
+          <TabsTrigger value="all">All Goals</TabsTrigger>
+          <TabsTrigger value="active">Active</TabsTrigger>
+          <TabsTrigger value="completed">Completed</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Goals List */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6 space-y-3">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-3 w-full" />
+              </CardContent>
+            </Card>
+          ))}
         </div>
-
-        {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                filter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-[#2a2a2a] text-gray-300 hover:bg-[#353535] border border-gray-600'
-              }`}
-            >
-              All Goals
-            </button>
-            <button
-              onClick={() => setFilter('active')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                filter === 'active'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-[#2a2a2a] text-gray-300 hover:bg-[#353535] border border-gray-600'
-              }`}
-            >
-              Active
-            </button>
-            <button
-              onClick={() => setFilter('completed')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                filter === 'completed'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-[#2a2a2a] text-gray-300 hover:bg-[#353535] border border-gray-600'
-              }`}
-            >
-              Completed
-            </button>
-          </div>
-
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <PlusIcon className="h-5 w-5 mr-2" />
-            Create Goal
-          </button>
-        </div>
-
-        {/* Goals List */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-400">Loading goals...</p>
-          </div>
-        ) : filteredGoals.length === 0 ? (
-          <div className="bg-[#2a2a2a] rounded-lg shadow-sm p-12 text-center">
-            <SparklesIcon className="h-16 w-16 text-gray-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">
-              {filter === 'all' ? 'No goals yet' : `No ${filter} goals`}
+      ) : filteredGoals.length === 0 ? (
+        <Card className="py-12">
+          <CardContent className="flex flex-col items-center text-center">
+            <Sparkles className="h-12 w-12 text-muted-foreground/40 mb-3" />
+            <h3 className="font-medium mb-1">
+              {filter === "all" ? "No goals yet" : `No ${filter} goals`}
             </h3>
-            <p className="text-gray-400 mb-6">
-              Start by creating your first collection goal to track your progress
+            <p className="text-sm text-muted-foreground mb-4">
+              Start by creating your first collection goal
             </p>
-            {filter === 'all' && (
+            {filter === "all" && (
               <>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  <PlusIcon className="h-5 w-5 mr-2" />
+                <Button onClick={() => setShowCreateModal(true)}>
+                  <Plus className="mr-1.5 h-4 w-4" />
                   Create Your First Goal
-                </button>
+                </Button>
 
-                {/* Goal Templates */}
-                <div className="mt-12">
-                  <h4 className="text-sm font-medium text-gray-300 mb-4">Or start with a template:</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="mt-8 w-full max-w-2xl">
+                  <p className="text-xs font-medium text-muted-foreground mb-3">
+                    Or start with a template:
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {GOAL_TEMPLATES.slice(0, 3).map((template) => (
                       <button
                         key={template.id}
                         onClick={() => handleCreateFromTemplate(template)}
-                        className="text-left p-4 border-2 border-gray-600 rounded-lg hover:border-blue-500 hover:bg-[#353535] transition-all"
+                        className="text-left p-3 border border-border rounded-lg hover:border-primary/50 hover:bg-accent transition-all"
                       >
-                        <h5 className="font-medium text-white mb-1">{template.title}</h5>
-                        <p className="text-sm text-gray-400 mb-2">{template.description}</p>
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="px-2 py-1 bg-[#353535] rounded text-gray-300">{template.estimatedDifficulty}</span>
-                          <span className="text-gray-500">{template.estimatedTimeframe}</span>
+                        <h5 className="text-sm font-medium mb-1">
+                          {template.title}
+                        </h5>
+                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                          {template.description}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-[10px]">
+                            {template.estimatedDifficulty}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground">
+                            {template.estimatedTimeframe}
+                          </span>
                         </div>
                       </button>
                     ))}
@@ -230,19 +222,15 @@ export default function GoalsPage() {
                 </div>
               </>
             )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredGoals.map((goal) => (
-              <GoalCard
-                key={goal.id}
-                goal={goal}
-                onDelete={handleDeleteGoal}
-              />
-            ))}
-          </div>
-        )}
-      </main>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredGoals.map((goal) => (
+            <GoalCard key={goal.id} goal={goal} onDelete={handleDeleteGoal} />
+          ))}
+        </div>
+      )}
 
       {/* Create Goal Modal */}
       {showCreateModal && (
@@ -252,5 +240,5 @@ export default function GoalsPage() {
         />
       )}
     </div>
-  );
+  )
 }

@@ -1,16 +1,61 @@
-# Python
+# ========================
+# Dependencies
+# ========================
+node_modules/
+
+# ========================
+# Build output
+# ========================
+build/
+dist/
+out/
+*.tsbuildinfo
+
+# ========================
+# Next.js (web-app)
+# ========================
+.next/
+.vercel
+next-env.d.ts
+
+# ========================
+# Expo / React Native (mobile-app)
+# ========================
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+
+# ========================
+# Environment & secrets
+# ========================
+.env
+.env*.local
+
+# ========================
+# Database
+# ========================
+*.db
+*.sqlite
+*.sqlite3
+!template.db
+coins.db
+
+# ========================
+# Python (legacy / scripts)
+# ========================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
-# lib/ - COMMENTED OUT to allow web-app/src/lib/
 lib64/
 parts/
 sdist/
@@ -19,20 +64,12 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
-# Virtual Environment
 venv/
 ENV/
-env/
-.env/
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
-!template.db
-
-# IDE specific files
+# ========================
+# IDE & editor
+# ========================
 .idea/
 .vscode/
 *.swp
@@ -43,7 +80,9 @@ env/
 *.sublime-workspace
 *.sublime-project
 
-# OS specific files
+# ========================
+# OS files
+# ========================
 .DS_Store
 .DS_Store?
 ._*
@@ -52,37 +91,10 @@ env/
 ehthumbs.db
 Thumbs.db
 
-# Project specific
-coins.db
+# ========================
+# Misc
+# ========================
 *.log
 temp/
 uploads/
 images/
-
-# Distribution / packaging
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-# lib/ - COMMENTED OUT to allow web-app/src/lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Node.js
-node_modules/
-.next/
-out/
-.env*.local
-.vercel
-*.tsbuildinfo
-next-env.d.ts

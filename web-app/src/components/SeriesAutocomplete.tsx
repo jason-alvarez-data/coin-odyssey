@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { CoinSeries, getSeriesByCountryAndDenomination, COIN_SERIES } from '@/types/series';
-import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { CoinSeries, getSeriesByCountryAndDenomination, COIN_SERIES } from '@coin-collecting/shared';
+import { Search, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface SeriesAutocompleteProps {
   country?: string;
@@ -104,7 +107,7 @@ export default function SeriesAutocomplete({
   return (
     <div ref={wrapperRef} className="relative">
       <div className="relative">
-        <input
+        <Input
           type="text"
           value={inputValue}
           onChange={handleInputChange}
@@ -112,52 +115,54 @@ export default function SeriesAutocomplete({
           placeholder="e.g., American Women Quarters"
           className={className}
         />
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
           {inputValue && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5"
               onClick={() => {
                 setInputValue('');
                 onChange('');
                 setIsOpen(false);
               }}
-              className="text-gray-400 hover:text-gray-300"
             >
-              ×
-            </button>
+              <X className="h-3.5 w-3.5" />
+            </Button>
           )}
-          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          <Search className="h-4 w-4 text-muted-foreground" />
         </div>
       </div>
 
       {/* Dropdown */}
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute z-50 mt-1 w-full bg-[#2a2a2a] border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-50 mt-1 w-full bg-popover border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
           {suggestions.map((series) => (
             <button
               key={series.id}
               type="button"
               onClick={() => handleSelectSeries(series)}
-              className="w-full text-left px-4 py-3 hover:bg-[#353535] border-b border-gray-700 last:border-b-0 transition-colors"
+              className="w-full text-left px-4 py-3 hover:bg-accent border-b border-border last:border-b-0 transition-colors"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="font-medium text-white">{series.name}</div>
-                  <div className="text-sm text-gray-400 mt-1">{series.description}</div>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                  <div className="font-medium text-foreground">{series.name}</div>
+                  <div className="text-sm text-muted-foreground mt-1">{series.description}</div>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground/70">
                     <span>{series.country}</span>
-                    <span>•</span>
+                    <span>·</span>
                     <span>{series.denomination}</span>
-                    <span>•</span>
+                    <span>·</span>
                     <span>{series.startYear}-{series.endYear}</span>
-                    <span>•</span>
+                    <span>·</span>
                     <span className="capitalize">{series.category}</span>
                   </div>
                 </div>
                 {series.specificCoins.length > 0 && (
-                  <div className="ml-2 px-2 py-1 bg-[#1e1e1e] rounded text-xs text-gray-400">
+                  <Badge variant="secondary" className="ml-2 text-xs">
                     {series.specificCoins.length} coins
-                  </div>
+                  </Badge>
                 )}
               </div>
             </button>
@@ -167,14 +172,14 @@ export default function SeriesAutocomplete({
 
       {/* No results message */}
       {isOpen && inputValue && suggestions.length === 0 && (
-        <div className="absolute z-50 mt-1 w-full bg-[#2a2a2a] border border-gray-600 rounded-lg shadow-lg px-4 py-3 text-gray-400 text-sm">
-          No series found matching "{inputValue}"
+        <div className="absolute z-50 mt-1 w-full bg-popover border border-border rounded-lg shadow-lg px-4 py-3 text-muted-foreground text-sm">
+          No series found matching &ldquo;{inputValue}&rdquo;
         </div>
       )}
 
       {/* Helper text */}
       {!isOpen && country && denomination && allSuggestions.length > 0 && (
-        <div className="mt-2 text-sm text-gray-400">
+        <div className="mt-2 text-sm text-muted-foreground">
           {allSuggestions.length} series available for {denomination} from {country}
         </div>
       )}

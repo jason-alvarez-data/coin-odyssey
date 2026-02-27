@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Coin } from '@/types/coin';
+import { Coin } from '@coin-collecting/shared';
 
 interface CoinFormProps {
   onSubmit: (data: Partial<Coin>) => void;

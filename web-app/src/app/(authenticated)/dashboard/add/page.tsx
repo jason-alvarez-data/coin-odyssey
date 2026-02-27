@@ -2,9 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import Header from '@/components/layout/Header';
+
 import CoinForm from '@/components/CoinForm';
-import { Coin } from '@/types/coin';
+import { Coin } from '@coin-collecting/shared';
 
 export default function AddCoinPage() {
   const router = useRouter();
@@ -13,7 +13,7 @@ export default function AddCoinPage() {
     try {
       // Get the current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
+
       if (userError || !user) {
         console.error('User not authenticated:', userError);
         alert('You must be logged in to add coins. Please refresh the page and try again.');
@@ -34,7 +34,7 @@ export default function AddCoinPage() {
           collectionId = allCollections[0].id;
         } else {
           // Try to create a default collection
-        
+
         const { data: newCollection, error: createError } = await supabase
           .from('collections')
           .insert({
@@ -89,7 +89,7 @@ export default function AddCoinPage() {
           return;
         }
       alert('Coin added successfully!');
-      
+
       // Navigate back to dashboard
       router.push('/dashboard');
     } catch (error) {
@@ -99,11 +99,11 @@ export default function AddCoinPage() {
   };
 
   return (
-    <div className="flex-1 bg-[#1e1e1e] text-white">
+    <div className="flex-1">
       <div className="p-4 md:p-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold">Add New Coin</h1>
-          <Header />
+          <h1 className="text-2xl font-bold text-foreground">Add New Coin</h1>
+
         </div>
 
         <div className="max-w-7xl mx-auto">
@@ -112,4 +112,4 @@ export default function AddCoinPage() {
       </div>
     </div>
   );
-} 
+}

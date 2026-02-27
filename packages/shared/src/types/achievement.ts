@@ -1,5 +1,3 @@
-// src/types/achievement.ts
-
 export interface Achievement {
   id: string;
   title: string;
@@ -7,7 +5,7 @@ export interface Achievement {
   icon: string;
   category: 'goal' | 'collection' | 'milestone' | 'special';
   criteria: {
-    type: 'goal_completion' | 'goal_milestone' | 'collection_size' | 'collection_value' | 'streak' | 'speed' | 'variety';
+    type: 'goal_completion' | 'goal_milestone' | 'collection_size' | 'collection_value' | 'streak' | 'speed' | 'variety' | 'special';
     requirement: number;
     timeframe?: string; // e.g., 'week', 'month', 'year'
     subtype?: string; // Additional classification

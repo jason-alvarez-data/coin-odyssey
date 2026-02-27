@@ -1,7 +1,10 @@
 "use client";
 
-import { Achievement, RARITY_COLORS, RARITY_LABELS } from '@/types/achievement';
-import { LockClosedIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
+import { Achievement, RARITY_COLORS, RARITY_LABELS } from '@coin-collecting/shared';
+import { Lock, CheckCircle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 interface AchievementCardProps {
   achievement: Achievement & { progress?: { current: number; required: number } };
@@ -17,16 +20,16 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
   const rarityLabel = RARITY_LABELS[achievement.rarity];
 
   const rewardTypeIcon = {
-    badge: '🏅',
-    title: '👑',
-    feature: '✨',
-    points: '⭐',
+    badge: '\u{1F396}',
+    title: '\u{1F451}',
+    feature: '\u{2728}',
+    points: '\u{2B50}',
   };
 
   return (
-    <div
-      className={`bg-[#2a2a2a] rounded-lg shadow-sm border-2 overflow-hidden transition-all hover:shadow-md ${
-        isUnlocked ? 'border-yellow-400' : 'border-gray-600'
+    <Card
+      className={`overflow-hidden transition-all hover:shadow-md border-2 ${
+        isUnlocked ? '' : 'border-border'
       }`}
       style={{
         borderColor: isUnlocked ? rarityColor : undefined,
@@ -50,35 +53,35 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
           {/* Content */}
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-lg font-semibold text-white">
+              <h3 className="text-lg font-semibold text-foreground">
                 {achievement.title}
               </h3>
               {isUnlocked && (
-                <CheckCircleIcon
+                <CheckCircle
                   className="h-5 w-5"
                   style={{ color: rarityColor }}
                 />
               )}
               {!isUnlocked && (
-                <LockClosedIcon className="h-5 w-5 text-gray-500" />
+                <Lock className="h-5 w-5 text-muted-foreground" />
               )}
             </div>
 
-            <p className={`text-sm mb-2 ${isUnlocked ? 'text-gray-300' : 'text-gray-500'}`}>
+            <p className={`text-sm mb-2 ${isUnlocked ? 'text-muted-foreground' : 'text-muted-foreground/60'}`}>
               {achievement.description}
             </p>
 
             {/* Badges */}
             <div className="flex flex-wrap gap-2">
-              <span
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white"
+              <Badge
+                className="rounded-full text-white"
                 style={{ backgroundColor: rarityColor }}
               >
                 {rarityLabel}
-              </span>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#353535] text-gray-300">
+              </Badge>
+              <Badge variant="secondary" className="rounded-full">
                 {achievement.category}
-              </span>
+              </Badge>
             </div>
           </div>
         </div>
@@ -86,43 +89,39 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
 
       {/* Progress Bar */}
       {!isUnlocked && achievement.progress && (
-        <div className="px-6 py-3 bg-[#1e1e1e] border-t border-gray-700">
-          <div className="flex justify-between text-sm text-gray-400 mb-2">
+        <div className="px-6 py-3 bg-muted/50 border-t border-border">
+          <div className="flex justify-between text-sm text-muted-foreground mb-2">
             <span>Progress</span>
             <span className="font-medium">
               {achievement.progress.current} / {achievement.progress.required}
             </span>
           </div>
-          <div className="w-full bg-gray-700 rounded-full h-2">
-            <div
-              className="h-2 rounded-full transition-all duration-500"
-              style={{
-                width: `${progressPercentage}%`,
-                backgroundColor: rarityColor,
-              }}
-            ></div>
-          </div>
-          <div className="mt-1 text-right text-xs text-gray-500">
+          <Progress
+            value={progressPercentage}
+            className="h-2 bg-muted"
+            indicatorStyle={{ backgroundColor: rarityColor }}
+          />
+          <div className="mt-1 text-right text-xs text-muted-foreground/70">
             {progressPercentage.toFixed(1)}%
           </div>
         </div>
       )}
 
       {/* Reward */}
-      <div className="px-6 py-3 bg-gradient-to-r from-yellow-900/20 to-amber-900/20 border-t border-yellow-900/30">
+      <CardContent className="px-6 py-3 bg-gradient-to-r from-yellow-900/20 to-amber-900/20 border-t border-yellow-900/30">
         <div className="flex items-center gap-2 text-sm">
           <span className="text-2xl">{rewardTypeIcon[achievement.reward.type]}</span>
           <div>
-            <span className="text-gray-400">Reward: </span>
+            <span className="text-muted-foreground">Reward: </span>
             <span className="font-medium text-yellow-400">
               {achievement.reward.value}
             </span>
-            <span className="text-gray-500 text-xs ml-1">
+            <span className="text-muted-foreground/70 text-xs ml-1">
               ({achievement.reward.type})
             </span>
           </div>
         </div>
-      </div>
+      </CardContent>
 
       {/* Unlocked Date */}
       {isUnlocked && achievement.unlockedAt && (
@@ -130,6 +129,6 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
           Unlocked on {new Date(achievement.unlockedAt).toLocaleDateString()}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

@@ -2,9 +2,7 @@
 import { supabase } from '@/lib/supabase';
 import { CoinService } from './coinService';
 import { GoalsService } from './goalsService';
-import { Achievement, UserAchievement, ACHIEVEMENTS } from '@/types/achievement';
-import { CollectionGoal } from '@/types/goal';
-import { Coin } from '@/types/coin';
+import { Achievement, UserAchievement, ACHIEVEMENTS, CollectionGoal, Coin } from '@coin-collecting/shared';
 
 export class AchievementService {
   // Get user's achievement progress

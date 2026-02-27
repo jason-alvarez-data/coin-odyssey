@@ -3,8 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import Header from '@/components/layout/Header';
+import { Loader2, X, Upload } from 'lucide-react';
+
 import SeriesAutocomplete from '@/components/SeriesAutocomplete';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Coin {
   id: string;
@@ -46,9 +53,9 @@ export default function EditCoinPage() {
           .single();
 
         if (error) throw error;
-        
+
         setCoin(data);
-        
+
         // Set existing images if they exist
         if (data.images && data.images.length > 0) {
           setObverseImage(data.images[0] || null);
@@ -73,12 +80,12 @@ export default function EditCoinPage() {
 
     try {
       setSaving(true);
-      
+
       // Build images array from obverse and reverse
       const images: string[] = [];
       if (obverseImage) images.push(obverseImage);
       if (reverseImage && reverseImage !== obverseImage) images.push(reverseImage);
-      
+
       const { error } = await supabase
         .from('coins')
         .update({
@@ -140,7 +147,7 @@ export default function EditCoinPage() {
       // Create a unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${coin.id}_${side}_${Date.now()}.${fileExt}`;
-      
+
       // Validate file
       if (!fileExt) {
         throw new Error('Invalid file: no extension');
@@ -190,18 +197,18 @@ export default function EditCoinPage() {
 
   const removeImage = async (side: 'obverse' | 'reverse') => {
     const currentImageUrl = side === 'obverse' ? obverseImage : reverseImage;
-    
+
     if (currentImageUrl && currentImageUrl.includes('coin-images')) {
       try {
         // Extract filename from URL
         const urlParts = currentImageUrl.split('/');
         const fileName = urlParts[urlParts.length - 1];
-        
+
         // Delete from Supabase Storage
         const { error } = await supabase.storage
           .from('coin-images')
           .remove([fileName]);
-          
+
         if (error) {
           console.error('Error deleting image:', error);
         }
@@ -220,221 +227,238 @@ export default function EditCoinPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 bg-[#1e1e1e] text-white p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Edit Coin</h1>
-          <Header />
-        </div>
-        <div className="text-gray-400">Loading...</div>
+      <div className="p-8">
+        <h1 className="text-2xl font-bold text-foreground mb-6">Edit Coin</h1>
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Skeleton className="h-9 w-full" />
+            <div className="grid grid-cols-2 gap-6">
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+            <Skeleton className="h-9 w-full" />
+            <div className="grid grid-cols-2 gap-6">
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+            <Skeleton className="h-24 w-full" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (!coin) {
     return (
-      <div className="flex-1 bg-[#1e1e1e] text-white p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Edit Coin</h1>
-          <Header />
-        </div>
-        <div className="text-red-400">Coin not found</div>
+      <div className="p-8">
+        <h1 className="text-2xl font-bold text-foreground mb-6">Edit Coin</h1>
+        <p className="text-destructive">Coin not found</p>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 bg-[#1e1e1e] text-white p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Edit Coin</h1>
-        <Header />
-      </div>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold text-foreground mb-6">Edit Coin</h1>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-500 bg-opacity-20 border border-red-500 rounded-lg">
-          <p className="text-red-400">{error}</p>
+        <div className="mb-6 p-4 rounded-lg border border-destructive/50 bg-destructive/10">
+          <p className="text-destructive">{error}</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto">
-        <div className="bg-[#2a2a2a] rounded-lg p-6 space-y-6">
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">
-              Title <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={coin.title || ''}
-              onChange={handleInputChange}
-              required
-              className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">
-                Year <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                name="year"
-                value={coin.year || ''}
+        <Card>
+          <CardHeader>
+            <CardTitle>Coin Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="title">
+                Title <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="title"
+                type="text"
+                name="title"
+                value={coin.title || ''}
                 onChange={handleInputChange}
                 required
-                className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
               />
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">
-                Face Value <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                name="face_value"
-                value={coin.face_value || ''}
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="year">
+                  Year <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="year"
+                  type="number"
+                  name="year"
+                  value={coin.year || ''}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="face_value">
+                  Face Value <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="face_value"
+                  type="number"
+                  name="face_value"
+                  value={coin.face_value || ''}
+                  onChange={handleInputChange}
+                  required
+                  step="0.01"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="denomination">Type</Label>
+                <Input
+                  id="denomination"
+                  type="text"
+                  name="denomination"
+                  value={coin.denomination || ''}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="country">Country</Label>
+                <Input
+                  id="country"
+                  type="text"
+                  name="country"
+                  value={coin.country || ''}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                Series (Optional)
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  {coin.country && coin.denomination ? '- Suggestions based on country and type' : '- Enter country and type for suggestions'}
+                </span>
+              </Label>
+              <SeriesAutocomplete
+                country={coin.country || ''}
+                denomination={coin.denomination || ''}
+                value={coin.series || ''}
+                onChange={(series) => setCoin(prev => prev ? { ...prev, series } : prev)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="mint_mark">Mint Mark</Label>
+                <Input
+                  id="mint_mark"
+                  type="text"
+                  name="mint_mark"
+                  value={coin.mint_mark || ''}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="grade">Grade</Label>
+                <Input
+                  id="grade"
+                  type="text"
+                  name="grade"
+                  value={coin.grade || ''}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="purchase_price">Purchase Price</Label>
+                <Input
+                  id="purchase_price"
+                  type="number"
+                  name="purchase_price"
+                  value={coin.purchase_price || ''}
+                  onChange={handleInputChange}
+                  step="0.01"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="purchase_date">
+                  Date Acquired <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="purchase_date"
+                  type="date"
+                  name="purchase_date"
+                  value={coin.purchase_date || ''}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                name="notes"
+                value={coin.notes || ''}
                 onChange={handleInputChange}
-                required
-                step="0.01"
-                className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Type</label>
-              <input
-                type="text"
-                name="denomination"
-                value={coin.denomination || ''}
-                onChange={handleInputChange}
-                className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
+                rows={4}
               />
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Country</label>
-              <input
-                type="text"
-                name="country"
-                value={coin.country || ''}
-                onChange={handleInputChange}
-                className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
-              />
-            </div>
-          </div>
+            {/* Coin Images - Obverse and Reverse */}
+            <div className="space-y-3">
+              <Label>Coin Images</Label>
 
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">
-              Series (Optional)
-              <span className="ml-2 text-xs font-normal text-gray-500">
-                {coin.country && coin.denomination ? '- Suggestions based on country and type' : '- Enter country and type for suggestions'}
-              </span>
-            </label>
-            <SeriesAutocomplete
-              country={coin.country || ''}
-              denomination={coin.denomination || ''}
-              value={coin.series || ''}
-              onChange={(series) => setCoin(prev => prev ? { ...prev, series } : prev)}
-              className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Mint Mark</label>
-              <input
-                type="text"
-                name="mint_mark"
-                value={coin.mint_mark || ''}
-                onChange={handleInputChange}
-                className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Grade</label>
-              <input
-                type="text"
-                name="grade"
-                value={coin.grade || ''}
-                onChange={handleInputChange}
-                className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Purchase Price</label>
-              <input
-                type="number"
-                name="purchase_price"
-                value={coin.purchase_price || ''}
-                onChange={handleInputChange}
-                step="0.01"
-                className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">
-                Date Acquired <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                name="purchase_date"
-                value={coin.purchase_date || ''}
-                onChange={handleInputChange}
-                required
-                className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
-            <textarea
-              name="notes"
-              value={coin.notes || ''}
-              onChange={handleInputChange}
-              rows={4}
-              className="w-full bg-[#1e1e1e] text-white rounded-lg px-3 py-2 border border-gray-600"
-            />
-          </div>
-
-          {/* Coin Images - Obverse and Reverse */}
-          <div>
-            <label className="block text-sm text-gray-400 mb-3">Coin Images</label>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Obverse (Front) Image */}
-              <div>
-                <label className="block text-sm text-gray-300 mb-2">Obverse (Front)</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Obverse (Front) Image */}
                 <div className="space-y-3">
+                  <Label className="text-sm text-muted-foreground font-normal">Obverse (Front)</Label>
                   {obverseImage ? (
                     <div className="relative">
                       <img
                         src={obverseImage}
                         alt="Obverse (Front)"
-                        className="w-full h-48 object-cover rounded-lg border border-gray-600"
+                        className="w-full h-48 object-cover rounded-lg border border-border"
                       />
-                      <button
+                      <Button
                         type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8 rounded-full"
                         onClick={() => removeImage('obverse')}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-red-600"
                       >
-                        ×
-                      </button>
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   ) : (
-                    <div className="w-full h-48 border-2 border-dashed border-gray-600 rounded-lg flex items-center justify-center">
-                      <span className="text-gray-500 text-sm">No obverse image</span>
+                    <div className="w-full h-48 border-2 border-dashed border-border rounded-lg flex items-center justify-center">
+                      <span className="text-muted-foreground text-sm">No obverse image</span>
                     </div>
                   )}
-                  
+
                   <div>
                     <input
                       type="file"
@@ -444,55 +468,56 @@ export default function EditCoinPage() {
                       id="obverse-upload"
                       disabled={uploadingObverse}
                     />
-                    <label
-                      htmlFor="obverse-upload"
-                      className={`w-full py-2 px-4 rounded-lg transition-colors text-center block ${
-                        uploadingObverse 
-                          ? 'bg-gray-600 cursor-not-allowed' 
-                          : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
-                      } text-white`}
+                    <Button
+                      type="button"
+                      variant="default"
+                      className="w-full"
+                      disabled={uploadingObverse}
+                      asChild
                     >
-                      {uploadingObverse ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                          </svg>
-                          Uploading...
-                        </span>
-                      ) : (
-                        obverseImage ? 'Change Obverse' : 'Add Obverse'
-                      )}
-                    </label>
+                      <label htmlFor="obverse-upload" className="cursor-pointer">
+                        {uploadingObverse ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4" />
+                            {obverseImage ? 'Change Obverse' : 'Add Obverse'}
+                          </>
+                        )}
+                      </label>
+                    </Button>
                   </div>
                 </div>
-              </div>
 
-              {/* Reverse (Back) Image */}
-              <div>
-                <label className="block text-sm text-gray-300 mb-2">Reverse (Back)</label>
+                {/* Reverse (Back) Image */}
                 <div className="space-y-3">
+                  <Label className="text-sm text-muted-foreground font-normal">Reverse (Back)</Label>
                   {reverseImage ? (
                     <div className="relative">
                       <img
                         src={reverseImage}
                         alt="Reverse (Back)"
-                        className="w-full h-48 object-cover rounded-lg border border-gray-600"
+                        className="w-full h-48 object-cover rounded-lg border border-border"
                       />
-                      <button
+                      <Button
                         type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8 rounded-full"
                         onClick={() => removeImage('reverse')}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-red-600"
                       >
-                        ×
-                      </button>
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   ) : (
-                    <div className="w-full h-48 border-2 border-dashed border-gray-600 rounded-lg flex items-center justify-center">
-                      <span className="text-gray-500 text-sm">No reverse image</span>
+                    <div className="w-full h-48 border-2 border-dashed border-border rounded-lg flex items-center justify-center">
+                      <span className="text-muted-foreground text-sm">No reverse image</span>
                     </div>
                   )}
-                  
+
                   <div>
                     <input
                       type="file"
@@ -502,76 +527,62 @@ export default function EditCoinPage() {
                       id="reverse-upload"
                       disabled={uploadingReverse}
                     />
-                    <label
-                      htmlFor="reverse-upload"
-                      className={`w-full py-2 px-4 rounded-lg transition-colors text-center block ${
-                        uploadingReverse 
-                          ? 'bg-gray-600 cursor-not-allowed' 
-                          : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
-                      } text-white`}
+                    <Button
+                      type="button"
+                      variant="default"
+                      className="w-full"
+                      disabled={uploadingReverse}
+                      asChild
                     >
-                      {uploadingReverse ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                          </svg>
-                          Uploading...
-                        </span>
-                      ) : (
-                        reverseImage ? 'Change Reverse' : 'Add Reverse'
-                      )}
-                    </label>
+                      <label htmlFor="reverse-upload" className="cursor-pointer">
+                        {uploadingReverse ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4" />
+                            {reverseImage ? 'Change Reverse' : 'Add Reverse'}
+                          </>
+                        )}
+                      </label>
+                    </Button>
                   </div>
                 </div>
               </div>
-            </div>
-            
-            <div className="mt-3 text-xs text-gray-500">
-              <p>• Obverse: The front side of the coin (usually with the face or main design)</p>
-              <p>• Reverse: The back side of the coin (usually with the denomination or secondary design)</p>
-            </div>
-          </div>
 
-          <div className="flex justify-end gap-4 pt-4">
-            <button
-              type="button"
-              onClick={() => router.push('/collection')}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
-            >
-              {saving ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Saving...
-                </>
-              ) : (
-                'Save Changes'
-              )}
-            </button>
-          </div>
-        </div>
+              <div className="text-xs text-muted-foreground">
+                <p>Obverse: The front side of the coin (usually with the face or main design)</p>
+                <p>Reverse: The back side of the coin (usually with the denomination or secondary design)</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-4 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push('/collection')}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </form>
     </div>
   );
-} 
+}

@@ -1,8 +1,7 @@
 // src/services/goalsService.ts
 import { supabase } from '@/lib/supabase';
 import { CoinService } from './coinService';
-import { Coin } from '@/types/coin';
-import { CollectionGoal, GoalProgress, GoalCriteria, GoalTemplate, GOAL_TEMPLATES } from '@/types/goal';
+import { Coin, CollectionGoal, GoalProgress, GoalCriteria, GoalTemplate, GOAL_TEMPLATES } from '@coin-collecting/shared';
 
 export class GoalsService {
   private static activeSubscriptions = new Map<string, any>();

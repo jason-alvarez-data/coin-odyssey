@@ -1,4 +1,4 @@
-import { SearchField } from '@/types/coin';
+import { SearchField } from '@coin-collecting/shared';
 
 interface SearchBarProps {
   searchQuery: string;

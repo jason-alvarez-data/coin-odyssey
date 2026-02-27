@@ -4,30 +4,83 @@
 
 @layer base {
   :root {
-    --background: 250 250 250;
-    --foreground: 0 0 0;
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 217 91% 60%;
+    --chart-1: 217 91% 60%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217 91% 60%;
   }
 
-  [data-theme='dark'],
-  :root[class~='dark'] {
-    --background: 17 24 39;
-    --foreground: 255 255 255;
+  .dark {
+    --background: 0 0% 7.1%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 10.2%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 10.2%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 217 91% 60%;
+    --chart-1: 217 91% 60%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 0 0% 7.1%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 14.9%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 217 91% 60%;
   }
 }
 
 @layer base {
   * {
-    @apply transition-colors duration-200;
+    @apply border-border;
   }
-  
-  body {
-    @apply min-h-screen;
-    background-color: rgb(var(--background));
-    color: rgb(var(--foreground));
-  }
-}
 
-/* Prevent background flash during route changes */
-#__next {
-  @apply min-h-screen bg-gray-50 dark:bg-gray-900;
+  body {
+    @apply bg-background text-foreground min-h-screen antialiased;
+  }
 }

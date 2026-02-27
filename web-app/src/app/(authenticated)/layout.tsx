@@ -1,10 +1,12 @@
 'use client'
 
-import Navigation from '@/components/Navigation'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { CollectionProvider } from '@/contexts/CollectionContext'
+import { AppSidebar } from '@/components/app-sidebar'
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
+import { Separator } from '@/components/ui/separator'
 
 export default function AuthenticatedLayout({
   children,
@@ -35,15 +37,21 @@ export default function AuthenticatedLayout({
 
   return (
     <CollectionProvider>
-      <div className="min-h-screen bg-[#1e1e1e] flex">
-        {/* Sidebar Navigation */}
-        <Navigation />
-        
-        {/* Main Content */}
-        <main className="flex-1 p-8 text-white">
-          {children}
-        </main>
-      </div>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          {/* Top bar with sidebar trigger */}
+          <header className="flex h-12 items-center gap-2 border-b border-border px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+          </header>
+
+          {/* Main Content */}
+          <main className="flex-1 p-6">
+            {children}
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
     </CollectionProvider>
   )
-} 
+}
