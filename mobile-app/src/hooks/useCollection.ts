@@ -1,6 +1,7 @@
 // src/hooks/useCollection.ts
 import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
+import { CoinService } from '../services/coinService';
 import { Coin } from '../types/coin';
 import { useAuth } from './useAuth';
 
@@ -43,7 +44,8 @@ export function useCollection() {
 
       if (coinsError) throw coinsError;
 
-      setCoins(coinsData || []);
+      // Map snake_case DB data to camelCase Coin interface
+      setCoins((coinsData || []).map(CoinService.mapSupabaseToCoin));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch coins');
       console.error('Error fetching coins:', err);
@@ -86,20 +88,34 @@ export function useCollection() {
         collectionId = collections[0].id;
       }
 
+      // Map camelCase to snake_case for DB insert
       const { data, error } = await supabase
         .from('coins')
         .insert({
-          ...coinData,
           collection_id: collectionId,
-          user_id: user.id,
+          name: coinData.name,
+          title: coinData.title || null,
+          denomination: coinData.denomination,
+          year: coinData.year,
+          mint_mark: coinData.mintMark || null,
+          grade: coinData.grade || null,
+          face_value: coinData.faceValue || null,
+          purchase_price: coinData.purchasePrice || null,
+          current_market_value: coinData.currentMarketValue || null,
+          purchase_date: coinData.purchaseDate || null,
+          notes: coinData.notes || null,
+          country: coinData.country || null,
+          series: coinData.series || null,
+          images: coinData.images || null,
         })
-        .select()
+        .select('*')
         .single();
 
       if (error) throw error;
 
-      setCoins(prev => [data, ...prev]);
-      return data;
+      const mapped = CoinService.mapSupabaseToCoin(data);
+      setCoins(prev => [mapped, ...prev]);
+      return mapped;
     } catch (err) {
       console.error('Error adding coin:', err);
       throw err;
@@ -108,17 +124,35 @@ export function useCollection() {
 
   const updateCoin = async (coinId: string, updates: Partial<Coin>) => {
     try {
+      // Map camelCase updates to snake_case for DB
+      const dbUpdates: Record<string, any> = {};
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.denomination !== undefined) dbUpdates.denomination = updates.denomination;
+      if (updates.year !== undefined) dbUpdates.year = updates.year;
+      if (updates.mintMark !== undefined) dbUpdates.mint_mark = updates.mintMark;
+      if (updates.grade !== undefined) dbUpdates.grade = updates.grade;
+      if (updates.faceValue !== undefined) dbUpdates.face_value = updates.faceValue;
+      if (updates.purchasePrice !== undefined) dbUpdates.purchase_price = updates.purchasePrice;
+      if (updates.currentMarketValue !== undefined) dbUpdates.current_market_value = updates.currentMarketValue;
+      if (updates.purchaseDate !== undefined) dbUpdates.purchase_date = updates.purchaseDate;
+      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+      if (updates.country !== undefined) dbUpdates.country = updates.country;
+      if (updates.series !== undefined) dbUpdates.series = updates.series;
+      if (updates.images !== undefined) dbUpdates.images = updates.images;
+
       const { data, error } = await supabase
         .from('coins')
-        .update(updates)
+        .update(dbUpdates)
         .eq('id', coinId)
-        .select()
+        .select('*')
         .single();
 
       if (error) throw error;
 
-      setCoins(prev => prev.map(coin => coin.id === coinId ? data : coin));
-      return data;
+      const mapped = CoinService.mapSupabaseToCoin(data);
+      setCoins(prev => prev.map(coin => coin.id === coinId ? mapped : coin));
+      return mapped;
     } catch (err) {
       console.error('Error updating coin:', err);
       throw err;

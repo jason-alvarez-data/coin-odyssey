@@ -128,9 +128,9 @@ export const EnhancedCoinCard = ({
         {coin.grade && (
           <Text style={styles.gradeText}>{coin.grade}</Text>
         )}
-        {coin.certificationService && (
+        {coin.gradingService && (
           <Text style={styles.certServiceText}>
-            {coin.certificationService}
+            {coin.gradingService}
           </Text>
         )}
       </View>

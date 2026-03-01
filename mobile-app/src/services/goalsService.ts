@@ -53,9 +53,12 @@ export class GoalsService {
   private static async handleCoinChange(payload: any, userId: string): Promise<void> {
     try {
       const userGoals = await this.getUserGoals(userId);
-      const changedCoin = payload.new || payload.old;
-      
-      if (!changedCoin) return;
+      const rawCoin = payload.new || payload.old;
+
+      if (!rawCoin) return;
+
+      // Map raw Supabase payload (snake_case) to Coin interface (camelCase)
+      const changedCoin = CoinService.mapSupabaseToCoin(rawCoin);
 
       // Find goals that might be affected by this coin change
       const affectedGoals = userGoals.filter(goal => 

@@ -37,6 +37,53 @@ interface CreateCoinData {
  */
 export class CoinService {
   /**
+   * Map raw Supabase row (snake_case) to Coin interface (camelCase)
+   */
+  static mapSupabaseToCoin(data: any): Coin {
+    return {
+      id: data.id,
+      name: data.name || `${data.year} ${data.denomination}`,
+      title: data.title || '',
+      year: data.year,
+      mintMark: data.mint_mark ?? null,
+      grade: data.grade ?? null,
+      faceValue: data.face_value ?? null,
+      purchasePrice: data.purchase_price ?? null,
+      currentMarketValue: data.current_market_value ?? null,
+      lastValueUpdate: data.last_value_update ?? null,
+      pcgsId: data.pcgs_id ?? null,
+      createdAt: data.created_at ?? null,
+      updatedAt: data.updated_at ?? null,
+      userId: data.user_id ?? data.collections?.user_id ?? null,
+      collectionId: data.collection_id ?? null,
+      denomination: data.denomination,
+      purchaseDate: data.purchase_date ?? null,
+      personalValue: data.personal_value ?? null,
+      lastAppraisalValue: data.last_appraisal_value ?? null,
+      lastAppraisalDate: data.last_appraisal_date ?? null,
+      mintage: data.mintage ?? null,
+      rarityScale: data.rarity_scale ?? null,
+      historicalNotes: data.historical_notes ?? null,
+      varietyNotes: data.variety_notes ?? null,
+      notes: data.notes ?? null,
+      images: data.images ?? null,
+      obverseImage: data.images?.[0] ?? null,
+      reverseImage: data.images?.[1] ?? null,
+      country: data.country ?? null,
+      series: data.series ?? null,
+      seriesId: data.series_id ?? null,
+      specificCoinId: data.specific_coin_id ?? null,
+      specificCoinName: data.specific_coin_name ?? null,
+      designer: data.designer ?? null,
+      theme: data.theme ?? null,
+      honoree: data.honoree ?? null,
+      releaseDate: data.release_date ?? null,
+      certificationNumber: data.certification_number ?? null,
+      gradingService: data.grading_service ?? null,
+    };
+  }
+
+  /**
    * Get or create a default collection for a user
    * If the user already has collections, returns the first one.
    * Otherwise, creates a new default collection.
@@ -217,34 +264,7 @@ export class CoinService {
       const { data: newCoin, error: insertError } = await supabase
         .from('coins')
         .insert(dbCoinData)
-        .select(`
-          id,
-          collection_id,
-          name,
-          title,
-          denomination,
-          year,
-          mint_mark,
-          grade,
-          face_value,
-          purchase_price,
-          purchase_date,
-          notes,
-          images,
-          country,
-          series,
-          series_id,
-          specific_coin_id,
-          specific_coin_name,
-          designer,
-          theme,
-          honoree,
-          release_date,
-          certification_number,
-          grading_service,
-          created_at,
-          updated_at
-        `)
+        .select('*')
         .single();
 
       if (insertError) {
@@ -252,49 +272,10 @@ export class CoinService {
         throw new Error('Unable to save your coin. Please check your connection and try again.');
       }
 
-      // Transform database response to match Coin interface
-      const coin: Coin = {
-        id: newCoin.id,
-        name: newCoin.name || coinData.name,
-        title: newCoin.title || coinData.title || '',
-        year: newCoin.year,
-        mintMark: newCoin.mint_mark,
-        grade: newCoin.grade,
-        faceValue: coinData.faceValue || null,
-        purchasePrice: newCoin.purchase_price,
-        currentMarketValue: null,
-        lastValueUpdate: null,
-        pcgsId: null,
-        createdAt: newCoin.created_at,
-        updatedAt: newCoin.updated_at,
-        userId: user.id,
-        collectionId: newCoin.collection_id,
-        denomination: newCoin.denomination,
-        purchaseDate: newCoin.purchase_date,
-        personalValue: null,
-        lastAppraisalValue: null,
-        lastAppraisalDate: null,
-        mintage: null,
-        rarityScale: null,
-        historicalNotes: null,
-        varietyNotes: null,
-        notes: newCoin.notes,
-        images: newCoin.images,
-        obverseImage: obverseImageUrl,
-        reverseImage: reverseImageUrl,
-        country: newCoin.country,
-        // Series information
-        series: newCoin.series,
-        seriesId: newCoin.series_id,
-        specificCoinId: newCoin.specific_coin_id,
-        specificCoinName: newCoin.specific_coin_name,
-        designer: newCoin.designer,
-        theme: newCoin.theme,
-        honoree: newCoin.honoree,
-        releaseDate: newCoin.release_date,
-        certificationNumber: newCoin.certification_number,
-        gradingService: newCoin.grading_service,
-      };
+      const coin = this.mapSupabaseToCoin(newCoin);
+      coin.userId = user.id;
+      if (obverseImageUrl) coin.obverseImage = obverseImageUrl;
+      if (reverseImageUrl) coin.reverseImage = reverseImageUrl;
 
       return coin;
     } catch (error) {
@@ -318,32 +299,7 @@ export class CoinService {
     const { data: coins, error } = await supabase
       .from('coins')
       .select(`
-        id,
-        collection_id,
-        name,
-        title,
-        denomination,
-        year,
-        mint_mark,
-        grade,
-        face_value,
-        purchase_price,
-        purchase_date,
-        notes,
-        images,
-        country,
-        series,
-        series_id,
-        specific_coin_id,
-        specific_coin_name,
-        designer,
-        theme,
-        honoree,
-        release_date,
-        certification_number,
-        grading_service,
-        created_at,
-        updated_at,
+        *,
         collections!inner(user_id)
       `)
       .order('created_at', { ascending: false });
@@ -352,48 +308,7 @@ export class CoinService {
       throw new Error(`Failed to fetch coins: ${error.message}`);
     }
 
-    return coins.map(coin => ({
-      id: coin.id,
-      name: coin.name || `${coin.year} ${coin.denomination}`,
-      title: coin.title || '',
-      year: coin.year,
-      mintMark: coin.mint_mark,
-      grade: coin.grade,
-      faceValue: null,
-      purchasePrice: coin.purchase_price,
-      currentMarketValue: null,
-      lastValueUpdate: null,
-      pcgsId: null,
-      createdAt: coin.created_at,
-      updatedAt: coin.updated_at,
-      userId: coin.collections.user_id,
-      collectionId: coin.collection_id,
-      denomination: coin.denomination,
-      purchaseDate: coin.purchase_date,
-      personalValue: null,
-      lastAppraisalValue: null,
-      lastAppraisalDate: null,
-      mintage: null,
-      rarityScale: null,
-      historicalNotes: null,
-      varietyNotes: null,
-      notes: coin.notes,
-      images: coin.images,
-      obverseImage: coin.images?.[0] || null,
-      reverseImage: coin.images?.[1] || null,
-      country: coin.country,
-      // Series information
-      series: coin.series,
-      seriesId: coin.series_id,
-      specificCoinId: coin.specific_coin_id,
-      specificCoinName: coin.specific_coin_name,
-      designer: coin.designer,
-      theme: coin.theme,
-      honoree: coin.honoree,
-      releaseDate: coin.release_date,
-      certificationNumber: coin.certification_number,
-      gradingService: coin.grading_service,
-    }));
+    return coins.map(this.mapSupabaseToCoin);
   }
 
   /**
@@ -503,82 +418,17 @@ export class CoinService {
       .from('coins')
       .update(updateData)
       .eq('id', coinId)
-      .select(`
-        id,
-        collection_id,
-        name,
-        title,
-        denomination,
-        year,
-        mint_mark,
-        grade,
-        purchase_price,
-        purchase_date,
-        notes,
-        images,
-        country,
-        series,
-        series_id,
-        specific_coin_id,
-        specific_coin_name,
-        designer,
-        theme,
-        honoree,
-        release_date,
-        certification_number,
-        grading_service,
-        created_at,
-        updated_at
-      `)
+      .select('*')
       .single();
 
     if (updateError) {
       throw new Error(`Failed to update coin: ${updateError.message}`);
     }
 
-    // Transform database response to match Coin interface
-    const coin: Coin = {
-      id: updatedCoin.id,
-      name: updatedCoin.name || `${updatedCoin.year} ${updatedCoin.denomination}`,
-      title: updatedCoin.title || '',
-      year: updatedCoin.year,
-      mintMark: updatedCoin.mint_mark,
-      grade: updatedCoin.grade,
-      faceValue: updates.faceValue || null,
-      purchasePrice: updatedCoin.purchase_price,
-      currentMarketValue: null,
-      lastValueUpdate: null,
-      pcgsId: null,
-      createdAt: updatedCoin.created_at,
-      updatedAt: updatedCoin.updated_at,
-      userId: user.id,
-      collectionId: updatedCoin.collection_id,
-      denomination: updatedCoin.denomination,
-      purchaseDate: updatedCoin.purchase_date,
-      personalValue: null,
-      lastAppraisalValue: null,
-      lastAppraisalDate: null,
-      mintage: null,
-      rarityScale: null,
-      historicalNotes: null,
-      varietyNotes: null,
-      notes: updatedCoin.notes,
-      images: updatedCoin.images,
-      obverseImage: obverseImageUrl,
-      reverseImage: reverseImageUrl,
-      country: updatedCoin.country,
-      // Series information
-      series: updatedCoin.series,
-      seriesId: updatedCoin.series_id,
-      specificCoinId: updatedCoin.specific_coin_id,
-      specificCoinName: updatedCoin.specific_coin_name,
-      designer: updatedCoin.designer,
-      theme: updatedCoin.theme,
-      honoree: updatedCoin.honoree,
-      releaseDate: updatedCoin.release_date,
-      certificationNumber: updatedCoin.certification_number,
-      gradingService: updatedCoin.grading_service,
-    };
+    const coin = this.mapSupabaseToCoin(updatedCoin);
+    coin.userId = user.id;
+    if (obverseImageUrl) coin.obverseImage = obverseImageUrl;
+    if (reverseImageUrl) coin.reverseImage = reverseImageUrl;
 
     return coin;
   }
