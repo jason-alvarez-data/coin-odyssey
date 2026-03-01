@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { CoinService } from '@/services/coinService';
+import { Coin } from '@coin-collecting/shared';
 import { Loader2, X, Upload } from 'lucide-react';
 
 import SeriesAutocomplete from '@/components/SeriesAutocomplete';
@@ -12,23 +14,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-
-interface Coin {
-  id: string;
-  title: string | null;
-  denomination: string;
-  year: number;
-  mint_mark?: string | null;
-  grade?: string | null;
-  face_value: number | null;
-  current_market_value?: number | null;
-  purchase_price?: number | null;
-  purchase_date: string | null;
-  notes?: string | null;
-  country?: string | null;
-  series?: string | null;
-  images?: string[] | null;
-}
 
 export default function EditCoinPage() {
   const params = useParams();
@@ -54,7 +39,7 @@ export default function EditCoinPage() {
 
         if (error) throw error;
 
-        setCoin(data);
+        setCoin(CoinService.mapSupabaseToCoin(data));
 
         // Set existing images if they exist
         if (data.images && data.images.length > 0) {
@@ -92,12 +77,12 @@ export default function EditCoinPage() {
           title: coin.title,
           denomination: coin.denomination,
           year: coin.year,
-          mint_mark: coin.mint_mark,
+          mint_mark: coin.mintMark,
           grade: coin.grade,
-          face_value: coin.face_value,
-          current_market_value: coin.current_market_value,
-          purchase_price: coin.purchase_price,
-          purchase_date: coin.purchase_date,
+          face_value: coin.faceValue,
+          current_market_value: coin.currentMarketValue,
+          purchase_price: coin.purchasePrice,
+          purchase_date: coin.purchaseDate,
           notes: coin.notes,
           country: coin.country,
           series: coin.series,
@@ -310,14 +295,14 @@ export default function EditCoinPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="face_value">
+                <Label htmlFor="faceValue">
                   Face Value <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="face_value"
+                  id="faceValue"
                   type="number"
-                  name="face_value"
-                  value={coin.face_value || ''}
+                  name="faceValue"
+                  value={coin.faceValue || ''}
                   onChange={handleInputChange}
                   required
                   step="0.01"
@@ -367,12 +352,12 @@ export default function EditCoinPage() {
 
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="mint_mark">Mint Mark</Label>
+                <Label htmlFor="mintMark">Mint Mark</Label>
                 <Input
-                  id="mint_mark"
+                  id="mintMark"
                   type="text"
-                  name="mint_mark"
-                  value={coin.mint_mark || ''}
+                  name="mintMark"
+                  value={coin.mintMark || ''}
                   onChange={handleInputChange}
                 />
               </div>
@@ -391,26 +376,26 @@ export default function EditCoinPage() {
 
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="purchase_price">Purchase Price</Label>
+                <Label htmlFor="purchasePrice">Purchase Price</Label>
                 <Input
-                  id="purchase_price"
+                  id="purchasePrice"
                   type="number"
-                  name="purchase_price"
-                  value={coin.purchase_price || ''}
+                  name="purchasePrice"
+                  value={coin.purchasePrice || ''}
                   onChange={handleInputChange}
                   step="0.01"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="purchase_date">
+                <Label htmlFor="purchaseDate">
                   Date Acquired <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="purchase_date"
+                  id="purchaseDate"
                   type="date"
-                  name="purchase_date"
-                  value={coin.purchase_date || ''}
+                  name="purchaseDate"
+                  value={coin.purchaseDate || ''}
                   onChange={handleInputChange}
                   required
                 />

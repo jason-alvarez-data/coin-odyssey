@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { Coins, DollarSign, TrendingUp, Calendar, Landmark, CalendarDays, ClipboardList } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
-import { Coin } from '@/utils/analyticsUtils';
+import { Coin } from '@coin-collecting/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -52,8 +52,8 @@ const BasicDashboard: React.FC<BasicDashboardProps> = ({ coins }) => {
 
     const totalCoins = coins.length;
     const totalValue = coins.reduce((sum, coin) =>
-      sum + (coin.current_market_value || coin.purchase_price || 0), 0);
-    const totalFaceValue = coins.reduce((sum, coin) => sum + (coin.face_value || 0), 0);
+      sum + (coin.currentMarketValue || coin.purchasePrice || 0), 0);
+    const totalFaceValue = coins.reduce((sum, coin) => sum + (coin.faceValue || 0), 0);
     const oldestCoin = Math.min(...coins.map(c => c.year));
     const newestCoin = Math.max(...coins.map(c => c.year));
     const averageValue = totalValue / totalCoins;

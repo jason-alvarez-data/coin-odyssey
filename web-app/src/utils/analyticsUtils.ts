@@ -1,20 +1,5 @@
 // Advanced analytics utility functions for coin collection analysis
-
-export interface Coin {
-  id: string;
-  denomination: string;
-  year: number;
-  mint_mark?: string;
-  grade?: string;
-  purchase_price?: number;
-  face_value: number;
-  current_market_value?: number;
-  purchase_date: string;
-  notes?: string;
-  images?: string[];
-  title?: string;
-  country?: string;
-}
+import { Coin } from '@coin-collecting/shared';
 
 export interface TopPerformer {
   coin: Coin;
@@ -53,8 +38,8 @@ export interface SmartInsight {
 
 // Calculate ROI for a single coin
 export const calculateCoinROI = (coin: Coin): number => {
-  const purchasePrice = coin.purchase_price || 0;
-  const currentValue = coin.current_market_value || coin.purchase_price || 0;
+  const purchasePrice = coin.purchasePrice || 0;
+  const currentValue = coin.currentMarketValue || coin.purchasePrice || 0;
   
   if (purchasePrice === 0) return 0;
   return ((currentValue - purchasePrice) / purchasePrice) * 100;
@@ -62,11 +47,11 @@ export const calculateCoinROI = (coin: Coin): number => {
 
 // Calculate financial insights
 export const calculateFinancialInsights = (coins: Coin[]): FinancialInsights => {
-  const coinsWithValues = coins.filter(coin => coin.purchase_price && coin.purchase_price > 0);
+  const coinsWithValues = coins.filter(coin => coin.purchasePrice && coin.purchasePrice > 0);
   
-  const totalInvestment = coins.reduce((sum, coin) => sum + (coin.purchase_price || 0), 0);
+  const totalInvestment = coins.reduce((sum, coin) => sum + (coin.purchasePrice || 0), 0);
   const totalCurrentValue = coins.reduce((sum, coin) => 
-    sum + (coin.current_market_value || coin.purchase_price || 0), 0);
+    sum + (coin.currentMarketValue || coin.purchasePrice || 0), 0);
   
   const totalGainLoss = totalCurrentValue - totalInvestment;
   const totalROI = totalInvestment > 0 ? (totalGainLoss / totalInvestment) * 100 : 0;
@@ -75,7 +60,7 @@ export const calculateFinancialInsights = (coins: Coin[]): FinancialInsights => 
   const performances: TopPerformer[] = coinsWithValues.map(coin => ({
     coin,
     roi: calculateCoinROI(coin),
-    gain: (coin.current_market_value || coin.purchase_price || 0) - (coin.purchase_price || 0),
+    gain: (coin.currentMarketValue || coin.purchasePrice || 0) - (coin.purchasePrice || 0),
     percentage: `${calculateCoinROI(coin).toFixed(1)}%`
   }));
   
@@ -146,15 +131,15 @@ export const calculateMonthlySpending = (coins: Coin[]): { month: string; amount
   const monthlyData: { [key: string]: { amount: number; count: number } } = {};
   
   coins.forEach(coin => {
-    if (coin.purchase_date && coin.purchase_price) {
-      const date = new Date(coin.purchase_date);
+    if (coin.purchaseDate && coin.purchasePrice) {
+      const date = new Date(coin.purchaseDate);
       const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
       
       if (!monthlyData[monthKey]) {
         monthlyData[monthKey] = { amount: 0, count: 0 };
       }
       
-      monthlyData[monthKey].amount += coin.purchase_price;
+      monthlyData[monthKey].amount += coin.purchasePrice;
       monthlyData[monthKey].count += 1;
     }
   });
@@ -216,7 +201,7 @@ export const generateSmartInsights = (coins: Coin[], financialInsights: Financia
   
   // Recent activity insights
   const recentCoins = coins.filter(coin => {
-    const purchaseDate = new Date(coin.purchase_date);
+    const purchaseDate = new Date(coin.purchaseDate);
     const monthsAgo = (Date.now() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 30);
     return monthsAgo <= 3;
   });
@@ -256,12 +241,12 @@ export const calculateValueDistribution = (coins: Coin[]): { range: string; coun
   
   return ranges.map(range => {
     const coinsInRange = coins.filter(coin => {
-      const value = coin.current_market_value || coin.purchase_price || 0;
+      const value = coin.currentMarketValue || coin.purchasePrice || 0;
       return value >= range.min && value < range.max;
     });
     
     const totalValue = coinsInRange.reduce((sum, coin) => 
-      sum + (coin.current_market_value || coin.purchase_price || 0), 0);
+      sum + (coin.currentMarketValue || coin.purchasePrice || 0), 0);
     
     return {
       range: range.label,
@@ -282,15 +267,15 @@ export const getRecentActivity = (coins: Coin[]): {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   
   const recentCoins = coins.filter(coin => 
-    new Date(coin.purchase_date) >= thirtyDaysAgo
+    new Date(coin.purchaseDate) >= thirtyDaysAgo
   );
   
-  const totalSpent = recentCoins.reduce((sum, coin) => sum + (coin.purchase_price || 0), 0);
+  const totalSpent = recentCoins.reduce((sum, coin) => sum + (coin.purchasePrice || 0), 0);
   const averageValue = recentCoins.length > 0 ? totalSpent / recentCoins.length : 0;
   
   // Calculate days with activity
   const activeDays = new Set(recentCoins.map(coin => 
-    new Date(coin.purchase_date).toDateString()
+    new Date(coin.purchaseDate).toDateString()
   )).size;
   
   return {

@@ -9,7 +9,8 @@ import DashboardSelector, {
 import BasicDashboard from "@/components/analysis/BasicDashboard"
 import BetterDashboard from "@/components/analysis/BetterDashboard"
 import AdvancedDashboard from "@/components/analysis/AdvancedDashboard"
-import { Coin } from "@/utils/analyticsUtils"
+import { Coin } from "@coin-collecting/shared"
+import { CoinService } from "@/services/coinService"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -59,7 +60,7 @@ export default function AnalysisPage() {
           )
           .order("purchase_date", { ascending: true })
 
-        setCoins(coins || [])
+        setCoins((coins || []).map(CoinService.mapSupabaseToCoin))
       } catch (error) {
         console.error("Error fetching coins:", error)
       } finally {

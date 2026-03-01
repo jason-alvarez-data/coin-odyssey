@@ -106,7 +106,7 @@ const TopPerformers: React.FC<TopPerformersProps> = ({ performers, title, type }
                   </div>
                   
                   <div className="text-xs text-gray-500 mt-1">
-                    {formatCurrency(performer.coin.purchase_price || 0)} → {formatCurrency(performer.coin.current_market_value || performer.coin.purchase_price || 0)}
+                    {formatCurrency(performer.coin.purchasePrice || 0)} → {formatCurrency(performer.coin.currentMarketValue || performer.coin.purchasePrice || 0)}
                   </div>
                 </div>
               </div>

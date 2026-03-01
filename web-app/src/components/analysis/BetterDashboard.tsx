@@ -62,9 +62,9 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
 
     const totalCoins = coins.length;
     const totalValue = coins.reduce((sum, coin) =>
-      sum + (coin.current_market_value || coin.purchase_price || 0), 0);
-    const totalPurchaseValue = coins.reduce((sum, coin) => sum + (coin.purchase_price || 0), 0);
-    const totalFaceValue = coins.reduce((sum, coin) => sum + (coin.face_value || 0), 0);
+      sum + (coin.currentMarketValue || coin.purchasePrice || 0), 0);
+    const totalPurchaseValue = coins.reduce((sum, coin) => sum + (coin.purchasePrice || 0), 0);
+    const totalFaceValue = coins.reduce((sum, coin) => sum + (coin.faceValue || 0), 0);
     const oldestCoin = Math.min(...coins.map(c => c.year));
     const newestCoin = Math.max(...coins.map(c => c.year));
     const averageValue = totalValue / totalCoins;
@@ -86,9 +86,9 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
     // Calculate value over time
     let runningValue = 0;
     const valueOverTime = coins.map(coin => {
-      runningValue += coin.purchase_price || 0;
+      runningValue += coin.purchasePrice || 0;
       return {
-        date: new Date(coin.purchase_date).toLocaleDateString('en-US', {
+        date: new Date(coin.purchaseDate).toLocaleDateString('en-US', {
           month: 'short',
           year: 'numeric'
         }),
@@ -99,7 +99,7 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
     // Calculate monthly acquisitions
     const acquisitionsByMonth: { [key: string]: number } = {};
     coins.forEach(coin => {
-      const month = new Date(coin.purchase_date).toLocaleDateString('en-US', {
+      const month = new Date(coin.purchaseDate).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short'
       });

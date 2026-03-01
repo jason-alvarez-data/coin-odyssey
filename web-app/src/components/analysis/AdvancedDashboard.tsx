@@ -119,10 +119,10 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
       acquisitionTrend: []
     };
 
-    summary.totalFaceValue = coins.reduce((sum, coin) => sum + (coin.face_value || 0), 0);
-    summary.totalPurchaseValue = coins.reduce((sum, coin) => sum + (coin.purchase_price || 0), 0);
+    summary.totalFaceValue = coins.reduce((sum, coin) => sum + (coin.faceValue || 0), 0);
+    summary.totalPurchaseValue = coins.reduce((sum, coin) => sum + (coin.purchasePrice || 0), 0);
     summary.totalValue = coins.reduce((sum, coin) => {
-      const value = coin.current_market_value || coin.purchase_price || 0;
+      const value = coin.currentMarketValue || coin.purchasePrice || 0;
       return sum + value;
     }, 0);
 
@@ -141,16 +141,16 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
       const decade = Math.floor(coin.year / 10) * 10;
       summary.yearDistribution[decade] = (summary.yearDistribution[decade] || 0) + 1;
 
-      const mintMark = coin.mint_mark || 'None';
+      const mintMark = coin.mintMark || 'None';
       summary.mintMarkDistribution[mintMark] = (summary.mintMarkDistribution[mintMark] || 0) + 1;
     });
 
     // Calculate value over time
     let runningValue = 0;
     summary.valueOverTime = coins.map(coin => {
-      runningValue += coin.purchase_price || 0;
+      runningValue += coin.purchasePrice || 0;
       return {
-        date: new Date(coin.purchase_date).toLocaleDateString(),
+        date: new Date(coin.purchaseDate).toLocaleDateString(),
         totalValue: runningValue
       };
     });
@@ -158,7 +158,7 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
     // Calculate acquisition trend
     const acquisitionsByMonth: { [key: string]: number } = {};
     coins.forEach(coin => {
-      const month = new Date(coin.purchase_date).toLocaleDateString('en-US', {
+      const month = new Date(coin.purchaseDate).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short'
       });
