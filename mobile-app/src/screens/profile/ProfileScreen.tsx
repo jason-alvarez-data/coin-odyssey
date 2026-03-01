@@ -366,7 +366,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
 
                   <View style={styles.goalItemFooter}>
                     <Text style={styles.goalItemCategory}>
-                      {goal.category.replace('_', ' ')}
+                      {(goal.category || '').replace('_', ' ')}
                     </Text>
                     <Text style={styles.goalItemPriority}>
                       {goal.priority} priority
@@ -389,21 +389,30 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         <BlurView intensity={60} style={styles.settingsCard}>
           <Text style={styles.sectionTitle}>⚙️ Settings</Text>
           
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => Alert.alert('Notifications', 'Notification settings coming soon.')}
+          >
             <Text style={styles.settingText}>🔔 Notifications</Text>
             <Text style={styles.settingArrow}>›</Text>
           </TouchableOpacity>
-          
+
           <View style={styles.settingDivider} />
-          
-          <TouchableOpacity style={styles.settingItem}>
+
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => Alert.alert('Privacy & Security', 'Privacy settings coming soon.')}
+          >
             <Text style={styles.settingText}>🛡️ Privacy & Security</Text>
             <Text style={styles.settingArrow}>›</Text>
           </TouchableOpacity>
-          
+
           <View style={styles.settingDivider} />
-          
-          <TouchableOpacity style={styles.settingItem}>
+
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => Alert.alert('Help & Support', 'For help, contact support@coinodyssey.app')}
+          >
             <Text style={styles.settingText}>❓ Help & Support</Text>
             <Text style={styles.settingArrow}>›</Text>
           </TouchableOpacity>

@@ -21,6 +21,7 @@ export class MemoryService {
   private static instance: MemoryService;
   private memoryWarnings: number = 0;
   private isMonitoring: boolean = false;
+  private monitoringInterval: ReturnType<typeof setInterval> | null = null;
   private callbacks: Array<(stats: MemoryStats) => void> = [];
 
   static getInstance(): MemoryService {
@@ -46,7 +47,7 @@ export class MemoryService {
    */
   private startMemoryMonitoring(): void {
     // Monitor memory every 10 seconds
-    setInterval(() => {
+    this.monitoringInterval = setInterval(() => {
       this.checkMemoryPressure();
     }, 10000);
 
@@ -100,13 +101,13 @@ export class MemoryService {
    */
   private estimateMemoryUsage(): number {
     // Base app memory usage
-    let estimatedMB = 30;
+    let estimatedMB = 50;
 
-    // Add estimated usage from various components
-    estimatedMB += this.memoryWarnings * 5; // Increase based on warnings
-    
-    // Simulate actual usage patterns
-    estimatedMB += Math.random() * 20;
+    // Increase estimate based on accumulated memory warnings
+    estimatedMB += this.memoryWarnings * 10;
+
+    // Increase based on number of registered callbacks (proxy for active components)
+    estimatedMB += this.callbacks.length * 5;
 
     return estimatedMB;
   }
@@ -115,11 +116,11 @@ export class MemoryService {
    * Get available memory based on device
    */
   private getAvailableMemory(): number {
-    // Estimate based on platform and device
+    // Conservative estimate based on platform
     if (Platform.OS === 'ios') {
-      return 2000 + Math.random() * 2000; // 2-4GB typical for iOS
+      return 3000; // 3GB typical for iOS devices
     } else {
-      return 1000 + Math.random() * 2000; // 1-3GB typical for Android
+      return 2000; // 2GB typical for Android devices
     }
   }
 
@@ -219,6 +220,18 @@ export class MemoryService {
         this.callbacks.splice(index, 1);
       }
     };
+  }
+
+  /**
+   * Stop monitoring and clean up resources
+   */
+  destroy(): void {
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
+    }
+    this.isMonitoring = false;
+    this.callbacks = [];
   }
 
   /**
