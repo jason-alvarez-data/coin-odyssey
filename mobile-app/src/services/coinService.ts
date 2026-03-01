@@ -240,8 +240,8 @@ export class CoinService {
         year: coinData.year,
         mint_mark: coinData.mintMark || null,
         grade: coinData.grade || null,
-        face_value: coinData.faceValue || null,
-        purchase_price: coinData.purchasePrice || null,
+        face_value: coinData.faceValue ?? null,
+        purchase_price: coinData.purchasePrice ?? null,
         purchase_date: coinData.purchaseDate || null,
         notes: coinData.notes || null,
         country: coinData.country || null,
@@ -256,8 +256,8 @@ export class CoinService {
         release_date: coinData.releaseDate || null,
         certification_number: coinData.certificationNumber || null,
         grading_service: coinData.gradingService || null,
-        // Store images in array format for compatibility
-        images: [obverseImageUrl, reverseImageUrl].filter(Boolean),
+        // Store images as [obverse, reverse] - preserve positions
+        images: (obverseImageUrl || reverseImageUrl) ? [obverseImageUrl, reverseImageUrl] : null,
       };
 
       // Insert coin into database
@@ -381,12 +381,12 @@ export class CoinService {
       release_date?: string | null;
       certification_number?: string | null;
       grading_service?: string | null;
-      images: string[];
+      images: (string | null)[];
       updated_at: string;
     }
 
     const updateData: UpdateData = {
-      images: [obverseImageUrl, reverseImageUrl].filter((url): url is string => Boolean(url)),
+      images: (obverseImageUrl || reverseImageUrl) ? [obverseImageUrl, reverseImageUrl] : [],
       updated_at: new Date().toISOString(),
     };
 
@@ -395,7 +395,7 @@ export class CoinService {
     if (updates.country !== undefined) updateData.country = updates.country || null;
     if (updates.mintMark !== undefined) updateData.mint_mark = updates.mintMark || null;
     if (updates.grade !== undefined) updateData.grade = updates.grade || null;
-    if (updates.purchasePrice !== undefined) updateData.purchase_price = updates.purchasePrice || null;
+    if (updates.purchasePrice !== undefined) updateData.purchase_price = updates.purchasePrice ?? null;
     if (updates.purchaseDate !== undefined) updateData.purchase_date = updates.purchaseDate || null;
     if (updates.notes !== undefined) updateData.notes = updates.notes || null;
     if (updates.name !== undefined) updateData.name = updates.name || null;

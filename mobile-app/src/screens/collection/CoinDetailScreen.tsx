@@ -189,7 +189,7 @@ export default function CoinDetailScreen({ route, navigation }: CoinDetailScreen
   };
 
   const handleCancel = () => {
-    // Reset form data to original values
+    // Reset form data to original values (including series fields)
     setFormData({
       name: coin.name || '',
       title: coin.title || '',
@@ -202,6 +202,16 @@ export default function CoinDetailScreen({ route, navigation }: CoinDetailScreen
       purchasePrice: coin.purchasePrice?.toString() || '',
       purchaseDate: coin.purchaseDate || '',
       notes: coin.notes || '',
+      series: coin.series || '',
+      seriesId: coin.seriesId || '',
+      specificCoinId: coin.specificCoinId || '',
+      specificCoinName: coin.specificCoinName || '',
+      designer: coin.designer || '',
+      theme: coin.theme || '',
+      honoree: coin.honoree || '',
+      releaseDate: coin.releaseDate || '',
+      certificationNumber: coin.certificationNumber || '',
+      gradingService: coin.gradingService || '',
     });
     setImages({
       obverse: coin.obverseImage,

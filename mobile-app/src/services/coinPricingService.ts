@@ -37,10 +37,11 @@ export interface PCGSCoinData {
 
 export class CoinPricingService {
   private static readonly PCGS_API_BASE = 'https://api.pcgs.com/publicapi';
-  private static readonly PCGS_ACCESS_TOKEN = 'yT7hbYm5xvbNinYLTzgQgiWDGunztmZKIYPLYEAEb__bBBgDvqVUqFu98Ttvi4cEMUqw4XCGNnL0Lvq2UKKP-kBTAsEbrN4NmhfWxSZw3uNDxIIMdhn0tLscdJh4eVh3A87gaE0ZlXSwNWDhXV4eOpI_mZH48gDj6DZnMXOO26MkjWHcD7p93pRGT6VFs7ix7JaUizcZiIiI8y2TmIGySIBZk-SqZoB2Veqp9FYPq9Vv0Ob0fUi1F_xuCSz1I8HD8u7eSLE0oyQq2xS87l3pD71J2lg1Gv3BOgSQk6V2p089gFaN';
+  private static readonly PCGS_ACCESS_TOKEN = process.env.EXPO_PUBLIC_PCGS_ACCESS_TOKEN || '';
   private static readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
   private static readonly DAILY_LIMIT = 1000;
   private static apiCallCount = 0;
+  private static apiCallCountResetDate = new Date().toDateString();
   
   // Cache for pricing data
   private static pricingCache = new Map<string, { data: CoinPricing; timestamp: number }>();
@@ -82,6 +83,13 @@ export class CoinPricingService {
    */
   private static async fetchPCGSPricing(coin: Coin): Promise<PCGSCoinData | null> {
     try {
+      // Reset counter daily
+      const today = new Date().toDateString();
+      if (today !== this.apiCallCountResetDate) {
+        this.apiCallCount = 0;
+        this.apiCallCountResetDate = today;
+      }
+
       // Check rate limit
       if (this.apiCallCount >= this.DAILY_LIMIT) {
         console.warn('PCGS API daily limit reached, using fallback pricing');
@@ -266,7 +274,7 @@ export class CoinPricingService {
       'PR': 70, 'PF': 70, 'SP': 70,
       'MS': 65, 'AU': 58, 'XF': 45, 'EF': 45,
       'VF': 30, 'F': 15, 'VG': 10, 'G': 6,
-      'AG': 3, 'FA': 2, 'PR': 1
+      'AG': 3, 'FA': 2, 'PO': 1
     };
 
     for (const [key, value] of Object.entries(gradeMap)) {
@@ -384,15 +392,19 @@ export class CoinPricingService {
    */
   private static calculateTrend(recentPrices: number[]): 'up' | 'down' | 'stable' {
     if (recentPrices.length < 2) return 'stable';
-    
+
     const recent = recentPrices.slice(-3);
     const older = recentPrices.slice(-6, -3);
-    
+
+    if (older.length === 0) return 'stable';
+
     const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
     const olderAvg = older.reduce((a, b) => a + b, 0) / older.length;
-    
+
+    if (olderAvg === 0) return recentAvg > 0 ? 'up' : 'stable';
+
     const change = (recentAvg - olderAvg) / olderAvg;
-    
+
     if (change > 0.1) return 'up';
     if (change < -0.1) return 'down';
     return 'stable';

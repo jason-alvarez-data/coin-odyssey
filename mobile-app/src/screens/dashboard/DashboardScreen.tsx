@@ -66,7 +66,7 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
     
     // Get recent coins (last 5 added)
     const recentCoins = coins
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
       .slice(0, 5);
 
     return {
@@ -112,7 +112,7 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [calculateStats]);
+  }, [calculateStats, user]);
 
   // Handle real-time goal progress updates
   const handleGoalProgressUpdate = useCallback((progress: GoalProgress) => {
@@ -500,7 +500,7 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
                     />
                   </View>
                   <View style={styles.goalFooter}>
-                    <Text style={styles.goalCategory}>{goal.category.replace('_', ' ')}</Text>
+                    <Text style={styles.goalCategory}>{(goal.category || '').replace('_', ' ')}</Text>
                     <Text style={styles.goalPercentage}>
                       {Math.round((goal.currentCount / goal.targetCount) * 100)}%
                     </Text>

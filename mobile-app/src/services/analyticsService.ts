@@ -110,8 +110,8 @@ export class AnalyticsService {
     // Calculate recently added (last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const recentlyAdded = coins.filter(coin => 
-      new Date(coin.createdAt) >= thirtyDaysAgo
+    const recentlyAdded = coins.filter(coin =>
+      coin.createdAt && new Date(coin.createdAt) >= thirtyDaysAgo
     ).length;
 
     return {
@@ -274,7 +274,7 @@ export class AnalyticsService {
     // Activity insight
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const recentCoins = coins.filter(coin => new Date(coin.createdAt) >= thirtyDaysAgo);
+    const recentCoins = coins.filter(coin => coin.createdAt && new Date(coin.createdAt) >= thirtyDaysAgo);
     if (recentCoins.length > 0) {
       insights.push({
         type: 'activity' as const,

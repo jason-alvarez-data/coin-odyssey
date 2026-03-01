@@ -139,6 +139,15 @@ export function useCollection() {
       if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
       if (updates.country !== undefined) dbUpdates.country = updates.country;
       if (updates.series !== undefined) dbUpdates.series = updates.series;
+      if (updates.seriesId !== undefined) dbUpdates.series_id = updates.seriesId;
+      if (updates.specificCoinId !== undefined) dbUpdates.specific_coin_id = updates.specificCoinId;
+      if (updates.specificCoinName !== undefined) dbUpdates.specific_coin_name = updates.specificCoinName;
+      if (updates.designer !== undefined) dbUpdates.designer = updates.designer;
+      if (updates.theme !== undefined) dbUpdates.theme = updates.theme;
+      if (updates.honoree !== undefined) dbUpdates.honoree = updates.honoree;
+      if (updates.releaseDate !== undefined) dbUpdates.release_date = updates.releaseDate;
+      if (updates.certificationNumber !== undefined) dbUpdates.certification_number = updates.certificationNumber;
+      if (updates.gradingService !== undefined) dbUpdates.grading_service = updates.gradingService;
       if (updates.images !== undefined) dbUpdates.images = updates.images;
 
       const { data, error } = await supabase

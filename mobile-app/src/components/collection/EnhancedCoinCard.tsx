@@ -36,7 +36,7 @@ export const EnhancedCoinCard = ({
     if (showPricing) {
       loadPricing();
     }
-  }, [coin, showPricing]);
+  }, [coin.id, showPricing]);
 
   const loadPricing = async () => {
     setLoadingPricing(true);

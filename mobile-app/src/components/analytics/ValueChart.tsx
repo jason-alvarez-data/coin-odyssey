@@ -45,7 +45,7 @@ export const ValueChart: React.FC<ValueChartProps> = ({ data, title, subtitle })
 
   // Create path for the line chart
   const pathData = data.map((point, index) => {
-    const x = padding + (index / (data.length - 1)) * innerWidth;
+    const x = padding + (data.length > 1 ? (index / (data.length - 1)) * innerWidth : innerWidth / 2);
     const y = padding + ((maxValue - point.value) / valueRange) * innerHeight;
     return { x, y, value: point.value };
   });
