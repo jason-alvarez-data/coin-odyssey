@@ -49,10 +49,7 @@
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^8.1.0",
     "electron-updater": "^6.1.8",
-    "next": "^14.0.0",
     "papaparse": "^5.5.2",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "uuid": "^9.0.1"
   },
   "engines": {

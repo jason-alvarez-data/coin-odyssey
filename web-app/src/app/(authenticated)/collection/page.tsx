@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import { CoinService } from "@/services/coinService"
+import { Coin } from "@coin-collecting/shared"
 import type { User } from "@supabase/supabase-js"
 import Link from "next/link"
 import {
@@ -54,23 +56,6 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 
-interface Coin {
-  id: string
-  denomination: string
-  year: number
-  mint_mark?: string
-  grade?: string
-  purchase_price?: number
-  face_value: number
-  current_market_value?: number
-  purchase_date: string
-  notes?: string
-  images?: string[]
-  title?: string
-  country?: string
-  series?: string
-}
-
 export default function CollectionPage() {
   const [user, setUser] = useState<User | null>(null)
   const [coins, setCoins] = useState<Coin[]>([])
@@ -122,7 +107,7 @@ export default function CollectionPage() {
         )
         .order("purchase_date", { ascending: false })
 
-      setCoins(coins || [])
+      setCoins((coins || []).map(CoinService.mapSupabaseToCoin))
     } catch (error) {
       console.error("Error fetching coins:", error)
     } finally {
@@ -198,25 +183,25 @@ export default function CollectionPage() {
       let bValue: string | number
 
       switch (key) {
-        case "purchase_date":
-          aValue = a.purchase_date
-            ? new Date(a.purchase_date).getTime()
+        case "purchaseDate":
+          aValue = a.purchaseDate
+            ? new Date(a.purchaseDate).getTime()
             : 0
-          bValue = b.purchase_date
-            ? new Date(b.purchase_date).getTime()
+          bValue = b.purchaseDate
+            ? new Date(b.purchaseDate).getTime()
             : 0
           break
-        case "face_value":
-          aValue = a.face_value || 0
-          bValue = b.face_value || 0
+        case "faceValue":
+          aValue = a.faceValue || 0
+          bValue = b.faceValue || 0
           break
-        case "purchase_price":
-          aValue = a.purchase_price || 0
-          bValue = b.purchase_price || 0
+        case "purchasePrice":
+          aValue = a.purchasePrice || 0
+          bValue = b.purchasePrice || 0
           break
-        case "current_market_value":
-          aValue = a.current_market_value || 0
-          bValue = b.current_market_value || 0
+        case "currentMarketValue":
+          aValue = a.currentMarketValue || 0
+          bValue = b.currentMarketValue || 0
           break
         case "year":
           aValue = a.year || 0
@@ -227,12 +212,12 @@ export default function CollectionPage() {
           bValue = (b.title || "").toLowerCase()
           break
         case "denomination":
-          aValue = a.denomination.toLowerCase()
-          bValue = b.denomination.toLowerCase()
+          aValue = (a.denomination || "").toLowerCase()
+          bValue = (b.denomination || "").toLowerCase()
           break
-        case "mint_mark":
-          aValue = (a.mint_mark || "").toLowerCase()
-          bValue = (b.mint_mark || "").toLowerCase()
+        case "mintMark":
+          aValue = (a.mintMark || "").toLowerCase()
+          bValue = (b.mintMark || "").toLowerCase()
           break
         case "grade":
           aValue = (a.grade || "").toLowerCase()
@@ -312,13 +297,13 @@ export default function CollectionPage() {
         coin.title || "",
         coin.denomination || "",
         coin.year?.toString() || "",
-        coin.mint_mark || "",
+        coin.mintMark || "",
         coin.grade || "",
-        coin.face_value?.toString() || "",
-        coin.purchase_price?.toString() || "",
-        coin.current_market_value?.toString() || "",
+        coin.faceValue?.toString() || "",
+        coin.purchasePrice?.toString() || "",
+        coin.currentMarketValue?.toString() || "",
         coin.country || "",
-        coin.purchase_date || "",
+        coin.purchaseDate || "",
         coin.notes || "",
       ]),
     ]
@@ -341,7 +326,7 @@ export default function CollectionPage() {
     const htmlContent = `<!DOCTYPE html><html><head><title>Coin Collection Export</title><style>body{font-family:Arial,sans-serif;margin:20px}h1{color:#333;border-bottom:2px solid #333;padding-bottom:10px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background-color:#f2f2f2;font-weight:bold}tr:nth-child(even){background-color:#f9f9f9}</style></head><body><h1>Coin Collection Export</h1><p>Export Date: ${new Date().toLocaleDateString()}</p><p>Total Coins: ${coinsToExport.length}</p><table><thead><tr><th>Title</th><th>Denomination</th><th>Year</th><th>Country</th><th>Grade</th><th>Purchase Price</th><th>Current Value</th></tr></thead><tbody>${coinsToExport
       .map(
         (coin) =>
-          `<tr><td>${coin.title || "Untitled"}</td><td>${coin.denomination || ""}</td><td>${coin.year || ""}</td><td>${coin.country || ""}</td><td>${coin.grade || ""}</td><td>${coin.purchase_price ? formatCurrency(coin.purchase_price) : ""}</td><td>${coin.current_market_value ? formatCurrency(coin.current_market_value) : ""}</td></tr>`
+          `<tr><td>${coin.title || "Untitled"}</td><td>${coin.denomination || ""}</td><td>${coin.year || ""}</td><td>${coin.country || ""}</td><td>${coin.grade || ""}</td><td>${coin.purchasePrice ? formatCurrency(coin.purchasePrice) : ""}</td><td>${coin.currentMarketValue ? formatCurrency(coin.currentMarketValue) : ""}</td></tr>`
       )
       .join("")}</tbody></table></body></html>`
 
@@ -360,9 +345,9 @@ export default function CollectionPage() {
     const searchLower = searchQuery.toLowerCase()
     return (
       coin.title?.toLowerCase().includes(searchLower) ||
-      coin.denomination.toLowerCase().includes(searchLower) ||
-      coin.year.toString().includes(searchQuery) ||
-      coin.mint_mark?.toLowerCase().includes(searchLower) ||
+      coin.denomination?.toLowerCase().includes(searchLower) ||
+      coin.year?.toString().includes(searchQuery) ||
+      coin.mintMark?.toLowerCase().includes(searchLower) ||
       coin.grade?.toLowerCase().includes(searchLower)
     )
   })
@@ -391,43 +376,6 @@ export default function CollectionPage() {
     ) : (
       <ArrowDown className="h-3.5 w-3.5 text-primary" />
     )
-  }
-
-  // Map Coin to the type expected by DetailPanel
-  const mapToDetailCoin = (coin: Coin | null) => {
-    if (!coin) return null
-    return {
-      id: coin.id,
-      name: coin.title || coin.denomination,
-      title: coin.title || `${coin.year} ${coin.denomination}`,
-      year: coin.year,
-      mintMark: coin.mint_mark || null,
-      grade: coin.grade || null,
-      faceValue: coin.face_value ?? null,
-      purchasePrice: coin.purchase_price ?? null,
-      currentMarketValue: coin.current_market_value ?? null,
-      lastValueUpdate: null,
-      pcgsId: null,
-      createdAt: coin.purchase_date || "",
-      updatedAt: coin.purchase_date || "",
-      userId: "",
-      collectionId: "",
-      denomination: coin.denomination,
-      purchaseDate: coin.purchase_date || null,
-      personalValue: null,
-      lastAppraisalValue: null,
-      lastAppraisalDate: null,
-      mintage: null,
-      rarityScale: null,
-      historicalNotes: null,
-      varietyNotes: null,
-      notes: coin.notes || null,
-      images: coin.images || null,
-      obverseImage: null,
-      reverseImage: null,
-      country: coin.country || null,
-      series: coin.series || null,
-    }
   }
 
   return (
@@ -571,14 +519,14 @@ export default function CollectionPage() {
                         />
                       </TableHead>
                       {[
-                        { key: "purchase_date", label: "Date" },
+                        { key: "purchaseDate", label: "Date" },
                         { key: "title", label: "Coin" },
                         { key: "year", label: "Year" },
                         { key: "country", label: "Country" },
-                        { key: "mint_mark", label: "Mint" },
+                        { key: "mintMark", label: "Mint" },
                         { key: "grade", label: "Grade" },
-                        { key: "purchase_price", label: "Price" },
-                        { key: "current_market_value", label: "Value" },
+                        { key: "purchasePrice", label: "Price" },
+                        { key: "currentMarketValue", label: "Value" },
                       ].map((col) => (
                         <TableHead
                           key={col.key}
@@ -619,7 +567,7 @@ export default function CollectionPage() {
                           />
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {formatDate(coin.purchase_date)}
+                          {formatDate(coin.purchaseDate)}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -651,7 +599,7 @@ export default function CollectionPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-sm">
-                          {getDisplayMintMark(coin.mint_mark)}
+                          {getDisplayMintMark(coin.mintMark)}
                         </TableCell>
                         <TableCell className="text-sm">
                           {coin.grade ? (
@@ -665,13 +613,13 @@ export default function CollectionPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-sm font-medium text-primary">
-                          {coin.purchase_price
-                            ? formatCurrency(coin.purchase_price)
+                          {coin.purchasePrice
+                            ? formatCurrency(coin.purchasePrice)
                             : "—"}
                         </TableCell>
                         <TableCell className="text-sm font-medium">
-                          {coin.current_market_value
-                            ? formatCurrency(coin.current_market_value)
+                          {coin.currentMarketValue
+                            ? formatCurrency(coin.currentMarketValue)
                             : "—"}
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
@@ -801,7 +749,7 @@ export default function CollectionPage() {
       {/* Detail Panel — only shown when a coin is selected */}
       {selectedCoin && (
         <DetailPanel
-          coin={mapToDetailCoin(selectedCoin)}
+          coin={selectedCoin}
           onClose={() => setSelectedCoin(null)}
         />
       )}

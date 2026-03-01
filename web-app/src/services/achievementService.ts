@@ -52,7 +52,7 @@ export class AchievementService {
             return { ...achievement, progress: { current: achievement.criteria.requirement, required: achievement.criteria.requirement } };
           }
 
-          const progress = await this.calculateAchievementProgress(achievement, userId);
+          const progress = await this.calculateAchievementProgress(achievement, userId!);
           return { ...achievement, progress };
         })
       );
@@ -100,7 +100,7 @@ export class AchievementService {
 
         case 'collection_value':
           const userCoins = await CoinService.getUserCoins();
-          current = userCoins.reduce((sum, coin) => sum + (coin.purchase_price || 0), 0);
+          current = userCoins.reduce((sum, coin) => sum + (coin.purchasePrice || 0), 0);
           break;
 
         case 'variety':

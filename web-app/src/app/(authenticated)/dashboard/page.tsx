@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import { CoinService } from "@/services/coinService"
+import { Coin } from "@coin-collecting/shared"
 import WorldMap from "@/components/WorldMap"
 import { getStandardizedCountryName } from "@/utils/countryMappings"
 import { StatsRow } from "@/components/dashboard/stats-row"
@@ -20,20 +22,6 @@ interface DashboardStats {
   countryDistribution: { [key: string]: number }
 }
 
-interface DashboardCoin {
-  id: string
-  title: string
-  denomination: string
-  year: number
-  country: string
-  purchase_price: number
-  grade?: string
-  mint_mark?: string
-  series?: string
-  notes?: string
-  created_at: string
-}
-
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalCoins: 0,
@@ -42,8 +30,8 @@ export default function DashboardPage() {
     totalValue: 0,
     countryDistribution: {},
   })
-  const [topCoins, setTopCoins] = useState<DashboardCoin[]>([])
-  const [selectedCoin, setSelectedCoin] = useState<DashboardCoin | null>(null)
+  const [topCoins, setTopCoins] = useState<Coin[]>([])
+  const [selectedCoin, setSelectedCoin] = useState<Coin | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -112,16 +100,18 @@ export default function DashboardPage() {
         return
       }
 
-      const years = coins.map((coin) => coin.year)
+      const mappedCoins = coins.map(CoinService.mapSupabaseToCoin)
+
+      const years = mappedCoins.map((coin) => coin.year)
       const oldestYear = years.length ? Math.min(...years) : 0
       const newestYear = years.length ? Math.max(...years) : 0
       const yearsSpan = years.length ? `${oldestYear} - ${newestYear}` : "-"
-      const totalValue = coins.reduce(
-        (sum, coin) => sum + (parseFloat(coin.purchase_price) || 0),
+      const totalValue = mappedCoins.reduce(
+        (sum, coin) => sum + (Number(coin.purchasePrice) || 0),
         0
       )
 
-      const countryDistribution = coins.reduce(
+      const countryDistribution = mappedCoins.reduce(
         (acc: { [key: string]: number }, coin) => {
           if (coin.country) {
             const country = getStandardizedCountryName(coin.country)
@@ -133,7 +123,7 @@ export default function DashboardPage() {
       )
 
       setStats({
-        totalCoins: coins.length,
+        totalCoins: mappedCoins.length,
         totalCountries: Object.keys(countryDistribution).length,
         yearsSpan,
         totalValue,
@@ -141,55 +131,18 @@ export default function DashboardPage() {
       })
 
       // Get top coins by value for featured section
-      const sorted = [...coins]
-        .filter((c) => parseFloat(c.purchase_price) > 0)
+      const sorted = [...mappedCoins]
+        .filter((c) => Number(c.purchasePrice) > 0)
         .sort(
           (a, b) =>
-            parseFloat(b.purchase_price || "0") -
-            parseFloat(a.purchase_price || "0")
+            (Number(b.purchasePrice) || 0) -
+            (Number(a.purchasePrice) || 0)
         )
         .slice(0, 4)
       setTopCoins(sorted)
     } catch (error) {
       console.error("Error fetching dashboard stats:", error)
       setStats((prev) => ({ ...prev }))
-    }
-  }
-
-  // Map a dashboard coin to the Coin type expected by DetailPanel
-  const mapToDetailCoin = (coin: DashboardCoin | null) => {
-    if (!coin) return null
-    return {
-      id: coin.id,
-      name: coin.title || coin.denomination,
-      title: coin.title || `${coin.year} ${coin.denomination}`,
-      year: coin.year,
-      mintMark: coin.mint_mark || null,
-      grade: coin.grade || null,
-      faceValue: null,
-      purchasePrice: coin.purchase_price ?? null,
-      currentMarketValue: null,
-      lastValueUpdate: null,
-      pcgsId: null,
-      createdAt: coin.created_at,
-      updatedAt: coin.created_at,
-      userId: "",
-      collectionId: "",
-      denomination: coin.denomination,
-      purchaseDate: null,
-      personalValue: null,
-      lastAppraisalValue: null,
-      lastAppraisalDate: null,
-      mintage: null,
-      rarityScale: null,
-      historicalNotes: null,
-      varietyNotes: null,
-      notes: coin.notes || null,
-      images: null,
-      obverseImage: null,
-      reverseImage: null,
-      country: coin.country || null,
-      series: coin.series || null,
     }
   }
 
@@ -218,7 +171,7 @@ export default function DashboardPage() {
         {/* Featured Items */}
         <FeaturedItems
           coins={topCoins}
-          onSelect={(coin) => setSelectedCoin(coin as DashboardCoin)}
+          onSelect={(coin) => setSelectedCoin(coin as Coin)}
           selectedId={selectedCoin?.id}
         />
 
@@ -245,7 +198,7 @@ export default function DashboardPage() {
 
           <div className="lg:col-span-1">
             <ActiveItemsList
-              onSelect={(coin) => setSelectedCoin(coin as DashboardCoin)}
+              onSelect={(coin) => setSelectedCoin(coin as Coin)}
               selectedId={selectedCoin?.id}
             />
           </div>
@@ -255,7 +208,7 @@ export default function DashboardPage() {
       {/* Detail Panel — only shown when a coin is selected */}
       {selectedCoin && (
         <DetailPanel
-          coin={mapToDetailCoin(selectedCoin)}
+          coin={selectedCoin}
           onClose={() => setSelectedCoin(null)}
         />
       )}

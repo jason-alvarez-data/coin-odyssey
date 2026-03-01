@@ -62,9 +62,12 @@ export class GoalsService {
   private static async handleCoinChange(payload: any, userId: string): Promise<void> {
     try {
       const userGoals = await this.getUserGoals(userId);
-      const changedCoin = payload.new || payload.old;
+      const rawCoin = payload.new || payload.old;
 
-      if (!changedCoin) return;
+      if (!rawCoin) return;
+
+      // Map raw Supabase payload (snake_case) to camelCase Coin
+      const changedCoin = CoinService.mapSupabaseToCoin(rawCoin);
 
       // Find goals that might be affected by this coin change
       const affectedGoals = userGoals.filter(goal =>
@@ -270,48 +273,17 @@ export class GoalsService {
     const completedItems: string[] = [];
     const missingItems: string[] = [];
 
-    // Debug logging
-    console.log('=== Goal Progress Calculation Debug ===');
-    console.log('Goal:', goal.title);
-    console.log('Goal Criteria:', goal.criteria);
-    console.log('Total coins to check:', coins.length);
-    console.log('First coin sample (if exists):', coins[0] ? {
-      title: coins[0].title,
-      year: coins[0].year,
-      denomination: coins[0].denomination,
-      country: coins[0].country,
-      series: coins[0].series,
-      // Check raw fields in case of camelCase issue
-      rawCoin: coins[0]
-    } : 'No coins');
-
     // Filter coins based on goal criteria
-    const matchingCoins = coins.filter(coin => {
-      const matches = this.coinMatchesCriteria(coin, goal.criteria);
-      // Log each coin check for debugging
-      if (goal.criteria.series && goal.criteria.series.toLowerCase().includes('women')) {
-        console.log('Checking coin:', {
-          title: coin.title,
-          year: coin.year,
-          denomination: coin.denomination,
-          country: coin.country,
-          series: coin.series,
-          matches: matches,
-          // Show what the series check is looking for
-          criteriaSeriesLower: goal.criteria.series.toLowerCase(),
-          coinSeriesLower: (coin.series || '').toLowerCase()
-        });
-      }
-      return matches;
-    });
+    const matchingCoins = coins.filter(coin =>
+      this.coinMatchesCriteria(coin, goal.criteria)
+    );
 
-    console.log('Matching coins found:', matchingCoins.length);
     completedItems.push(...matchingCoins.map(coin => coin.id));
 
     // For series goals, calculate what's missing
     if (goal.goalType === 'series_complete' && goal.criteria.startYear && goal.criteria.endYear) {
       const expectedItems = this.getExpectedItemsForSeries(goal.criteria);
-      const foundItems = new Set(matchingCoins.map(coin => `${coin.year}-${coin.mint_mark || 'P'}`));
+      const foundItems = new Set(matchingCoins.map(coin => `${coin.year}-${coin.mintMark || 'P'}`));
 
       expectedItems.forEach(item => {
         if (!foundItems.has(item)) {
@@ -323,13 +295,6 @@ export class GoalsService {
     const progressPercentage = goal.targetCount > 0
       ? Math.min((completedItems.length / goal.targetCount) * 100, 100)
       : 0;
-
-    console.log('Progress:', {
-      completedItems: completedItems.length,
-      targetCount: goal.targetCount,
-      progressPercentage: progressPercentage
-    });
-    console.log('=== End Debug ===');
 
     return {
       goalId: goal.id,

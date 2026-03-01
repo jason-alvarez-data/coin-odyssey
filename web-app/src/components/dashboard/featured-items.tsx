@@ -3,20 +3,11 @@
 import { TrendingUp, Coins } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-
-interface FeaturedCoin {
-  id: string
-  title?: string
-  denomination: string
-  year: number
-  country?: string
-  purchase_price?: number
-  grade?: string
-}
+import { Coin } from "@coin-collecting/shared"
 
 interface FeaturedItemsProps {
-  coins: FeaturedCoin[]
-  onSelect: (coin: FeaturedCoin) => void
+  coins: Coin[]
+  onSelect: (coin: Coin) => void
   selectedId?: string
 }
 
@@ -56,10 +47,10 @@ export function FeaturedItems({ coins, onSelect, selectedId }: FeaturedItemsProp
               <p className="text-xs text-muted-foreground mt-0.5 truncate">
                 {coin.country} {coin.year && `· ${coin.year}`}
               </p>
-              {coin.purchase_price != null && coin.purchase_price > 0 && (
+              {coin.purchasePrice != null && coin.purchasePrice > 0 && (
                 <div className="flex items-center gap-1 mt-2">
                   <span className="text-sm font-bold text-primary">
-                    ${Number(coin.purchase_price).toFixed(2)}
+                    ${Number(coin.purchasePrice).toFixed(2)}
                   </span>
                   <TrendingUp className="h-3 w-3 text-green-500" />
                 </div>

@@ -6,26 +6,16 @@ import { formatDistanceToNow } from "date-fns"
 import { Clock, Coins, ChevronRight } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-
-interface RecentCoin {
-  id: string
-  title: string
-  denomination: string
-  year: number
-  country: string
-  purchase_price: number
-  created_at: string
-  mint_mark?: string
-  grade?: string
-}
+import { CoinService } from "@/services/coinService"
+import { Coin } from "@coin-collecting/shared"
 
 interface ActiveItemsListProps {
-  onSelect: (coin: RecentCoin) => void
+  onSelect: (coin: Coin) => void
   selectedId?: string
 }
 
 export function ActiveItemsList({ onSelect, selectedId }: ActiveItemsListProps) {
-  const [recentCoins, setRecentCoins] = useState<RecentCoin[]>([])
+  const [recentCoins, setRecentCoins] = useState<Coin[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -79,7 +69,7 @@ export function ActiveItemsList({ onSelect, selectedId }: ActiveItemsListProps) 
         .order("created_at", { ascending: false })
         .limit(10)
 
-      setRecentCoins(coins || [])
+      setRecentCoins((coins || []).map(CoinService.mapSupabaseToCoin))
     } catch (error) {
       console.error("Error loading recent activity:", error)
     } finally {
@@ -153,9 +143,9 @@ export function ActiveItemsList({ onSelect, selectedId }: ActiveItemsListProps) 
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {coin.purchase_price > 0 && (
+                  {Number(coin.purchasePrice) > 0 && (
                     <span className="text-xs font-medium text-green-500">
-                      ${Number(coin.purchase_price).toFixed(2)}
+                      ${Number(coin.purchasePrice).toFixed(2)}
                     </span>
                   )}
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
