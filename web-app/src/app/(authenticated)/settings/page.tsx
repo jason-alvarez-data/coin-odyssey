@@ -1,13 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import ConsentManager from "@/components/ConsentManager"
 import GlobalPrivacyControl from "@/components/GlobalPrivacyControl"
 import { supabase } from "@/lib/supabase"
+import { CoinService } from "@/services/coinService"
 import type { User } from "@supabase/supabase-js"
-import { Download, Upload, Trash2 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Download, Upload, Trash2, KeyRound, User as UserIcon, Save } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -17,67 +20,266 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+
+const SETTINGS_STORAGE_KEY = "coin-odyssey-settings"
+
+const DEFAULT_SETTINGS = {
+  theme: "Dark",
+  currencyFormat: "USD ($)",
+  dateFormat: "MM/DD/YYYY",
+  defaultView: "Table View",
+  defaultSorting: "Date Added",
+  visibleColumns: {
+    dateCollected: true,
+    title: true,
+    year: true,
+    country: true,
+    value: true,
+    unit: true,
+    mint: true,
+    mintMark: true,
+    status: true,
+    type: true,
+    series: true,
+    storage: true,
+    format: true,
+    region: true,
+    quantity: true,
+  },
+}
 
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null)
-  const [settings, setSettings] = useState({
-    theme: "Dark",
-    currencyFormat: "USD ($)",
-    dateFormat: "MM/DD/YYYY",
-    defaultView: "Table View",
-    defaultSorting: "Date Added",
-    visibleColumns: {
-      dateCollected: true,
-      title: true,
-      year: true,
-      country: true,
-      value: true,
-      unit: true,
-      mint: true,
-      mintMark: true,
-      status: true,
-      type: true,
-      series: true,
-      storage: true,
-      format: true,
-      region: true,
-      quantity: true,
-    },
-  })
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS)
+  const [settingsSaved, setSettingsSaved] = useState(false)
+
+  // Account section
+  const [passwordForm, setPasswordForm] = useState({ current: "", new: "", confirm: "" })
+  const [passwordLoading, setPasswordLoading] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+
+  // Data management
+  const [exportLoading, setExportLoading] = useState(false)
+  const [importLoading, setImportLoading] = useState(false)
+  const [dataMessage, setDataMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [clearDialogOpen, setClearDialogOpen] = useState(false)
+  const [clearLoading, setClearLoading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const router = useRouter()
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
     })
+
+    // Load settings from localStorage
+    const saved = localStorage.getItem(SETTINGS_STORAGE_KEY)
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        setSettings({ ...DEFAULT_SETTINGS, ...parsed })
+      } catch {
+        // Ignore invalid JSON
+      }
+    }
   }, [])
 
+  // Save settings to localStorage whenever they change
+  const saveSettings = (newSettings: typeof settings) => {
+    setSettings(newSettings)
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings))
+    setSettingsSaved(true)
+    setTimeout(() => setSettingsSaved(false), 2000)
+  }
+
   const handleCheckboxChange = (field: string) => {
-    setSettings((prev) => ({
-      ...prev,
+    const newSettings = {
+      ...settings,
       visibleColumns: {
-        ...prev.visibleColumns,
-        [field]:
-          !prev.visibleColumns[
-            field as keyof typeof prev.visibleColumns
-          ],
+        ...settings.visibleColumns,
+        [field]: !settings.visibleColumns[field as keyof typeof settings.visibleColumns],
       },
-    }))
+    }
+    saveSettings(newSettings)
   }
 
   const handleSelectChange = (field: string, value: string) => {
-    setSettings((prev) => ({ ...prev, [field]: value }))
+    saveSettings({ ...settings, [field]: value })
   }
 
-  const handleExportBackup = () => {
-    console.log("Exporting backup...")
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordMessage(null)
+
+    if (passwordForm.new.length < 6) {
+      setPasswordMessage({ type: "error", text: "New password must be at least 6 characters" })
+      return
+    }
+
+    if (passwordForm.new !== passwordForm.confirm) {
+      setPasswordMessage({ type: "error", text: "Passwords do not match" })
+      return
+    }
+
+    setPasswordLoading(true)
+    try {
+      const { error } = await supabase.auth.updateUser({ password: passwordForm.new })
+      if (error) throw error
+      setPasswordMessage({ type: "success", text: "Password updated successfully" })
+      setPasswordForm({ current: "", new: "", confirm: "" })
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Failed to update password"
+      setPasswordMessage({ type: "error", text: msg })
+    } finally {
+      setPasswordLoading(false)
+    }
   }
 
-  const handleImportBackup = () => {
-    console.log("Importing backup...")
+  const handleExportBackup = async () => {
+    if (!user) return
+    setExportLoading(true)
+    setDataMessage(null)
+
+    try {
+      const { data: collections } = await supabase
+        .from("collections")
+        .select("id")
+        .eq("user_id", user.id)
+
+      if (!collections?.length) {
+        setDataMessage({ type: "error", text: "No collections found to export" })
+        return
+      }
+
+      const { data: coins } = await supabase
+        .from("coins")
+        .select("*")
+        .in("collection_id", collections.map((c) => c.id))
+
+      const mapped = (coins || []).map(CoinService.mapSupabaseToCoin)
+
+      const backup = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        coinCount: mapped.length,
+        coins: mapped,
+      }
+
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `coin-odyssey-backup-${new Date().toISOString().split("T")[0]}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+
+      setDataMessage({ type: "success", text: `Exported ${mapped.length} coins` })
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Export failed"
+      setDataMessage({ type: "error", text: msg })
+    } finally {
+      setExportLoading(false)
+    }
   }
 
-  const handleClearData = () => {
-    console.log("Clearing data...")
+  const handleImportBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    setImportLoading(true)
+    setDataMessage(null)
+
+    try {
+      const text = await file.text()
+      const backup = JSON.parse(text)
+
+      if (!backup.coins || !Array.isArray(backup.coins)) {
+        throw new Error("Invalid backup file format")
+      }
+
+      // Get or create collection
+      let { data: collections } = await supabase
+        .from("collections")
+        .select("id")
+        .eq("user_id", user.id)
+
+      let collectionId: string
+      if (collections?.length) {
+        collectionId = collections[0].id
+      } else {
+        const { data: newCollection, error } = await supabase
+          .from("collections")
+          .insert({ user_id: user.id, name: "My Collection" })
+          .select("id")
+          .single()
+        if (error) throw error
+        collectionId = newCollection.id
+      }
+
+      // Insert coins (map camelCase to snake_case)
+      let imported = 0
+      for (const coin of backup.coins) {
+        const { error } = await supabase.from("coins").insert({
+          collection_id: collectionId,
+          title: coin.title || "",
+          denomination: coin.denomination || "",
+          year: coin.year || new Date().getFullYear(),
+          mint_mark: coin.mintMark || null,
+          grade: coin.grade || null,
+          face_value: coin.faceValue || null,
+          purchase_price: coin.purchasePrice || null,
+          current_market_value: coin.currentMarketValue || null,
+          purchase_date: coin.purchaseDate || new Date().toISOString(),
+          notes: coin.notes || null,
+          country: coin.country || null,
+          series: coin.series || null,
+          images: coin.images || null,
+        })
+        if (!error) imported++
+      }
+
+      setDataMessage({ type: "success", text: `Imported ${imported} of ${backup.coins.length} coins` })
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Import failed"
+      setDataMessage({ type: "error", text: msg })
+    } finally {
+      setImportLoading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
+
+  const handleClearData = async () => {
+    if (!user) return
+    setClearLoading(true)
+    setDataMessage(null)
+
+    try {
+      const { data: collections } = await supabase
+        .from("collections")
+        .select("id")
+        .eq("user_id", user.id)
+
+      if (collections?.length) {
+        const collectionIds = collections.map((c) => c.id)
+        await supabase.from("coins").delete().in("collection_id", collectionIds)
+      }
+
+      setClearDialogOpen(false)
+      setDataMessage({ type: "success", text: "All coin data has been cleared" })
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Failed to clear data"
+      setDataMessage({ type: "error", text: msg })
+    } finally {
+      setClearLoading(false)
+    }
   }
 
   return (
@@ -85,17 +287,79 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Manage your application preferences
+          Manage your account and application preferences
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        {/* Account */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base flex items-center gap-2">
+              <UserIcon className="h-4 w-4" />
+              Account
+            </CardTitle>
+            {user && (
+              <CardDescription>{user.email}</CardDescription>
+            )}
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <KeyRound className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm font-medium">Change Password</Label>
+              </div>
+
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  placeholder="New password"
+                  autoComplete="new-password"
+                  value={passwordForm.new}
+                  onChange={(e) => setPasswordForm((p) => ({ ...p, new: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  placeholder="Confirm new password"
+                  autoComplete="new-password"
+                  value={passwordForm.confirm}
+                  onChange={(e) => setPasswordForm((p) => ({ ...p, confirm: e.target.value }))}
+                  required
+                />
+              </div>
+
+              {passwordMessage && (
+                <div className={`text-sm rounded-md p-3 ${
+                  passwordMessage.type === "success"
+                    ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                    : "bg-destructive/10 text-destructive"
+                }`}>
+                  {passwordMessage.text}
+                </div>
+              )}
+
+              <Button type="submit" disabled={passwordLoading} className="w-full" size="sm">
+                {passwordLoading ? "Updating..." : "Update Password"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
         {/* Application Preferences */}
         <Card>
           <CardHeader className="pb-4">
             <CardTitle className="text-base">
               Application Preferences
             </CardTitle>
+            {settingsSaved && (
+              <CardDescription className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                <Save className="h-3 w-3" /> Saved
+              </CardDescription>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -235,26 +499,45 @@ export default function SettingsPage() {
             <CardTitle className="text-base">Data Management</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {dataMessage && (
+              <div className={`text-sm rounded-md p-3 ${
+                dataMessage.type === "success"
+                  ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                  : "bg-destructive/10 text-destructive"
+              }`}>
+                {dataMessage.text}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Backup Collection</Label>
               <Button
                 className="w-full"
                 onClick={handleExportBackup}
+                disabled={exportLoading}
               >
                 <Download className="mr-1.5 h-4 w-4" />
-                Export Backup
+                {exportLoading ? "Exporting..." : "Export Backup"}
               </Button>
             </div>
 
             <div className="space-y-2">
               <Label>Import Backup</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImportBackup}
+                className="hidden"
+              />
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={handleImportBackup}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importLoading}
               >
                 <Upload className="mr-1.5 h-4 w-4" />
-                Import Backup
+                {importLoading ? "Importing..." : "Import Backup"}
               </Button>
             </div>
 
@@ -265,7 +548,7 @@ export default function SettingsPage() {
               <Button
                 variant="destructive"
                 className="w-full"
-                onClick={handleClearData}
+                onClick={() => setClearDialogOpen(true)}
               >
                 <Trash2 className="mr-1.5 h-4 w-4" />
                 Clear Data
@@ -282,6 +565,31 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* Clear Data Confirmation Dialog */}
+      <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you sure?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete all coins from your collection. This action cannot be undone.
+              Consider exporting a backup first.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setClearDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleClearData}
+              disabled={clearLoading}
+            >
+              {clearLoading ? "Clearing..." : "Delete All Coins"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
