@@ -26,6 +26,12 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
+  // Allow access to password reset pages without redirect
+  if (req.nextUrl.pathname.startsWith('/auth/forgot-password') ||
+      req.nextUrl.pathname.startsWith('/auth/reset-password')) {
+    return res
+  }
+
   // If there's a session and the user is on the signin page, redirect to dashboard
   if (session && req.nextUrl.pathname.startsWith('/auth/signin')) {
     const redirectUrl = req.nextUrl.clone()

@@ -4,6 +4,7 @@ import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -139,6 +140,14 @@ export default function SignIn() {
                   </p>
                 )}
               </div>
+
+              {!isSignUp && (
+                <div className="flex justify-end">
+                  <Button variant="link" asChild className="px-0 h-auto text-sm">
+                    <Link href="/auth/forgot-password">Forgot password?</Link>
+                  </Button>
+                </div>
+              )}
 
               <Button
                 type="submit"
