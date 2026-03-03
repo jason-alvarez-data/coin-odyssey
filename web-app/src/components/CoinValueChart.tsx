@@ -98,7 +98,8 @@ const CoinValueChart: React.FC<CoinValueChartProps> = ({ coinId, timeRange = '1m
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+    const safeDateStr = dateString.includes('T') ? dateString : dateString + 'T12:00:00';
+    return new Date(safeDateStr).toLocaleDateString();
   };
 
   return (

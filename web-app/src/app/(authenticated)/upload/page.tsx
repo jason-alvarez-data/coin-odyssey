@@ -473,7 +473,7 @@ export default function UploadCollectionPage() {
                 <li>&bull; Mint Mark - e.g., &quot;D&quot; for Denver, &quot;S&quot; for San Francisco</li>
                 <li>&bull; Grade - The coin&apos;s condition grade</li>
                 <li>&bull; Purchase Price - How much you paid for the coin</li>
-                <li>&bull; Purchase Date - When you acquired the coin</li>
+                <li>&bull; Date Acquired - When you added the coin to your collection</li>
                 <li>&bull; Notes - Any additional information about the coin</li>
               </ul>
             </div>

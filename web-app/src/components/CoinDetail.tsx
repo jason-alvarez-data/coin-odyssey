@@ -104,7 +104,7 @@ const CoinDetail: React.FC<CoinDetailProps> = ({ coin, onUpdate }) => {
             <p className="text-gray-600">Face Value: {formatCurrency(coin.faceValue)}</p>
           </div>
           <div>
-            <p className="text-gray-600">Purchase Date: {coin.purchaseDate || 'Not recorded'}</p>
+            <p className="text-gray-600">Date Acquired: {coin.purchaseDate || 'Not recorded'}</p>
             <p className="text-gray-600">Purchase Price: {formatCurrency(coin.purchasePrice)}</p>
             <p className="text-gray-600">Personal Value: {formatCurrency(coin.personalValue)}</p>
           </div>

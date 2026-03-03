@@ -29,8 +29,8 @@ import {
   MapPin
 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
+import { Coin } from '@coin-collecting/shared';
 import {
-  Coin,
   FinancialInsights,
   CollectionHealthMetrics,
   SmartInsight,
@@ -150,7 +150,7 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
     summary.valueOverTime = coins.map(coin => {
       runningValue += coin.purchasePrice || 0;
       return {
-        date: new Date(coin.purchaseDate).toLocaleDateString(),
+        date: new Date(coin.purchaseDate + 'T12:00:00').toLocaleDateString(),
         totalValue: runningValue
       };
     });
@@ -158,7 +158,7 @@ const AdvancedDashboard: React.FC<AdvancedDashboardProps> = ({ coins }) => {
     // Calculate acquisition trend
     const acquisitionsByMonth: { [key: string]: number } = {};
     coins.forEach(coin => {
-      const month = new Date(coin.purchaseDate).toLocaleDateString('en-US', {
+      const month = new Date(coin.purchaseDate + 'T12:00:00').toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short'
       });

@@ -82,7 +82,7 @@ export default function EditCoinPage() {
           face_value: coin.faceValue,
           current_market_value: coin.currentMarketValue,
           purchase_price: coin.purchasePrice,
-          purchase_date: coin.purchaseDate,
+          purchase_date: coin.purchaseDate ? String(coin.purchaseDate).split('T')[0] : null,
           notes: coin.notes,
           country: coin.country,
           series: coin.series,
@@ -101,12 +101,16 @@ export default function EditCoinPage() {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target as HTMLInputElement;
     setCoin(prev => {
       if (!prev) return prev;
+      let parsed: string | number | null = value;
+      if (type === 'number') {
+        parsed = value === '' ? null : Number(value);
+      }
       return {
         ...prev,
-        [name]: value,
+        [name]: parsed,
       };
     });
   };

@@ -237,7 +237,7 @@ export default function SettingsPage() {
           face_value: coin.faceValue || null,
           purchase_price: coin.purchasePrice || null,
           current_market_value: coin.currentMarketValue || null,
-          purchase_date: coin.purchaseDate || new Date().toISOString(),
+          purchase_date: coin.purchaseDate || new Date().toISOString().split('T')[0],
           notes: coin.notes || null,
           country: coin.country || null,
           series: coin.series || null,

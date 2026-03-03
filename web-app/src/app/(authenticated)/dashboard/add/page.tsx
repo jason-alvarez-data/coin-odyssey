@@ -69,7 +69,7 @@ export default function AddCoinPage() {
         face_value: coin.faceValue || null,
         current_market_value: coin.currentMarketValue || null,
         purchase_price: coin.purchasePrice || null,
-        purchase_date: coin.purchaseDate ? new Date(coin.purchaseDate).toISOString().split('T')[0] : null,
+        purchase_date: coin.purchaseDate || null,
         notes: coin.notes || null,
         country: coin.country || null,
         // Note: images will be handled separately in the future when file upload is implemented

@@ -187,10 +187,10 @@ export function DetailPanel({ coin, onClose }: DetailPanelProps) {
                   icon={BookOpen}
                 />
                 <MetricCard
-                  label="Purchase Date"
+                  label="Date Acquired"
                   value={
                     coin.purchaseDate
-                      ? new Date(coin.purchaseDate).toLocaleDateString()
+                      ? new Date(coin.purchaseDate + 'T12:00:00').toLocaleDateString()
                       : null
                   }
                   icon={Calendar}

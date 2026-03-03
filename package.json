@@ -30,6 +30,8 @@
   },
   "homepage": "https://github.com/jason-alvarez-data/coin-odyssey#readme",
   "devDependencies": {
+    "@types/react": "18.2.79",
+    "@types/react-dom": "18.2.25",
     "electron": "^28.1.0",
     "electron-builder": "^24.9.1",
     "electron-reloader": "^1.2.3",

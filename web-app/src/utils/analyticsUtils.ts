@@ -132,7 +132,7 @@ export const calculateMonthlySpending = (coins: Coin[]): { month: string; amount
   
   coins.forEach(coin => {
     if (coin.purchaseDate && coin.purchasePrice) {
-      const date = new Date(coin.purchaseDate);
+      const date = new Date(coin.purchaseDate + 'T12:00:00');
       const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
       
       if (!monthlyData[monthKey]) {
@@ -201,7 +201,7 @@ export const generateSmartInsights = (coins: Coin[], financialInsights: Financia
   
   // Recent activity insights
   const recentCoins = coins.filter(coin => {
-    const purchaseDate = new Date(coin.purchaseDate);
+    const purchaseDate = new Date(coin.purchaseDate + 'T12:00:00');
     const monthsAgo = (Date.now() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24 * 30);
     return monthsAgo <= 3;
   });
@@ -267,7 +267,7 @@ export const getRecentActivity = (coins: Coin[]): {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   
   const recentCoins = coins.filter(coin => 
-    new Date(coin.purchaseDate) >= thirtyDaysAgo
+    new Date(coin.purchaseDate + 'T12:00:00') >= thirtyDaysAgo
   );
   
   const totalSpent = recentCoins.reduce((sum, coin) => sum + (coin.purchasePrice || 0), 0);
@@ -275,7 +275,7 @@ export const getRecentActivity = (coins: Coin[]): {
   
   // Calculate days with activity
   const activeDays = new Set(recentCoins.map(coin => 
-    new Date(coin.purchaseDate).toDateString()
+    new Date(coin.purchaseDate + 'T12:00:00').toDateString()
   )).size;
   
   return {

@@ -16,5 +16,10 @@ export const formatCurrency = (value: number | null | undefined, currency = '$')
  */
 export const formatDate = (date: Date | string | null | undefined): string => {
   if (!date) return '-';
-  return new Date(date).toLocaleDateString();
+  const dateStr = typeof date === 'string' ? date : date.toISOString();
+  // Append T12:00:00 to date-only strings (YYYY-MM-DD) to prevent
+  // timezone shift — new Date("2025-07-04") parses as midnight UTC,
+  // which becomes the previous day in US timezones.
+  const safeDateStr = dateStr.includes('T') ? dateStr : dateStr + 'T12:00:00';
+  return new Date(safeDateStr).toLocaleDateString();
 }; 

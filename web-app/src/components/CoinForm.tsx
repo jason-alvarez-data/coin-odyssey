@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Coin } from '@coin-collecting/shared';
 import ValueResearchModal from './ValueResearchModal';
 import SeriesAutocomplete from './SeriesAutocomplete';
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -49,6 +49,19 @@ const CoinForm: React.FC<CoinFormProps> = ({ onSubmit, initialData, isEditing })
         [side === 'obverse' ? 'obverseImage' : 'reverseImage']: imageUrl
       }));
     }
+  };
+
+  const handleImageRemove = (side: 'obverse' | 'reverse') => {
+    const key = side === 'obverse' ? 'obverseImage' : 'reverseImage';
+    const currentUrl = formData[key];
+    if (currentUrl && currentUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(currentUrl);
+    }
+    setFormData(prev => ({ ...prev, [key]: '' }));
+    // Reset the file input so the same file can be re-selected
+    const inputId = side === 'obverse' ? 'obverseImage' : 'reverseImage';
+    const input = document.getElementById(inputId) as HTMLInputElement;
+    if (input) input.value = '';
   };
 
   return (
@@ -206,7 +219,7 @@ const CoinForm: React.FC<CoinFormProps> = ({ onSubmit, initialData, isEditing })
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="purchaseDate">Purchase Date</Label>
+              <Label htmlFor="purchaseDate">Date Acquired</Label>
               <Input
                 id="purchaseDate"
                 type="date"
@@ -262,8 +275,15 @@ const CoinForm: React.FC<CoinFormProps> = ({ onSubmit, initialData, isEditing })
                 onChange={handleImageChange('obverse')}
               />
               {formData.obverseImage && (
-                <div className="mt-2">
+                <div className="mt-2 relative w-32 h-32">
                   <img src={formData.obverseImage} alt="Obverse" className="w-32 h-32 object-cover rounded-lg" />
+                  <button
+                    type="button"
+                    onClick={() => handleImageRemove('obverse')}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 hover:bg-destructive/80 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               )}
             </div>
@@ -277,8 +297,15 @@ const CoinForm: React.FC<CoinFormProps> = ({ onSubmit, initialData, isEditing })
                 onChange={handleImageChange('reverse')}
               />
               {formData.reverseImage && (
-                <div className="mt-2">
+                <div className="mt-2 relative w-32 h-32">
                   <img src={formData.reverseImage} alt="Reverse" className="w-32 h-32 object-cover rounded-lg" />
+                  <button
+                    type="button"
+                    onClick={() => handleImageRemove('reverse')}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 hover:bg-destructive/80 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               )}
             </div>

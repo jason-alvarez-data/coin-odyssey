@@ -59,7 +59,7 @@ const DashboardSelector: React.FC<DashboardSelectorProps> = ({
 
   return (
     <Select value={currentTier} onValueChange={onTierChange}>
-      <SelectTrigger className="min-w-[200px] gap-2">
+      <SelectTrigger className="w-[280px] gap-2">
         <div className="flex items-center gap-2">
           <CurrentIcon className="h-4 w-4 shrink-0" />
           <div className="text-left">

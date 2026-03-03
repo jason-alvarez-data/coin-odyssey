@@ -27,8 +27,8 @@ import {
   Target
 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
+import { Coin } from '@coin-collecting/shared';
 import {
-  Coin,
   calculateFinancialInsights,
   calculateCollectionHealth
 } from '@/utils/analyticsUtils';
@@ -88,7 +88,7 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
     const valueOverTime = coins.map(coin => {
       runningValue += coin.purchasePrice || 0;
       return {
-        date: new Date(coin.purchaseDate).toLocaleDateString('en-US', {
+        date: new Date(coin.purchaseDate + 'T12:00:00').toLocaleDateString('en-US', {
           month: 'short',
           year: 'numeric'
         }),
@@ -99,7 +99,7 @@ const BetterDashboard: React.FC<BetterDashboardProps> = ({ coins }) => {
     // Calculate monthly acquisitions
     const acquisitionsByMonth: { [key: string]: number } = {};
     coins.forEach(coin => {
-      const month = new Date(coin.purchaseDate).toLocaleDateString('en-US', {
+      const month = new Date(coin.purchaseDate + 'T12:00:00').toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short'
       });

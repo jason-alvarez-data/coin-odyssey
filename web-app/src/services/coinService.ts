@@ -58,7 +58,7 @@ export class CoinService {
       userId: data.user_id,
       collectionId: data.collection_id,
       denomination: data.denomination,
-      purchaseDate: data.purchase_date,
+      purchaseDate: data.purchase_date ? String(data.purchase_date).split('T')[0] : null,
       personalValue: data.personal_value,
       lastAppraisalValue: data.last_appraisal_value,
       lastAppraisalDate: data.last_appraisal_date,

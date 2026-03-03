@@ -185,10 +185,10 @@ export default function CollectionPage() {
       switch (key) {
         case "purchaseDate":
           aValue = a.purchaseDate
-            ? new Date(a.purchaseDate).getTime()
+            ? new Date(a.purchaseDate + 'T12:00:00').getTime()
             : 0
           bValue = b.purchaseDate
-            ? new Date(b.purchaseDate).getTime()
+            ? new Date(b.purchaseDate + 'T12:00:00').getTime()
             : 0
           break
         case "faceValue":
@@ -290,7 +290,7 @@ export default function CollectionPage() {
         "Purchase Price",
         "Current Value",
         "Country",
-        "Purchase Date",
+        "Date Acquired",
         "Notes",
       ],
       ...coinsToExport.map((coin) => [

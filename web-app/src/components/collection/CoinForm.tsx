@@ -150,7 +150,7 @@ export default function CoinForm({ onSubmit, initialData }: CoinFormProps) {
 
         <div>
           <label htmlFor="purchaseDate" className="block text-sm font-medium text-gray-300">
-            Purchase Date
+            Date Acquired
           </label>
           <input
             type="date"
