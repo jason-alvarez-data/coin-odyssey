@@ -7,6 +7,7 @@ import { Colors, Typography, Spacing } from '../../styles';
 import { Card, Input, Button } from '../../components/common';
 import { AuthService } from '../../services/auth';
 import { AuthStackScreenProps } from '../../types/navigation';
+import { Logger } from '../../services/logger';
 
 type Props = AuthStackScreenProps<'SignIn'>;
 
@@ -28,15 +29,11 @@ export default function SignInScreen({ navigation }: Props) {
       if (error) {
         Alert.alert('Sign In Failed', error.message);
       } else if (data.user) {
-        console.log('Sign in successful');
-        // Give auth state a moment to propagate
-        setTimeout(() => {
-          console.log('Auth state should have updated by now');
-        }, 1000);
+        Logger.info('Sign in successful');
       }
     } catch (error) {
       Alert.alert('Error', 'An unexpected error occurred');
-      console.error('Sign in error:', error);
+      Logger.error('Sign in error', error);
     } finally {
       setLoading(false);
     }

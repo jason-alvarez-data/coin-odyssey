@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 import { CoinService } from './coinService';
 import { Coin } from '../types/coin';
 import { CollectionGoal, GoalProgress, GoalCriteria, GoalTemplate, GOAL_TEMPLATES } from '@coin-collecting/shared';
+import { Logger } from './logger';
 
 export class GoalsService {
   private static activeSubscriptions = new Map<string, any>();
@@ -32,7 +33,7 @@ export class GoalsService {
 
       this.activeSubscriptions.set(userId, subscription);
     } catch (error) {
-      console.error('Error starting goal progress monitoring:', error);
+      Logger.error('Error starting goal progress monitoring', error);
     }
   }
 
@@ -85,7 +86,7 @@ export class GoalsService {
         await this.checkGoalSuggestions(payload.new, userId);
       }
     } catch (error) {
-      console.error('Error handling coin change:', error);
+      Logger.error('Error handling coin change', error);
     }
   }
 
@@ -148,7 +149,7 @@ export class GoalsService {
       }
 
     } catch (error) {
-      console.error('Error suggesting goals for coin:', error);
+      Logger.error('Error suggesting goals for coin', error);
     }
 
     return suggestions;
@@ -172,7 +173,7 @@ export class GoalsService {
         await NotificationService.sendGoalSuggestion(coin, newSuggestions);
       }
     } catch (error) {
-      console.error('Error checking goal suggestions:', error);
+      Logger.error('Error checking goal suggestions', error);
     }
   }
 
@@ -193,7 +194,7 @@ export class GoalsService {
         await NotificationService.sendGoalProgressNotification(goal, triggerCoin, crossedMilestones);
       }
     } catch (error) {
-      console.error('Error checking milestones:', error);
+      Logger.error('Error checking milestones', error);
     }
   }
 
@@ -213,13 +214,13 @@ export class GoalsService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching goals:', error);
+        Logger.error('Error fetching goals', error);
         return [];
       }
 
       return data?.map(this.mapSupabaseToGoal) || [];
     } catch (error) {
-      console.error('Error in getUserGoals:', error);
+      Logger.error('Error in getUserGoals', error);
       return [];
     }
   }
@@ -252,7 +253,7 @@ export class GoalsService {
         .single();
 
       if (error) {
-        console.error('Error creating goal:', error);
+        Logger.error('Error creating goal', error);
         return null;
       }
 
@@ -263,7 +264,7 @@ export class GoalsService {
       
       return newGoal;
     } catch (error) {
-      console.error('Error in createGoal:', error);
+      Logger.error('Error in createGoal', error);
       return null;
     }
   }
@@ -290,13 +291,13 @@ export class GoalsService {
         .single();
 
       if (error) {
-        console.error('Error updating goal:', error);
+        Logger.error('Error updating goal', error);
         return null;
       }
 
       return this.mapSupabaseToGoal(data);
     } catch (error) {
-      console.error('Error in updateGoal:', error);
+      Logger.error('Error in updateGoal', error);
       return null;
     }
   }
@@ -309,13 +310,13 @@ export class GoalsService {
         .eq('id', goalId);
 
       if (error) {
-        console.error('Error deleting goal:', error);
+        Logger.error('Error deleting goal', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in deleteGoal:', error);
+      Logger.error('Error in deleteGoal', error);
       return false;
     }
   }
@@ -330,7 +331,7 @@ export class GoalsService {
         .single();
 
       if (goalError || !goalData) {
-        console.error('Error fetching goal for progress update:', goalError);
+        Logger.error('Error fetching goal for progress update', goalError);
         return null;
       }
 
@@ -358,7 +359,7 @@ export class GoalsService {
 
       return progress;
     } catch (error) {
-      console.error('Error in updateGoalProgress:', error);
+      Logger.error('Error in updateGoalProgress', error);
       return null;
     }
   }
@@ -371,7 +372,7 @@ export class GoalsService {
       const updatePromises = goals.map(goal => this.updateGoalProgress(goal.id));
       await Promise.all(updatePromises);
     } catch (error) {
-      console.error('Error updating all goals progress:', error);
+      Logger.error('Error updating all goals progress', error);
     }
   }
 

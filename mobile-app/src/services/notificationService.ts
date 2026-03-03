@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { CollectionGoal, GoalTemplate, Achievement } from '@coin-collecting/shared';
 import { Coin } from '../types/coin';
+import { Logger } from './logger';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -25,7 +26,7 @@ export class NotificationService {
       }
       
       if (finalStatus !== 'granted') {
-        console.warn('Failed to get push token for push notification!');
+        Logger.warn('Failed to get push token for push notification');
         return false;
       }
 
@@ -34,7 +35,7 @@ export class NotificationService {
       
       return true;
     } catch (error) {
-      console.error('Error initializing notifications:', error);
+      Logger.error('Error initializing notifications', error);
       return false;
     }
   }
@@ -94,7 +95,7 @@ export class NotificationService {
         await this.sendMilestoneNotification(goal, highestMilestone, triggerCoin);
       }
     } catch (error) {
-      console.error('Error sending goal progress notification:', error);
+      Logger.error('Error sending goal progress notification', error);
     }
   }
 
@@ -116,7 +117,7 @@ export class NotificationService {
         trigger: null, // Send immediately
       });
     } catch (error) {
-      console.error('Error sending goal completion notification:', error);
+      Logger.error('Error sending goal completion notification', error);
     }
   }
 
@@ -164,7 +165,7 @@ export class NotificationService {
         trigger: null, // Send immediately
       });
     } catch (error) {
-      console.error('Error sending milestone notification:', error);
+      Logger.error('Error sending milestone notification', error);
     }
   }
 
@@ -196,7 +197,7 @@ export class NotificationService {
         trigger: { seconds: 2 }, // Slight delay to avoid overwhelming user
       });
     } catch (error) {
-      console.error('Error sending goal suggestion notification:', error);
+      Logger.error('Error sending goal suggestion notification', error);
     }
   }
 
@@ -245,7 +246,7 @@ export class NotificationService {
         });
       }
     } catch (error) {
-      console.error('Error sending batch progress update:', error);
+      Logger.error('Error sending batch progress update', error);
     }
   }
 
@@ -290,7 +291,7 @@ export class NotificationService {
         trigger: null,
       });
     } catch (error) {
-      console.error('Error sending weekly goal summary:', error);
+      Logger.error('Error sending weekly goal summary', error);
     }
   }
 
@@ -315,7 +316,7 @@ export class NotificationService {
         },
       });
     } catch (error) {
-      console.error('Error scheduling goal reminder:', error);
+      Logger.error('Error scheduling goal reminder', error);
     }
   }
 
@@ -330,7 +331,7 @@ export class NotificationService {
         await Notifications.cancelScheduledNotificationAsync(reminder.identifier);
       }
     } catch (error) {
-      console.error('Error canceling goal reminder:', error);
+      Logger.error('Error canceling goal reminder', error);
     }
   }
 
@@ -357,30 +358,30 @@ export class NotificationService {
         break;
       
       default:
-        console.log('Unknown notification type:', data?.type);
+        Logger.debug('Unknown notification type', { type: data?.type });
     }
   }
 
   private static handleGoalSuggestionResponse(data: any): void {
     // This would integrate with navigation to show goal creation screen
-    console.log('Handling goal suggestion response:', data);
+    Logger.debug('Handling goal suggestion response', data);
   }
 
   private static handleGoalProgressResponse(data: any): void {
     // This would integrate with navigation to show goal details
-    console.log('Handling goal progress response:', data);
+    Logger.debug('Handling goal progress response', data);
   }
 
   private static handleGoalReminderResponse(data: any): void {
     // This would integrate with navigation to show specific goal
-    console.log('Handling goal reminder response:', data);
+    Logger.debug('Handling goal reminder response', data);
   }
 
   static async clearAllNotifications(): Promise<void> {
     try {
       await Notifications.dismissAllNotificationsAsync();
     } catch (error) {
-      console.error('Error clearing notifications:', error);
+      Logger.error('Error clearing notifications', error);
     }
   }
 
@@ -388,7 +389,7 @@ export class NotificationService {
     try {
       return await Notifications.getBadgeCountAsync();
     } catch (error) {
-      console.error('Error getting badge count:', error);
+      Logger.error('Error getting badge count', error);
       return 0;
     }
   }
@@ -397,7 +398,7 @@ export class NotificationService {
     try {
       await Notifications.setBadgeCountAsync(count);
     } catch (error) {
-      console.error('Error setting badge count:', error);
+      Logger.error('Error setting badge count', error);
     }
   }
 
@@ -439,7 +440,7 @@ export class NotificationService {
         trigger: null, // Send immediately
       });
     } catch (error) {
-      console.error('Error sending achievement unlocked notification:', error);
+      Logger.error('Error sending achievement unlocked notification', error);
     }
   }
 
@@ -464,7 +465,7 @@ export class NotificationService {
         trigger: null,
       });
     } catch (error) {
-      console.error('Error sending achievement progress notification:', error);
+      Logger.error('Error sending achievement progress notification', error);
     }
   }
 }

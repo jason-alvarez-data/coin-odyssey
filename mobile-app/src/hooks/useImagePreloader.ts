@@ -1,6 +1,7 @@
 // src/hooks/useImagePreloader.ts
 import { useEffect, useRef, useState } from 'react';
 import { ImageService } from '../services/imageService';
+import { Logger } from '../services/logger';
 
 interface PreloadOptions {
   enabled?: boolean;
@@ -88,7 +89,7 @@ export const useImagePreloader = (
               progress: (prev.preloaded + 1) / prev.total,
             }));
           } catch (error) {
-            console.warn(`Failed to preload image: ${uri}`, error);
+            Logger.warn(`Failed to preload image: ${uri}`, error);
           }
         });
 
@@ -115,7 +116,7 @@ export const useImagePreloader = (
         progress: Math.min((prev.preloaded + uris.length) / prev.total, 1),
       }));
     } catch (error) {
-      console.warn('Failed to preload specific images:', error);
+      Logger.warn('Failed to preload specific images', error);
     }
   };
 

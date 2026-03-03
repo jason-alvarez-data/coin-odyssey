@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Typography, Spacing } from '../../styles';
 import { ImageService } from '../../services/imageService';
+import { Logger } from '../../services/logger';
 
 interface OptimizedImageProps {
   uri: string;
@@ -71,7 +72,7 @@ export const OptimizedImage = ({
         setOptimizedUri(cachedUri);
       }
     } catch (err) {
-      console.warn('Failed to load optimized image:', err);
+      Logger.warn('Failed to load optimized image', err);
       if (mountedRef.current) {
         setOptimizedUri(uri); // Fallback to original
       }
@@ -99,7 +100,7 @@ export const OptimizedImage = ({
     setLoading(false);
     setError(true);
     onError?.(err);
-    console.warn('Image load error:', err);
+    Logger.warn('Image load error', err);
   };
 
   const triggerLoad = () => {

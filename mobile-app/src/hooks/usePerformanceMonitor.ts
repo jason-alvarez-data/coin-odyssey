@@ -1,6 +1,7 @@
 // src/hooks/usePerformanceMonitor.ts
 import { useState, useEffect, useCallback } from 'react';
 import { PerformanceService, PerformanceMetrics } from '../services/performanceService';
+import { Logger } from '../services/logger';
 
 export interface PerformanceMonitorHookResult {
   metrics: PerformanceMetrics | null;
@@ -22,7 +23,7 @@ export const usePerformanceMonitor = (autoStart: boolean = false): PerformanceMo
       const currentMetrics = performanceService.getMetrics();
       setMetrics(currentMetrics);
     } catch (error) {
-      console.warn('Failed to get performance metrics:', error);
+      Logger.warn('Failed to get performance metrics', error);
     }
   }, [performanceService]);
 

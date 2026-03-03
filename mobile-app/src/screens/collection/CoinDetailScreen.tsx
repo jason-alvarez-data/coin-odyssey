@@ -20,6 +20,7 @@ import { Input, Button } from '../../components/common';
 import { Coin } from '../../types/coin';
 import { CoinService } from '../../services/coinService';
 import { getSeriesById, getSpecificCoinById } from '@coin-collecting/shared';
+import { Logger } from '../../services/logger';
 
 interface CoinDetailScreenProps {
   route: {
@@ -182,7 +183,7 @@ export default function CoinDetailScreen({ route, navigation }: CoinDetailScreen
       Alert.alert('Success!', 'Coin updated successfully');
     } catch (error) {
       Alert.alert('Error', 'Failed to update coin. Please try again.');
-      console.error('Update coin error:', error);
+      Logger.error('Update coin error', error);
     } finally {
       setSaving(false);
     }

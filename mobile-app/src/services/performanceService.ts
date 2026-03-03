@@ -1,5 +1,6 @@
 // src/services/performanceService.ts
 import { Platform, Dimensions } from 'react-native';
+import { Logger } from './logger';
 
 export interface PerformanceMetrics {
   deviceInfo: DeviceInfo;
@@ -53,6 +54,8 @@ export class PerformanceService {
   private blurRenderTimes: number[] = [];
   private animationStartTime: number = 0;
   private frameCallbacks: (() => void)[] = [];
+  private monitoringInterval: ReturnType<typeof setInterval> | null = null;
+  private isMonitoring: boolean = false;
 
   /**
    * Get the singleton instance of PerformanceService
@@ -71,7 +74,7 @@ export class PerformanceService {
   async initialize(): Promise<void> {
     this.detectDeviceCapabilities();
     this.startPerformanceMonitoring();
-    console.log('PerformanceService initialized');
+    Logger.info('PerformanceService initialized');
   }
 
   /**
@@ -129,8 +132,11 @@ export class PerformanceService {
    * Start monitoring performance metrics
    */
   private startPerformanceMonitoring(): void {
+    if (this.isMonitoring) return;
+    this.isMonitoring = true;
+
     // Monitor frame drops (simplified)
-    setInterval(() => {
+    this.monitoringInterval = setInterval(() => {
       this.collectRenderMetrics();
       this.collectMemoryMetrics();
     }, 5000); // Every 5 seconds
@@ -236,7 +242,7 @@ export class PerformanceService {
    */
   startAnimationTracking(animationType: string = 'generic'): void {
     this.animationStartTime = Date.now();
-    console.log(`📊 Started tracking animation: ${animationType}`);
+    Logger.debug(`Started tracking animation: ${animationType}`);
   }
 
   /**
@@ -246,7 +252,7 @@ export class PerformanceService {
     const duration = Date.now() - this.animationStartTime;
     const recommendations = this.getAnimationRecommendations(duration);
     
-    console.log(`📊 Animation completed in ${duration}ms`);
+    Logger.debug(`Animation completed in ${duration}ms`);
     return { duration, recommendation: recommendations };
   }
 
@@ -452,5 +458,17 @@ export class PerformanceService {
     this.renderTimes = [];
     this.memoryReadings = [];
     this.blurRenderTimes = [];
+  }
+
+  /**
+   * Stop monitoring and clean up resources
+   */
+  destroy(): void {
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
+    }
+    this.isMonitoring = false;
+    this.clearHistory();
   }
 }

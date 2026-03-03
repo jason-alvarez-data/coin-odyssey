@@ -7,6 +7,7 @@ import { Colors, Typography, Spacing } from '../../styles';
 import { Input, Button } from '../../components/common';
 import { AuthService } from '../../services/auth';
 import { AuthStackScreenProps } from '../../types/navigation';
+import { Logger } from '../../services/logger';
 
 type Props = AuthStackScreenProps<'ForgotPassword'>;
 
@@ -50,7 +51,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
       }
     } catch (error) {
       Alert.alert('Error', 'An unexpected error occurred');
-      console.error('Password reset error:', error);
+      Logger.error('Password reset error', error);
     } finally {
       setLoading(false);
     }

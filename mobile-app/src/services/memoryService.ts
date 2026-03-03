@@ -1,5 +1,6 @@
 // src/services/memoryService.ts
 import { Platform } from 'react-native';
+import { Logger } from './logger';
 
 export interface MemoryStats {
   usedMemoryMB: number;
@@ -39,7 +40,7 @@ export class MemoryService {
 
     this.isMonitoring = true;
     this.startMemoryMonitoring();
-    console.log('MemoryService initialized');
+    Logger.info('MemoryService initialized');
   }
 
   /**
@@ -69,7 +70,7 @@ export class MemoryService {
       try {
         callback(stats);
       } catch (error) {
-        console.warn('Memory callback error:', error);
+        Logger.warn('Memory callback error', error);
       }
     });
 
@@ -184,7 +185,7 @@ export class MemoryService {
    * Handle critical memory situations
    */
   private handleCriticalMemory(): void {
-    console.warn('Critical memory pressure detected');
+    Logger.warn('Critical memory pressure detected');
     
     // Force garbage collection if possible
     if (global.gc) {
@@ -204,7 +205,7 @@ export class MemoryService {
   private requestCacheClearance(): void {
     // Emit event for other services to clear caches
     // In a real implementation, you'd use an event emitter
-    console.log('Requesting cache clearance due to memory pressure');
+    Logger.info('Requesting cache clearance due to memory pressure');
   }
 
   /**
@@ -238,7 +239,7 @@ export class MemoryService {
    * Force memory cleanup
    */
   forceCleanup(): void {
-    console.log('Forcing memory cleanup');
+    Logger.info('Forcing memory cleanup');
     
     if (global.gc) {
       global.gc();

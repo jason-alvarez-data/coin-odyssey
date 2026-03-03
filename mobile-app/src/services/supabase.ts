@@ -1,6 +1,7 @@
 // src/services/supabase.ts
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
+import { Logger } from './logger';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -13,7 +14,7 @@ const ExpoSecureStoreAdapter = {
   setItem: (key: string, value: string) => {
     // Check if value is larger than SecureStore limit (2048 bytes)
     if (value.length > 2048) {
-      console.warn(`SecureStore: Value for ${key} is ${value.length} bytes (limit: 2048). This may cause storage issues.`);
+      Logger.warn(`SecureStore: Value for ${key} is ${value.length} bytes (limit: 2048). This may cause storage issues.`);
     }
     return SecureStore.setItemAsync(key, value);
   },

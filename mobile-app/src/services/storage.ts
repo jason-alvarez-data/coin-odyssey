@@ -2,6 +2,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Coin } from '../types/coin';
 import { supabase } from './supabase';
+import { CoinService } from './coinService';
+import { Logger } from './logger';
 
 export class OfflineStorage {
   private static readonly OFFLINE_COINS_KEY = 'offline_coins';
@@ -33,40 +35,14 @@ export class OfflineStorage {
     for (const coin of offlineCoins) {
       try {
         const { id, offline, timestamp, ...coinData } = coin;
-        // Map camelCase Coin fields to snake_case for Supabase insert
-        const dbData = {
-          collection_id: coinData.collectionId,
-          name: coinData.name,
-          title: coinData.title || null,
-          denomination: coinData.denomination,
-          year: coinData.year,
-          mint_mark: coinData.mintMark || null,
-          grade: coinData.grade || null,
-          face_value: coinData.faceValue ?? null,
-          purchase_price: coinData.purchasePrice ?? null,
-          current_market_value: coinData.currentMarketValue ?? null,
-          purchase_date: coinData.purchaseDate || null,
-          notes: coinData.notes || null,
-          country: coinData.country || null,
-          series: coinData.series || null,
-          series_id: coinData.seriesId || null,
-          specific_coin_id: coinData.specificCoinId || null,
-          specific_coin_name: coinData.specificCoinName || null,
-          designer: coinData.designer || null,
-          theme: coinData.theme || null,
-          honoree: coinData.honoree || null,
-          release_date: coinData.releaseDate || null,
-          certification_number: coinData.certificationNumber || null,
-          grading_service: coinData.gradingService || null,
-          images: coinData.images || null,
-        };
+        const dbData = CoinService.mapCoinToSupabase(coinData as Partial<Coin>);
         const { data, error } = await supabase.from('coins').insert(dbData);
         
         if (!error) {
           syncedIds.push(id);
         }
       } catch (error) {
-        console.error('Sync error for coin:', coin.id, error);
+        Logger.error('Sync error for coin: ' + coin.id, error);
       }
     }
 

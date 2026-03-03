@@ -4,6 +4,8 @@
  * Tracks actual memory usage patterns in the app
  */
 
+import { Logger } from '../services/logger';
+
 interface MemorySnapshot {
   timestamp: number;
   jsHeapSizeLimit?: number;
@@ -41,11 +43,11 @@ export class MemoryMonitor {
    */
   static startMonitoring(intervalMs: number = 5000): void {
     if (this.monitoringInterval) {
-      console.warn('Memory monitoring already started');
+      Logger.warn('Memory monitoring already started');
       return;
     }
 
-    console.log('Starting memory monitoring...');
+    Logger.info('Starting memory monitoring...');
 
     this.monitoringInterval = setInterval(() => {
       this.takeSnapshot();
@@ -62,7 +64,7 @@ export class MemoryMonitor {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
-      console.log('Stopped memory monitoring');
+      Logger.info('Stopped memory monitoring');
     }
   }
 
@@ -148,7 +150,7 @@ export class MemoryMonitor {
 
       // Log critical warnings
       if (warningLevel === 'critical' || warningLevel === 'high') {
-        console.warn(`[Memory Warning] ${message} (${usageMB.toFixed(2)}MB)`);
+        Logger.warn(`[Memory Warning] ${message} (${usageMB.toFixed(2)}MB)`);
       }
     }
   }
@@ -311,7 +313,7 @@ export function useMemoryMonitor(componentName: string): void {
         const diff = afterUnmount.estimatedUsageMB - beforeMount.estimatedUsageMB;
 
         if (Math.abs(diff) > 5) {
-          console.log(
+          Logger.debug(
             `[Memory] ${componentName} memory impact: ${diff.toFixed(2)}MB`
           );
         }

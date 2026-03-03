@@ -1,18 +1,19 @@
 // src/services/auth.ts
 import { supabase } from './supabase';
+import { Logger } from './logger';
 
 export class AuthService {
   static async signIn(email: string, password: string) {
-    console.log('AuthService: Attempting sign in...');
+    Logger.info('AuthService: Attempting sign in');
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     
-    console.log('AuthService: Sign in result:', { 
-      hasUser: !!data.user, 
-      hasSession: !!data.session, 
-      error: error?.message 
+    Logger.info('AuthService: Sign in result', {
+      hasUser: !!data.user,
+      hasSession: !!data.session,
+      error: error?.message
     });
     
     return { data, error };
@@ -28,10 +29,10 @@ export class AuthService {
   }
 
   static async signOut() {
-    console.log('AuthService: Signing out...');
+    Logger.info('AuthService: Signing out');
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error('AuthService: Sign out error:', error);
+      Logger.error('AuthService: Sign out error', error);
     }
     return { error };
   }

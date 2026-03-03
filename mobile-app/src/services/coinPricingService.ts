@@ -1,5 +1,6 @@
 // src/services/coinPricingService.ts
 import { Coin } from '../types/coin';
+import { Logger } from './logger';
 
 export interface CoinPricing {
   currentValue?: number;
@@ -73,7 +74,7 @@ export class CoinPricingService {
       return estimatedPricing;
 
     } catch (error) {
-      console.error('Error fetching coin pricing:', error);
+      Logger.error('Error fetching coin pricing', error);
       return this.getEstimatedPricing(coin);
     }
   }
@@ -92,14 +93,14 @@ export class CoinPricingService {
 
       // Check rate limit
       if (this.apiCallCount >= this.DAILY_LIMIT) {
-        console.warn('PCGS API daily limit reached, using fallback pricing');
+        Logger.warn('PCGS API daily limit reached, using fallback pricing');
         return null;
       }
 
       // First, try to find the PCGS number for this coin
       const pcgsNumber = await this.findPCGSNumber(coin);
       if (!pcgsNumber) {
-        console.log('PCGS number not found for coin:', coin.name);
+        Logger.debug('PCGS number not found for coin', { name: coin.name });
         return null;
       }
 
@@ -112,7 +113,7 @@ export class CoinPricingService {
 
       return null;
     } catch (error) {
-      console.error('PCGS API error:', error);
+      Logger.error('PCGS API error', error);
       return null;
     }
   }
@@ -195,7 +196,7 @@ export class CoinPricingService {
       for (const searchKey of searchKeys) {
         const pcgsNumber = commonPCGSNumbers[searchKey];
         if (pcgsNumber) {
-          console.log(`Found PCGS number ${pcgsNumber} for search key: ${searchKey}`);
+          Logger.debug(`Found PCGS number ${pcgsNumber} for search key: ${searchKey}`);
           return pcgsNumber;
         }
       }
@@ -204,11 +205,11 @@ export class CoinPricingService {
       const fallbackKey = `${coin.denomination?.toLowerCase()} ${coin.year}`.trim();
       const fallbackNumber = commonPCGSNumbers[fallbackKey];
       if (fallbackNumber) {
-        console.log(`Using fallback PCGS number ${fallbackNumber} for ${fallbackKey}`);
+        Logger.debug(`Using fallback PCGS number ${fallbackNumber} for ${fallbackKey}`);
         return fallbackNumber;
       }
 
-      console.log(`No PCGS number found for coin:`, {
+      Logger.debug('No PCGS number found for coin', {
         name: coin.name,
         title: coin.title,
         denomination: coin.denomination,
@@ -217,7 +218,7 @@ export class CoinPricingService {
       });
       return null;
     } catch (error) {
-      console.error('Error finding PCGS number:', error);
+      Logger.error('Error finding PCGS number', error);
       return null;
     }
   }
@@ -233,7 +234,7 @@ export class CoinPricingService {
 
       const url = `${this.PCGS_API_BASE}/coindetail/GetCoinFactsByGrade?PCGSNo=${pcgsNumber}&GradeNo=${gradeNumber}&PlusGrade=${plusGrade}`;
       
-      console.log('Calling PCGS API:', url);
+      Logger.debug('Calling PCGS API', { url });
 
       const response = await fetch(url, {
         method: 'GET',
@@ -245,14 +246,14 @@ export class CoinPricingService {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('PCGS API response:', data);
+        Logger.debug('PCGS API response received', data);
         return data;
       } else {
-        console.warn('PCGS API request failed:', response.status, response.statusText);
+        Logger.warn(`PCGS API request failed: ${response.status} ${response.statusText}`);
         return null;
       }
     } catch (error) {
-      console.error('PCGS API request error:', error);
+      Logger.error('PCGS API request error', error);
       return null;
     }
   }
@@ -316,7 +317,7 @@ export class CoinPricingService {
         },
       };
     } catch (error) {
-      console.error('Error formatting PCGS response:', error);
+      Logger.error('Error formatting PCGS response', error);
       throw error;
     }
   }

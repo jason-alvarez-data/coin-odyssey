@@ -15,6 +15,7 @@ import { CollectionGoal, GoalProgress, Achievement, RARITY_COLORS } from '@coin-
 import { NotificationService } from '../../services/notificationService';
 import { useAuth } from '../../hooks/useAuth';
 import { AchievementService } from '../../services/achievementService';
+import { Logger } from '../../services/logger';
 
 type DashboardScreenProps = DashboardStackScreenProps<'DashboardHome'>;
 
@@ -49,6 +50,10 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
   // Animation values for real-time updates
   const progressAnimations = useRef(new Map<string, Animated.Value>()).current;
   const fadeAnimation = useRef(new Animated.Value(1)).current;
+
+  // Staleness tracking to avoid over-fetching on tab focus
+  const lastFetchTime = useRef<number>(0);
+  const STALE_THRESHOLD = 30000; // 30 seconds
 
   const calculateStats = useCallback((coins: Coin[]): CollectionStats => {
     const totalCoins = coins.length;
@@ -95,9 +100,9 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
       setRecentAchievements(achievementStats.recentUnlocked || []);
 
       // Update goals progress (don't await to avoid blocking UI)
-      GoalsService.updateAllGoalsProgress().catch(console.error);
+      GoalsService.updateAllGoalsProgress().catch(err => Logger.error('Failed to update goals progress', err));
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      Logger.error('Error loading dashboard data', error);
       // Set empty stats on error
       setStats({
         totalCoins: 0,
@@ -111,6 +116,7 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      lastFetchTime.current = Date.now();
     }
   }, [calculateStats, user]);
 
@@ -199,10 +205,11 @@ export default function DashboardScreen({ navigation }: DashboardScreenProps) {
     loadDashboardData();
   }, [loadDashboardData]);
 
-  // Listen for when we return from other screens to refresh
+  // Listen for when we return from other screens to refresh (only if data is stale)
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      if (!loading) {
+      const isStale = Date.now() - lastFetchTime.current > STALE_THRESHOLD;
+      if (!loading && isStale) {
         loadDashboardData();
       }
     });

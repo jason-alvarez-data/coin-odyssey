@@ -1,5 +1,6 @@
 // src/utils/performanceTracker.ts
 import { InteractionManager, Platform } from 'react-native';
+import { Logger } from '../services/logger';
 
 export interface PerformanceMetrics {
   animationFrameRate: number;
@@ -42,7 +43,7 @@ export class PerformanceTracker {
       this.stopTracking();
     }
 
-    console.log(`🎬 Starting performance tracking: ${testName}`);
+    Logger.debug(`Starting performance tracking: ${testName}`);
     this.isTracking = true;
     this.startTime = Date.now();
     this.metrics = [];
@@ -65,7 +66,7 @@ export class PerformanceTracker {
     }
 
     const result = this.analyzeMetrics();
-    console.log('📊 Performance tracking completed:', result);
+    Logger.debug('Performance tracking completed', result);
     
     return result;
   }

@@ -5,6 +5,7 @@ import { GoalsService } from './goalsService';
 import { Achievement, UserAchievement, ACHIEVEMENTS, CollectionGoal } from '@coin-collecting/shared';
 import { Coin } from '../types/coin';
 import { NotificationService } from './notificationService';
+import { Logger } from './logger';
 
 export class AchievementService {
   // Get user's achievement progress
@@ -23,13 +24,13 @@ export class AchievementService {
         .order('unlocked_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching user achievements:', error);
+        Logger.error('Error fetching user achievements', error);
         return [];
       }
 
       return data?.map(this.mapSupabaseToUserAchievement) || [];
     } catch (error) {
-      console.error('Error in getUserAchievements:', error);
+      Logger.error('Error in getUserAchievements', error);
       return [];
     }
   }
@@ -61,7 +62,7 @@ export class AchievementService {
 
       return achievementsWithProgress;
     } catch (error) {
-      console.error('Error getting available achievements:', error);
+      Logger.error('Error getting available achievements', error);
       return [];
     }
   }
@@ -136,7 +137,7 @@ export class AchievementService {
           current = 0;
       }
     } catch (error) {
-      console.error('Error calculating achievement progress:', error);
+      Logger.error('Error calculating achievement progress', error);
       current = 0;
     }
 
@@ -165,7 +166,7 @@ export class AchievementService {
 
       return newlyUnlocked;
     } catch (error) {
-      console.error('Error checking achievements:', error);
+      Logger.error('Error checking achievements', error);
       return [];
     }
   }
@@ -192,13 +193,13 @@ export class AchievementService {
         .upsert(achievementData, { onConflict: 'user_id,achievement_id' });
 
       if (error) {
-        console.error('Error unlocking achievement:', error);
+        Logger.error('Error unlocking achievement', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in unlockAchievement:', error);
+      Logger.error('Error in unlockAchievement', error);
       return false;
     }
   }
@@ -214,13 +215,13 @@ export class AchievementService {
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-        console.error('Error fetching user achievement:', error);
+        Logger.error('Error fetching user achievement', error);
         return null;
       }
 
       return data ? this.mapSupabaseToUserAchievement(data) : null;
     } catch (error) {
-      console.error('Error in getUserAchievement:', error);
+      Logger.error('Error in getUserAchievement', error);
       return null;
     }
   }
@@ -244,13 +245,13 @@ export class AchievementService {
         .upsert(achievementData, { onConflict: 'user_id,achievement_id' });
 
       if (error) {
-        console.error('Error updating achievement progress:', error);
+        Logger.error('Error updating achievement progress', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in updateAchievementProgress:', error);
+      Logger.error('Error in updateAchievementProgress', error);
       return false;
     }
   }
@@ -277,7 +278,7 @@ export class AchievementService {
 
       return { badges, titles };
     } catch (error) {
-      console.error('Error getting user badges and titles:', error);
+      Logger.error('Error getting user badges and titles', error);
       return { badges: [], titles: [] };
     }
   }
@@ -291,7 +292,7 @@ export class AchievementService {
       // Check relevant achievements
       await this.checkAndUnlockAchievements(user.id);
     } catch (error) {
-      console.error('Error handling coin added for achievements:', error);
+      Logger.error('Error handling coin added for achievements', error);
     }
   }
 
@@ -304,7 +305,7 @@ export class AchievementService {
       // Check relevant achievements
       await this.checkAndUnlockAchievements(user.id);
     } catch (error) {
-      console.error('Error handling goal completed for achievements:', error);
+      Logger.error('Error handling goal completed for achievements', error);
     }
   }
 
@@ -328,7 +329,7 @@ export class AchievementService {
         }
       }
     } catch (error) {
-      console.error('Error handling goal milestone for achievements:', error);
+      Logger.error('Error handling goal milestone for achievements', error);
     }
   }
 
@@ -395,7 +396,7 @@ export class AchievementService {
         nearCompletion,
       };
     } catch (error) {
-      console.error('Error getting achievement stats:', error);
+      Logger.error('Error getting achievement stats', error);
       return {
         totalUnlocked: 0,
         totalAvailable: ACHIEVEMENTS.length,

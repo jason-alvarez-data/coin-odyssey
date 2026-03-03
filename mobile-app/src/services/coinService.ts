@@ -84,6 +84,41 @@ export class CoinService {
   }
 
   /**
+   * Map Coin interface (camelCase) to Supabase row (snake_case)
+   * Only includes fields that are explicitly present (not undefined)
+   */
+  static mapCoinToSupabase(coin: Partial<Coin>): Record<string, any> {
+    const result: Record<string, any> = {};
+
+    if (coin.collectionId !== undefined) result.collection_id = coin.collectionId;
+    if (coin.name !== undefined) result.name = coin.name;
+    if (coin.title !== undefined) result.title = coin.title || null;
+    if (coin.denomination !== undefined) result.denomination = coin.denomination;
+    if (coin.year !== undefined) result.year = coin.year;
+    if (coin.mintMark !== undefined) result.mint_mark = coin.mintMark || null;
+    if (coin.grade !== undefined) result.grade = coin.grade || null;
+    if (coin.faceValue !== undefined) result.face_value = coin.faceValue ?? null;
+    if (coin.purchasePrice !== undefined) result.purchase_price = coin.purchasePrice ?? null;
+    if (coin.currentMarketValue !== undefined) result.current_market_value = coin.currentMarketValue ?? null;
+    if (coin.purchaseDate !== undefined) result.purchase_date = coin.purchaseDate || null;
+    if (coin.notes !== undefined) result.notes = coin.notes || null;
+    if (coin.country !== undefined) result.country = coin.country || null;
+    if (coin.series !== undefined) result.series = coin.series || null;
+    if (coin.seriesId !== undefined) result.series_id = coin.seriesId || null;
+    if (coin.specificCoinId !== undefined) result.specific_coin_id = coin.specificCoinId || null;
+    if (coin.specificCoinName !== undefined) result.specific_coin_name = coin.specificCoinName || null;
+    if (coin.designer !== undefined) result.designer = coin.designer || null;
+    if (coin.theme !== undefined) result.theme = coin.theme || null;
+    if (coin.honoree !== undefined) result.honoree = coin.honoree || null;
+    if (coin.releaseDate !== undefined) result.release_date = coin.releaseDate || null;
+    if (coin.certificationNumber !== undefined) result.certification_number = coin.certificationNumber || null;
+    if (coin.gradingService !== undefined) result.grading_service = coin.gradingService || null;
+    if (coin.images !== undefined) result.images = coin.images || null;
+
+    return result;
+  }
+
+  /**
    * Get or create a default collection for a user
    * If the user already has collections, returns the first one.
    * Otherwise, creates a new default collection.
@@ -231,32 +266,11 @@ export class CoinService {
         reverseImageUrl = await this.uploadImage(coinData.reverseImage, tempCoinId, 'reverse');
       }
 
-      // Prepare coin data for database
+      // Prepare coin data for database using centralized mapping
       const dbCoinData = {
         collection_id: collectionId,
-        name: coinData.name,
-        title: coinData.title || null,
-        denomination: coinData.denomination,
-        year: coinData.year,
-        mint_mark: coinData.mintMark || null,
-        grade: coinData.grade || null,
-        face_value: coinData.faceValue ?? null,
-        purchase_price: coinData.purchasePrice ?? null,
-        purchase_date: coinData.purchaseDate || null,
-        notes: coinData.notes || null,
-        country: coinData.country || null,
-        // Series information
-        series: coinData.series || null,
-        series_id: coinData.seriesId || null,
-        specific_coin_id: coinData.specificCoinId || null,
-        specific_coin_name: coinData.specificCoinName || null,
-        designer: coinData.designer || null,
-        theme: coinData.theme || null,
-        honoree: coinData.honoree || null,
-        release_date: coinData.releaseDate || null,
-        certification_number: coinData.certificationNumber || null,
-        grading_service: coinData.gradingService || null,
-        // Store images as [obverse, reverse] - preserve positions
+        ...this.mapCoinToSupabase(coinData as unknown as Partial<Coin>),
+        // Override images with uploaded URLs (preserve positions)
         images: (obverseImageUrl || reverseImageUrl) ? [obverseImageUrl, reverseImageUrl] : null,
       };
 
@@ -359,59 +373,12 @@ export class CoinService {
       if (newReverseUrl) reverseImageUrl = newReverseUrl;
     }
 
-    // Prepare update data with proper typing
-    interface UpdateData {
-      year?: number;
-      denomination?: string;
-      country?: string | null;
-      mint_mark?: string | null;
-      grade?: string | null;
-      purchase_price?: number | null;
-      purchase_date?: string | null;
-      notes?: string | null;
-      name?: string | null;
-      title?: string | null;
-      series?: string | null;
-      series_id?: string | null;
-      specific_coin_id?: string | null;
-      specific_coin_name?: string | null;
-      designer?: string | null;
-      theme?: string | null;
-      honoree?: string | null;
-      release_date?: string | null;
-      certification_number?: string | null;
-      grading_service?: string | null;
-      images: (string | null)[];
-      updated_at: string;
-    }
-
-    const updateData: UpdateData = {
+    // Prepare update data using centralized mapping
+    const updateData: Record<string, any> = {
+      ...this.mapCoinToSupabase(updates as unknown as Partial<Coin>),
       images: (obverseImageUrl || reverseImageUrl) ? [obverseImageUrl, reverseImageUrl] : [],
       updated_at: new Date().toISOString(),
     };
-
-    if (updates.year !== undefined) updateData.year = updates.year;
-    if (updates.denomination !== undefined) updateData.denomination = updates.denomination;
-    if (updates.country !== undefined) updateData.country = updates.country || null;
-    if (updates.mintMark !== undefined) updateData.mint_mark = updates.mintMark || null;
-    if (updates.grade !== undefined) updateData.grade = updates.grade || null;
-    if (updates.purchasePrice !== undefined) updateData.purchase_price = updates.purchasePrice ?? null;
-    if (updates.purchaseDate !== undefined) updateData.purchase_date = updates.purchaseDate || null;
-    if (updates.notes !== undefined) updateData.notes = updates.notes || null;
-    if (updates.name !== undefined) updateData.name = updates.name || null;
-    if (updates.title !== undefined) updateData.title = updates.title || null;
-
-    // Series information
-    if (updates.series !== undefined) updateData.series = updates.series || null;
-    if (updates.seriesId !== undefined) updateData.series_id = updates.seriesId || null;
-    if (updates.specificCoinId !== undefined) updateData.specific_coin_id = updates.specificCoinId || null;
-    if (updates.specificCoinName !== undefined) updateData.specific_coin_name = updates.specificCoinName || null;
-    if (updates.designer !== undefined) updateData.designer = updates.designer || null;
-    if (updates.theme !== undefined) updateData.theme = updates.theme || null;
-    if (updates.honoree !== undefined) updateData.honoree = updates.honoree || null;
-    if (updates.releaseDate !== undefined) updateData.release_date = updates.releaseDate || null;
-    if (updates.certificationNumber !== undefined) updateData.certification_number = updates.certificationNumber || null;
-    if (updates.gradingService !== undefined) updateData.grading_service = updates.gradingService || null;
 
     // Update coin in database
     const { data: updatedCoin, error: updateError } = await supabase

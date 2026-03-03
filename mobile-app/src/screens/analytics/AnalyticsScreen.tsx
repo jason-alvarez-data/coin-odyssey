@@ -18,6 +18,7 @@ import { ValueChart } from '../../components/analytics/ValueChart';
 import { CountryDistributionChart } from '../../components/analytics/CountryDistributionChart';
 import { TimelineChart } from '../../components/analytics/TimelineChart';
 import { MetricCard } from '../../components/analytics/MetricCard';
+import { Logger } from '../../services/logger';
 
 export default function AnalyticsScreen() {
   const insets = useSafeAreaInsets();
@@ -31,7 +32,7 @@ export default function AnalyticsScreen() {
       const data = await AnalyticsService.getAnalyticsData();
       setAnalyticsData(data);
     } catch (error) {
-      console.error('Error loading analytics data:', error);
+      Logger.error('Error loading analytics data', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

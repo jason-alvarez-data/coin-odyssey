@@ -132,8 +132,8 @@ export class ErrorBoundary extends Component<Props, State> {
                     style={styles.secondaryButton}
                     onPress={() => {
                       Logger.info('Error details exported');
-                      console.log('Error:', error);
-                      console.log('Error Info:', errorInfo);
+                      Logger.debug('Error', error);
+                      Logger.debug('Error Info', errorInfo);
                     }}
                   >
                     <Text style={styles.secondaryButtonText}>Log to Console</Text>

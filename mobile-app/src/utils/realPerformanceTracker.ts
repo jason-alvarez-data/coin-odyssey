@@ -5,6 +5,7 @@
  */
 
 import { Platform, InteractionManager } from 'react-native';
+import { Logger } from '../services/logger';
 
 interface PerformanceMark {
   name: string;
@@ -63,7 +64,7 @@ export class RealPerformanceTracker {
     const end = this.marks.get(endMark);
 
     if (!start || !end) {
-      console.warn(`Performance marks not found: ${startMark} or ${endMark}`);
+      Logger.warn(`Performance marks not found: ${startMark} or ${endMark}`);
       return null;
     }
 
@@ -175,7 +176,7 @@ export function useRenderPerformance(componentName: string): void {
 
       if (duration !== null && duration > 16) {
         // Log slow renders (> 16ms = dropped frame)
-        console.warn(`Slow render detected in ${componentName}: ${duration}ms`);
+        Logger.warn(`Slow render detected in ${componentName}: ${duration}ms`);
       }
     });
   });
@@ -222,7 +223,7 @@ export async function measureAsync<T>(
     );
 
     if (duration !== null) {
-      console.log(`${operationName} completed in ${duration}ms`);
+      Logger.debug(`${operationName} completed in ${duration}ms`);
     }
 
     return result;
@@ -250,7 +251,7 @@ export class AppStartupTracker {
   static markMilestone(name: string): void {
     const elapsed = Date.now() - this.appStartTime;
     this.milestones.set(name, elapsed);
-    console.log(`[Startup] ${name}: ${elapsed}ms`);
+    Logger.debug(`[Startup] ${name}: ${elapsed}ms`);
   }
 
   /**

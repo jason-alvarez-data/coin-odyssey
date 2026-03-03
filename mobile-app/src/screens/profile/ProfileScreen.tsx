@@ -20,6 +20,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { CoinService } from '../../services/coinService';
 import { GoalsService } from '../../services/goalsService';
 import { CollectionGoal, GOAL_TEMPLATES, GoalTemplate, GoalType, GoalCategory } from '@coin-collecting/shared';
+import { Logger } from '../../services/logger';
 
 interface ProfileScreenProps {
   navigation: any;
@@ -71,7 +72,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
       });
       setGoals(userGoals);
     } catch (error) {
-      console.error('Error loading user data:', error);
+      Logger.error('Error loading user data', error);
     } finally {
       setLoading(false);
     }
@@ -89,7 +90,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         Alert.alert('Error', 'Failed to create goal. Please try again.');
       }
     } catch (error) {
-      console.error('Error creating goal:', error);
+      Logger.error('Error creating goal', error);
       Alert.alert('Error', 'Failed to create goal. Please try again.');
     } finally {
       setGoalsLoading(false);
@@ -153,7 +154,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         Alert.alert('Error', 'Failed to create goal. Please try again.');
       }
     } catch (error) {
-      console.error('Error creating custom goal:', error);
+      Logger.error('Error creating custom goal', error);
       Alert.alert('Error', 'Failed to create goal. Please try again.');
     } finally {
       setGoalsLoading(false);
@@ -177,7 +178,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
               await signOut();
               // Navigation will be handled automatically by auth context
             } catch (error) {
-              console.error('Logout error:', error);
+              Logger.error('Logout error', error);
               Alert.alert('Error', 'Failed to sign out. Please try again.');
             }
           },

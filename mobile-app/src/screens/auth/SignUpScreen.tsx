@@ -7,6 +7,7 @@ import { Colors, Typography, Spacing } from '../../styles';
 import { Input, Button } from '../../components/common';
 import { AuthService } from '../../services/auth';
 import { AuthStackScreenProps } from '../../types/navigation';
+import { Logger } from '../../services/logger';
 
 type Props = AuthStackScreenProps<'SignUp'>;
 
@@ -66,7 +67,7 @@ export default function SignUpScreen({ navigation }: Props) {
       }
     } catch (error) {
       Alert.alert('Error', 'An unexpected error occurred');
-      console.error('Sign up error:', error);
+      Logger.error('Sign up error', error);
     } finally {
       setLoading(false);
     }

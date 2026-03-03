@@ -1,6 +1,7 @@
 // src/utils/deviceUtils.ts
 import React from 'react';
 import { Dimensions, Platform, PixelRatio } from 'react-native';
+import { Logger } from '../services/logger';
 
 export interface DeviceInfo {
   width: number;
@@ -161,7 +162,7 @@ export class DeviceUtils {
     const deviceInfo = this.getDeviceInfo();
     const responsive = this.getResponsiveDimensions();
     
-    console.log('🔧 Device Information:', {
+    Logger.debug('Device Information', {
       dimensions: `${deviceInfo.width}x${deviceInfo.height}`,
       scale: deviceInfo.scale,
       fontScale: deviceInfo.fontScale,

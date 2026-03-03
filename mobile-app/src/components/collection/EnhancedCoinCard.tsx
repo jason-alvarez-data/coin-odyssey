@@ -14,29 +14,38 @@ import { Coin } from '../../types/coin';
 import { ListOptimizedImage } from '../common/OptimizedImage';
 import { CoinPricingService, CoinPricing } from '../../services/coinPricingService';
 import { useDeviceInfo } from '../../utils/deviceUtils';
+import { Logger } from '../../services/logger';
 
 interface EnhancedCoinCardProps {
   coin: Coin;
   onPress: () => void;
   compact?: boolean;
   showPricing?: boolean;
+  pricing?: CoinPricing | null;
 }
 
-export const EnhancedCoinCard = ({ 
-  coin, 
-  onPress, 
+export const EnhancedCoinCard = ({
+  coin,
+  onPress,
   compact = false,
-  showPricing = true
+  showPricing = true,
+  pricing: externalPricing,
 }: EnhancedCoinCardProps) => {
-  const [pricing, setPricing] = useState<CoinPricing | null>(null);
+  const [pricing, setPricing] = useState<CoinPricing | null>(externalPricing ?? null);
   const [loadingPricing, setLoadingPricing] = useState(false);
   const deviceInfo = useDeviceInfo();
 
   useEffect(() => {
+    // If pricing was provided externally, use it directly
+    if (externalPricing !== undefined) {
+      setPricing(externalPricing);
+      return;
+    }
+    // Otherwise fetch pricing ourselves (fallback for screens that don't batch-prefetch)
     if (showPricing) {
       loadPricing();
     }
-  }, [coin.id, showPricing]);
+  }, [coin.id, showPricing, externalPricing]);
 
   const loadPricing = async () => {
     setLoadingPricing(true);
@@ -44,7 +53,7 @@ export const EnhancedCoinCard = ({
       const pricingData = await CoinPricingService.getCoinPricing(coin);
       setPricing(pricingData);
     } catch (error) {
-      console.error('Error loading pricing:', error);
+      Logger.error('Error loading pricing', error);
     } finally {
       setLoadingPricing(false);
     }

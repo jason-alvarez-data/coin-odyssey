@@ -7,6 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Typography, Spacing } from '../styles';
 import { Card } from '../components/common';
 import { GeographicService, GeographicData } from '../services/geographicService';
+import { Logger } from '../services/logger';
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
@@ -20,7 +21,7 @@ export default function MapScreen() {
       const data = await GeographicService.getGeographicData();
       setGeographicData(data);
     } catch (error) {
-      console.error('Error loading geographic data:', error);
+      Logger.error('Error loading geographic data', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

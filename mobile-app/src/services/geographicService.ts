@@ -1,6 +1,7 @@
 // src/services/geographicService.ts
 import { CoinService } from './coinService';
 import { Coin } from '../types/coin';
+import { Logger } from './logger';
 
 export interface ContinentData {
   name: string;
@@ -120,7 +121,7 @@ export class GeographicService {
 
       return this.processGeographicData(coins);
     } catch (error) {
-      console.error('Error getting geographic data:', error);
+      Logger.error('Error getting geographic data', error);
       return this.getEmptyGeographicData();
     }
   }

@@ -1,6 +1,7 @@
 // src/services/imageService.ts
 import * as FileSystem from 'expo-file-system';
 import { Image } from 'react-native';
+import { Logger } from './logger';
 
 export interface ImageCacheOptions {
   maxCacheSize: number; // in MB
@@ -53,7 +54,7 @@ export class ImageService {
     await this.cleanupCache();
 
     this.initialized = true;
-    console.log('ImageService initialized with cache size:', this.cache.size);
+    Logger.info('ImageService initialized', { cacheSize: this.cache.size });
   }
 
   /**
@@ -101,7 +102,7 @@ export class ImageService {
   static async preloadImages(uris: string[]): Promise<void> {
     const preloadPromises = uris.map(uri => 
       this.getOptimizedImage(uri, true).catch(error => {
-        console.warn('Failed to preload image:', uri, error);
+        Logger.warn(`Failed to preload image: ${uri}`, error);
         return null;
       })
     );
@@ -122,7 +123,7 @@ export class ImageService {
         );
       });
     } catch (error) {
-      console.warn('Failed to get image dimensions:', error);
+      Logger.warn('Failed to get image dimensions', error);
       return null;
     }
   }
@@ -169,11 +170,11 @@ export class ImageService {
       this.cache.set(cacheKey, cachedImage);
       await this.saveCacheMetadata();
 
-      console.log(`Cached image: ${originalUri} -> ${localPath}`);
+      Logger.debug(`Cached image: ${originalUri} -> ${localPath}`);
       return createThumbnail && thumbnailPath ? thumbnailPath : localPath;
 
     } catch (error) {
-      console.error('Failed to download and cache image:', error);
+      Logger.error('Failed to download and cache image', error);
       return originalUri; // Fallback to original URI
     }
   }
@@ -199,7 +200,7 @@ export class ImageService {
 
       return thumbnailPath;
     } catch (error) {
-      console.warn('Failed to create thumbnail:', error);
+      Logger.warn('Failed to create thumbnail', error);
       return undefined;
     }
   }
@@ -247,7 +248,7 @@ export class ImageService {
       }
     }
 
-    console.log(`Cache cleanup completed. Total size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`);
+    Logger.debug(`Cache cleanup completed. Total size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`);
   }
 
   /**
@@ -270,9 +271,9 @@ export class ImageService {
       }
 
       this.cache.delete(cacheKey);
-      console.log(`Deleted cached image: ${cacheKey}`);
+      Logger.debug(`Deleted cached image: ${cacheKey}`);
     } catch (error) {
-      console.warn(`Failed to delete cached image ${cacheKey}:`, error);
+      Logger.warn(`Failed to delete cached image ${cacheKey}`, error);
     }
   }
 
@@ -327,10 +328,10 @@ export class ImageService {
         const metadata = JSON.parse(metadataJson);
         
         this.cache = new Map(Object.entries(metadata));
-        console.log(`Loaded ${this.cache.size} cached images from metadata`);
+        Logger.debug(`Loaded ${this.cache.size} cached images from metadata`);
       }
     } catch (error) {
-      console.warn('Failed to load cache metadata:', error);
+      Logger.warn('Failed to load cache metadata', error);
       this.cache = new Map();
     }
   }
@@ -346,7 +347,7 @@ export class ImageService {
         JSON.stringify(metadata, null, 2)
       );
     } catch (error) {
-      console.warn('Failed to save cache metadata:', error);
+      Logger.warn('Failed to save cache metadata', error);
     }
   }
 
@@ -367,9 +368,9 @@ export class ImageService {
       await this.ensureDirectoryExists(this.CACHE_DIR);
       await this.ensureDirectoryExists(this.THUMBNAIL_DIR);
 
-      console.log('Image cache cleared');
+      Logger.info('Image cache cleared');
     } catch (error) {
-      console.error('Failed to clear cache:', error);
+      Logger.error('Failed to clear cache', error);
     }
   }
 

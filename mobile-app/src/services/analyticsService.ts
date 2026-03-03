@@ -1,6 +1,7 @@
 // src/services/analyticsService.ts
 import { CoinService } from './coinService';
 import { Coin } from '../types/coin';
+import { Logger } from './logger';
 
 export interface AnalyticsData {
   overview: {
@@ -64,7 +65,7 @@ export class AnalyticsService {
         insights: this.generateInsights(coins),
       };
     } catch (error) {
-      console.error('Error calculating analytics:', error);
+      Logger.error('Error calculating analytics', error);
       return this.getEmptyAnalytics();
     }
   }

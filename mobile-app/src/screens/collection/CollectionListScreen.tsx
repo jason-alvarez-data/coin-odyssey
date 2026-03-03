@@ -19,11 +19,12 @@ import { Input } from '../../components/common';
 import { Coin } from '../../types/coin';
 import { CoinService } from '../../services/coinService';
 import { EnhancedCoinCard } from '../../components/collection/EnhancedCoinCard';
-import { CoinPricingService } from '../../services/coinPricingService';
+import { CoinPricingService, CoinPricing } from '../../services/coinPricingService';
 import { useCollectionImagePreloader } from '../../hooks/useImagePreloader';
 import { CoinCollectionList } from '../../components/common/VirtualizedList';
 import { MemoryService } from '../../services/memoryService';
 import { useDeviceInfo } from '../../utils/deviceUtils';
+import { Logger } from '../../services/logger';
 
 interface CollectionListScreenProps {
   navigation: any;
@@ -41,6 +42,7 @@ export default function CollectionListScreen({ navigation }: CollectionListScree
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [collectionValue, setCollectionValue] = useState<number>(0);
+  const [pricingMap, setPricingMap] = useState<Map<string, CoinPricing>>(new Map());
 
   // Image preloading for better performance
   const imagePreloader = useCollectionImagePreloader(filteredCoins, !loading);
@@ -58,13 +60,21 @@ export default function CollectionListScreen({ navigation }: CollectionListScree
       setCoins(userCoins);
       setFilteredCoins(userCoins);
       
-      // Calculate total collection value
+      // Batch-fetch pricing for all coins and build a map for passing to cards
       if (userCoins.length > 0) {
         const insights = await CoinPricingService.getCollectionInsights(userCoins);
         setCollectionValue(insights.totalValue);
+
+        // Build pricing map from cache (getCollectionInsights already populated it)
+        const map = new Map<string, CoinPricing>();
+        for (const c of userCoins) {
+          const p = await CoinPricingService.getCoinPricing(c); // hits cache, no API call
+          if (p) map.set(c.id, p);
+        }
+        setPricingMap(map);
       }
     } catch (error) {
-      console.error('Error loading coins:', error);
+      Logger.error('Error loading coins', error);
       Alert.alert('Error', 'Failed to load your collection');
     } finally {
       setLoading(false);
@@ -141,10 +151,11 @@ export default function CollectionListScreen({ navigation }: CollectionListScree
   }, [navigation, loading, loadCoins]);
 
   const renderCoinCard = ({ item }: { item: Coin }) => (
-    <EnhancedCoinCard 
-      coin={item} 
+    <EnhancedCoinCard
+      coin={item}
       onPress={() => handleCoinPress(item)}
       compact={false}
+      pricing={pricingMap.get(item.id) ?? null}
     />
   );
 
