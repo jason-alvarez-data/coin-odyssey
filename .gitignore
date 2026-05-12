@@ -92,6 +92,12 @@ ehthumbs.db
 Thumbs.db
 
 # ========================
+# Local agent / tooling
+# ========================
+.claude/
+.design-extract/
+
+# ========================
 # Misc
 # ========================
 *.log
