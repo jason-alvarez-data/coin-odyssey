@@ -7,7 +7,7 @@ import { Colors, Typography, Spacing } from '../../styles';
 import { Logger } from '../../services/logger';
 
 interface Props {
-  children: ReactNode;
+  children: React.ReactElement | React.ReactElement[];
   fallbackTitle?: string;
   fallbackMessage?: string;
   onReset?: () => void;

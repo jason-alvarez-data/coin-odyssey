@@ -3,13 +3,14 @@ export const Colors = {
   // Primary brand colors
   primary: {
     gold: '#FFD700',
-    goldGradient: ['#FFD700', '#FFED4E'],
+    goldGradient: ['#FFD700', '#FFED4E'] as const,
     darkGold: '#E6C200',
   },
-  
+
   // Background gradients
   background: {
-    primary: ['#0f0f23', '#1a1a2e', '#16213e'], // Main gradient
+    primary: ['#0f0f23', '#1a1a2e', '#16213e'] as const, // Main gradient
+    secondary: 'rgba(255, 255, 255, 0.08)',
     card: 'rgba(255, 255, 255, 0.05)',
     cardBorder: 'rgba(255, 255, 255, 0.1)',
     overlay: 'rgba(0, 0, 0, 0.8)',

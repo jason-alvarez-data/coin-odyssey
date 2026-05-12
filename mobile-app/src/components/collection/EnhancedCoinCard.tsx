@@ -1,11 +1,12 @@
 // src/components/collection/EnhancedCoinCard.tsx
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ActivityIndicator
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  DimensionValue,
 } from 'react-native';
 import { ListItemBlur } from '../common/OptimizedBlurView';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -132,7 +133,7 @@ export const EnhancedCoinCard = ({
     return (
       <View style={[
         styles.certificationBadge,
-        { backgroundColor: getCertificationBadgeColor(coin.grade) }
+        { backgroundColor: getCertificationBadgeColor(coin.grade ?? undefined) }
       ]}>
         {coin.grade && (
           <Text style={styles.gradeText}>{coin.grade}</Text>
@@ -193,7 +194,7 @@ export const EnhancedCoinCard = ({
   const responsiveStyles = {
     coinCard: {
       ...styles.coinCard,
-      width: deviceInfo.adaptiveStyles.coinCard.width,
+      width: deviceInfo.adaptiveStyles.coinCard.width as DimensionValue,
       marginBottom: deviceInfo.adaptiveStyles.coinCard.marginBottom,
       minHeight: deviceInfo.adaptiveStyles.coinCard.minHeight,
     },

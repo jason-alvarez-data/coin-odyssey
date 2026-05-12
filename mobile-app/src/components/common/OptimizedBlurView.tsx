@@ -7,7 +7,7 @@ import { Colors } from '../../styles';
 interface OptimizedBlurViewProps extends Omit<BlurViewProps, 'intensity'> {
   intensity?: number;
   style?: ViewStyle;
-  children?: React.ReactNode;
+  children?: React.ReactElement | React.ReactElement[];
   performanceMode?: 'auto' | 'high' | 'balanced' | 'power-saving';
   reducedMotion?: boolean;
   fallbackOpacity?: number;
@@ -101,7 +101,7 @@ export const OptimizedBlurView = React.memo<OptimizedBlurViewProps>(({
     if (cachedFallback) {
       return (
         <View style={cachedFallback}>
-          {children}
+          {children as any}
         </View>
       );
     }
@@ -117,7 +117,7 @@ export const OptimizedBlurView = React.memo<OptimizedBlurViewProps>(({
 
     return (
       <View style={fallbackStyle}>
-        {children}
+        {children as any}
       </View>
     );
   }
@@ -129,7 +129,7 @@ export const OptimizedBlurView = React.memo<OptimizedBlurViewProps>(({
       style={style}
       {...props}
     >
-      {children}
+      {children as any}
     </BlurView>
   );
 });

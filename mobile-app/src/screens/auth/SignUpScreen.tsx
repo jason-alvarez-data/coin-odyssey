@@ -102,7 +102,7 @@ export default function SignUpScreen({ navigation }: Props) {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  autoComplete="email"
+
                   style={styles.input}
                 />
                 
@@ -111,7 +111,6 @@ export default function SignUpScreen({ navigation }: Props) {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
-                  autoComplete="password-new"
                   style={styles.input}
                 />
 
@@ -120,7 +119,6 @@ export default function SignUpScreen({ navigation }: Props) {
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry
-                  autoComplete="password-new"
                   style={styles.input}
                 />
 

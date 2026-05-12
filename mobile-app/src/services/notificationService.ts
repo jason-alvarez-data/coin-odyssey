@@ -9,8 +9,11 @@ import { Logger } from './logger';
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    priority: Notifications.AndroidNotificationPriority.DEFAULT,
   }),
 });
 
@@ -107,7 +110,7 @@ export class NotificationService {
           body: `Congratulations! You've completed "${goal.title}"`,
           sound: 'default',
           badge: 1,
-          categoryId: 'GOAL_PROGRESS',
+
           data: {
             type: 'goal_completion',
             goalId: goal.id,
@@ -150,7 +153,7 @@ export class NotificationService {
           body: `"${goal.title}" - ${message}`,
           sound: 'default',
           badge: 1,
-          categoryId: 'GOAL_PROGRESS',
+
           data: {
             type: 'goal_milestone',
             goalId: goal.id,
@@ -182,7 +185,7 @@ export class NotificationService {
           body: `Your ${coinDescription} could start a "${primarySuggestion.title}" collection!`,
           sound: 'default',
           badge: 1,
-          categoryId: 'GOAL_SUGGESTION',
+
           data: {
             type: 'goal_suggestion',
             coinId: coin.id,
@@ -194,7 +197,7 @@ export class NotificationService {
             })),
           },
         },
-        trigger: { seconds: 2 }, // Slight delay to avoid overwhelming user
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 2, repeats: false }, // Slight delay to avoid overwhelming user
       });
     } catch (error) {
       Logger.error('Error sending goal suggestion notification', error);
@@ -312,6 +315,7 @@ export class NotificationService {
           },
         },
         trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
           date: triggerDate,
         },
       });
@@ -428,7 +432,7 @@ export class NotificationService {
           body: `"${achievement.title}" - ${achievement.description}`,
           sound: 'default',
           badge: 1,
-          categoryId: 'ACHIEVEMENT_UNLOCKED',
+
           data: {
             type: 'achievement_unlocked',
             achievementId: achievement.id,

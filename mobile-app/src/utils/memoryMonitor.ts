@@ -34,7 +34,7 @@ export class MemoryMonitor {
   private static snapshots: MemorySnapshot[] = [];
   private static warnings: MemoryWarning[] = [];
   private static maxSnapshots = 60; // Keep last 60 snapshots
-  private static monitoringInterval: NodeJS.Timeout | null = null;
+  private static monitoringInterval: ReturnType<typeof setInterval> | null = null;
   private static listeners: Set<(snapshot: MemorySnapshot) => void> = new Set();
 
   /**

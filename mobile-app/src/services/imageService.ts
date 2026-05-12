@@ -1,5 +1,5 @@
 // src/services/imageService.ts
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Image } from 'react-native';
 import { Logger } from './logger';
 
@@ -149,7 +149,7 @@ export class ImageService {
 
       // Get file size
       const fileInfo = await FileSystem.getInfoAsync(localPath);
-      const size = fileInfo.size || 0;
+      const size = fileInfo.exists ? fileInfo.size : 0;
 
       // Create thumbnail if requested
       let thumbnailPath: string | undefined;

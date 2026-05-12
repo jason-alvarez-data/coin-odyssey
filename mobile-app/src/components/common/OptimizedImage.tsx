@@ -17,7 +17,7 @@ import { Logger } from '../../services/logger';
 
 interface OptimizedImageProps {
   uri: string;
-  style?: ImageStyle | ViewStyle;
+  style?: ImageStyle;
   placeholder?: React.ReactNode;
   useThumbnail?: boolean;
   fadeIn?: boolean;

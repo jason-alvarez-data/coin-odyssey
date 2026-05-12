@@ -67,7 +67,7 @@ export default function SignInScreen({ navigation }: Props) {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                autoComplete="email"
+
                 style={styles.input}
               />
               
@@ -76,7 +76,7 @@ export default function SignInScreen({ navigation }: Props) {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
-                autoComplete="password"
+
                 style={styles.input}
               />
 

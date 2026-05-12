@@ -23,7 +23,7 @@ export class PerformanceTracker {
   private static instance: PerformanceTracker;
   private metrics: PerformanceMetrics[] = [];
   private isTracking = false;
-  private trackingInterval: NodeJS.Timeout | null = null;
+  private trackingInterval: ReturnType<typeof setInterval> | null = null;
   private startTime = 0;
   
   // Performance thresholds

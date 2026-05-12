@@ -301,8 +301,8 @@ export class CoinPricingService {
         year: coin.year,
         denomination: coin.denomination,
         designType: coinFacts.DesignType || coin.name || '',
-        mintMark: coin.mintMark,
-        grade: coin.grade,
+        mintMark: coin.mintMark ?? undefined,
+        grade: coin.grade ?? undefined,
         pricing: {
           [coin.grade || 'MS-60']: coinFacts.Price || 0,
         },

@@ -48,6 +48,7 @@ export class AchievementService {
       const unlockedIds = new Set(userAchievements.filter(ua => ua.isCompleted).map(ua => ua.achievementId));
 
       // Calculate progress for each achievement
+      const resolvedUserId = userId;
       const achievementsWithProgress = await Promise.all(
         ACHIEVEMENTS.map(async (achievement) => {
           if (unlockedIds.has(achievement.id)) {
@@ -55,7 +56,7 @@ export class AchievementService {
             return { ...achievement, progress: { current: achievement.criteria.requirement, required: achievement.criteria.requirement } };
           }
 
-          const progress = await this.calculateAchievementProgress(achievement, userId);
+          const progress = await this.calculateAchievementProgress(achievement, resolvedUserId);
           return { ...achievement, progress };
         })
       );

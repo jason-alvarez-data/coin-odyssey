@@ -188,10 +188,10 @@ export const AnimationPerformanceTest = () => {
   };
 
   const getPerformanceColor = (score: number): string => {
-    if (score >= 90) return Colors.status.success;
+    if (score >= 90) return Colors.text.success;
     if (score >= 75) return Colors.primary.gold;
     if (score >= 60) return '#FF8C00';
-    return Colors.status.error;
+    return Colors.text.error;
   };
 
   const renderTestCard = (scenario: TestScenario) => {
@@ -238,34 +238,36 @@ export const AnimationPerformanceTest = () => {
       <CardBlur style={styles.resultsCard}>
         <Text style={styles.resultsTitle}>📊 Test Results</Text>
         
-        {results.map((result, index) => (
-          <View key={index} style={styles.resultItem}>
-            <View style={styles.resultHeader}>
-              <Text style={styles.resultIndex}>Test {index + 1}</Text>
-              <View style={[
-                styles.scoreIndicator,
-                { backgroundColor: getPerformanceColor(result.smoothnessScore) }
-              ]}>
-                <Text style={styles.scoreText}>
-                  {result.smoothnessScore.toFixed(0)}
+        <>
+          {results.map((result, index) => (
+            <View key={index} style={styles.resultItem}>
+              <View style={styles.resultHeader}>
+                <Text style={styles.resultIndex}>Test {index + 1}</Text>
+                <View style={[
+                  styles.scoreIndicator,
+                  { backgroundColor: getPerformanceColor(result.smoothnessScore) }
+                ]}>
+                  <Text style={styles.scoreText}>
+                    {result.smoothnessScore.toFixed(0)}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.resultMetrics}>
+                <Text style={styles.metricText}>
+                  FPS: {result.averageFrameRate.toFixed(1)}
+                </Text>
+                <Text style={styles.metricText}>
+                  Dropped: {result.droppedFrames}
                 </Text>
               </View>
-            </View>
-            
-            <View style={styles.resultMetrics}>
-              <Text style={styles.metricText}>
-                FPS: {result.averageFrameRate.toFixed(1)}
-              </Text>
-              <Text style={styles.metricText}>
-                Dropped: {result.droppedFrames}
+
+              <Text style={styles.recommendation}>
+                {result.recommendation}
               </Text>
             </View>
-            
-            <Text style={styles.recommendation}>
-              {result.recommendation}
-            </Text>
-          </View>
-        ))}
+          ))}
+        </>
         
         <View style={styles.reportActions}>
           <TouchableOpacity
@@ -336,7 +338,7 @@ export const AnimationPerformanceTest = () => {
           >
             <Animated.View style={styles.blurContainer}>
               <OptimizedBlurView 
-                intensity={dynamicBlurIntensity}
+                intensity={dynamicBlurIntensity as any}
                 style={styles.animatedBlur}
               >
                 <Text style={styles.animationText}>🪙</Text>
@@ -625,7 +627,7 @@ const styles = StyleSheet.create({
     color: Colors.primary.gold,
   },
   clearButton: {
-    backgroundColor: Colors.status.error,
+    backgroundColor: Colors.text.error,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     borderRadius: 8,

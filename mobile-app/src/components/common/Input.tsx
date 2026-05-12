@@ -25,9 +25,11 @@ interface InputProps {
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   style?: ViewStyle;
   inputStyle?: TextStyle;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
+  leftIcon?: React.ReactElement | string;
+  rightIcon?: React.ReactElement | string;
   onRightIconPress?: () => void;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -47,6 +49,8 @@ export const Input: React.FC<InputProps> = ({
   leftIcon,
   rightIcon,
   onRightIconPress,
+  accessibilityLabel,
+  accessibilityHint,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -66,16 +70,16 @@ export const Input: React.FC<InputProps> = ({
       <View style={containerStyle}>
         {leftIcon && (
           <View style={styles.leftIcon}>
-            {leftIcon}
+            {leftIcon as any}
           </View>
         )}
         
         <TextInput
           style={[
             styles.input,
-            multiline && styles.multilineInput,
-            leftIcon && styles.inputWithLeftIcon,
-            rightIcon && styles.inputWithRightIcon,
+            multiline ? styles.multilineInput : undefined,
+            leftIcon ? styles.inputWithLeftIcon : undefined,
+            rightIcon ? styles.inputWithRightIcon : undefined,
             inputStyle,
           ]}
           placeholder={placeholder}
@@ -91,6 +95,8 @@ export const Input: React.FC<InputProps> = ({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           selectionColor={Colors.primary.gold}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
         />
         
         {rightIcon && (
@@ -99,7 +105,7 @@ export const Input: React.FC<InputProps> = ({
             onPress={onRightIconPress}
             disabled={!onRightIconPress}
           >
-            {rightIcon}
+            {rightIcon as any}
           </TouchableOpacity>
         )}
       </View>

@@ -638,10 +638,10 @@ export default function EditCoinScreen() {
             title={saving ? 'Saving...' : 'Save Changes'}
             onPress={handleSave}
             disabled={saving}
-            style={[
-              styles.saveButton,
-              { height: deviceInfo.adaptiveStyles.form.buttonHeight },
-            ]}
+            style={{
+              ...styles.saveButton,
+              height: deviceInfo.adaptiveStyles.form.buttonHeight,
+            }}
           />
 
           <View style={styles.bottomSpacing} />

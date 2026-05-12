@@ -16,6 +16,8 @@ import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors, Typography, Spacing, GlassmorphismStyles } from '../../styles';
 import { Input, Button, CoinNameSuggestions } from '../../components/common';
+import { CoinImageRecognizer } from '../../components/collection/CoinImageRecognizer';
+import { CoinRecognitionResult } from '../../types/recognition';
 import { Coin } from '../../types/coin';
 import { CoinService } from '../../services/coinService';
 import { CoinSeries, SpecificCoin, COIN_SERIES, getSeriesByCountryAndDenomination, getSeriesById } from '@coin-collecting/shared';
@@ -71,6 +73,25 @@ export default function AddCoinScreen() {
   
   // Coin name suggestions state
   const [showCoinSuggestions, setShowCoinSuggestions] = useState(false);
+
+  // AI Recognition state
+  const [showRecognizer, setShowRecognizer] = useState(true);
+
+  const handleRecognitionComplete = (result: CoinRecognitionResult) => {
+    setFormData(prev => ({
+      ...prev,
+      ...(result.denomination ? { denomination: result.denomination } : {}),
+      ...(result.year != null ? { year: result.year.toString() } : {}),
+      ...(result.country ? { country: result.country } : {}),
+      ...(result.mintMark ? { mintMark: result.mintMark } : {}),
+    }));
+    // If country and denomination are now set, trigger series lookup
+    if (result.country && result.denomination) {
+      const series = getSeriesByCountryAndDenomination(result.country, result.denomination);
+      setAvailableSeries(series);
+    }
+    setShowRecognizer(false);
+  };
 
   const updateFormData = (field: string, value: string) => {
     setFormData(prev => {
@@ -360,6 +381,25 @@ export default function AddCoinScreen() {
             <Text style={styles.headerTitle}>Add New Coin</Text>
             <Text style={styles.headerSubtitle}>Build your collection</Text>
           </View>
+
+          {/* AI Coin Recognition */}
+          {showRecognizer ? (
+            <CoinImageRecognizer
+              onRecognitionComplete={handleRecognitionComplete}
+              onDismiss={() => setShowRecognizer(false)}
+              obverseUri={images.obverse}
+              reverseUri={images.reverse}
+            />
+          ) : (
+            <TouchableOpacity
+              style={styles.recognizerToggle}
+              onPress={() => setShowRecognizer(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.recognizerToggleIcon}>✨</Text>
+              <Text style={styles.recognizerToggleText}>Identify coin with AI</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Photo Section */}
           <BlurView intensity={60} style={styles.photoSection}>
@@ -676,10 +716,10 @@ export default function AddCoinScreen() {
             title={loading ? "Saving Coin..." : "Add to Collection"}
             onPress={handleSaveCoin}
             disabled={loading}
-            style={[
-              styles.saveButton,
-              { height: deviceInfo.adaptiveStyles.form.buttonHeight }
-            ]}
+            style={{
+              ...styles.saveButton,
+              height: deviceInfo.adaptiveStyles.form.buttonHeight,
+            }}
           />
 
           <View style={styles.bottomSpacing} />
@@ -916,5 +956,23 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 200, // Higher than dropdown containers
     marginBottom: Spacing.md,
+  },
+  recognizerToggle: {
+    ...GlassmorphismStyles.card,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    borderStyle: 'dashed',
+    gap: Spacing.sm,
+  },
+  recognizerToggleIcon: {
+    fontSize: 16,
+  },
+  recognizerToggleText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.primary.gold,
+    fontWeight: Typography.fontWeight.medium,
   },
 });

@@ -156,8 +156,8 @@ export default function CoinDetailScreen({ route, navigation }: CoinDetailScreen
         purchasePrice: formData.purchasePrice ? parseFloat(formData.purchasePrice) : undefined,
         purchaseDate: formData.purchaseDate || undefined,
         notes: formData.notes || undefined,
-        obverseImage: images.obverse !== coin.obverseImage ? images.obverse : undefined,
-        reverseImage: images.reverse !== coin.reverseImage ? images.reverse : undefined,
+        obverseImage: images.obverse !== coin.obverseImage ? (images.obverse ?? undefined) : undefined,
+        reverseImage: images.reverse !== coin.reverseImage ? (images.reverse ?? undefined) : undefined,
         // Series information
         series: formData.series || undefined,
         seriesId: formData.seriesId || undefined,

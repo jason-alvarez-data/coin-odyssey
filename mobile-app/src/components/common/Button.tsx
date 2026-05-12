@@ -20,7 +20,7 @@ interface ButtonProps {
   loading?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
-  icon?: React.ReactNode;
+  icon?: React.ReactElement | string;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -60,7 +60,7 @@ export const Button: React.FC<ButtonProps> = ({
             <ActivityIndicator color="#000" size="small" />
           ) : (
             <>
-              {icon && <Text style={styles.icon}>{icon}</Text>}
+              {icon && <Text style={styles.icon}>{icon as any}</Text>}
               <Text style={[styles.text, { color: textColor }, textStyle]}>
                 {title}
               </Text>
@@ -86,7 +86,7 @@ export const Button: React.FC<ButtonProps> = ({
         <ActivityIndicator color={textColor} size="small" />
       ) : (
         <>
-          {icon && <Text style={styles.icon}>{icon}</Text>}
+          {icon && <Text style={styles.icon}>{icon as any}</Text>}
           <Text style={[styles.text, { color: textColor }, textStyle]}>
             {title}
           </Text>

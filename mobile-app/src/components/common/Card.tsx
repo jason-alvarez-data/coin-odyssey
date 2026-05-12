@@ -5,7 +5,7 @@ import { BlurView } from 'expo-blur';
 import { Colors, GlassmorphismStyles, Spacing } from '../../styles';
 
 interface CardProps {
-  children: React.ReactNode;
+  children: React.ReactElement | React.ReactElement[];
   variant?: 'default' | 'premium' | 'blur';
   style?: ViewStyle;
   padding?: 'none' | 'small' | 'medium' | 'large';
@@ -27,7 +27,7 @@ export const Card: React.FC<CardProps> = ({
         intensity={blurIntensity} 
         style={[GlassmorphismStyles.card, paddingStyle, style]}
       >
-        {children}
+        {children as any}
       </BlurView>
     );
   }
@@ -40,7 +40,7 @@ export const Card: React.FC<CardProps> = ({
 
   return (
     <View style={cardStyle}>
-      {children}
+      {children as any}
     </View>
   );
 };
