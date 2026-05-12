@@ -10,6 +10,7 @@
     "process-svg": "ts-node ./scripts/processSvgPaths.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@coin-collecting/shared": "*",
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
