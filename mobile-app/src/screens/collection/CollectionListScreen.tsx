@@ -1,460 +1,273 @@
-// src/screens/collection/CollectionListScreen.tsx
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
-  RefreshControl, 
-  Image,
-  ActivityIndicator,
-  Alert
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  TextInput,
+  RefreshControl,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { CardBlur } from '../../components/common/OptimizedBlurView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Typography, Spacing, GlassmorphismStyles } from '../../styles';
-import { Input } from '../../components/common';
-import { Coin } from '../../types/coin';
-import { CoinService } from '../../services/coinService';
-import { EnhancedCoinCard } from '../../components/collection/EnhancedCoinCard';
-import { CoinPricingService, CoinPricing } from '../../services/coinPricingService';
-import { useCollectionImagePreloader } from '../../hooks/useImagePreloader';
-import { CoinCollectionList } from '../../components/common/VirtualizedList';
-import { MemoryService } from '../../services/memoryService';
-import { useDeviceInfo } from '../../utils/deviceUtils';
-import { Logger } from '../../services/logger';
+import { useNavigation } from '@react-navigation/native';
 
-interface CollectionListScreenProps {
-  navigation: any;
+import { palette, fontFamily, radius } from '../../theme';
+import { CoinDisc, Icon, Eyebrow, Card, DiscTone } from '../../components/design';
+import { CoinService } from '../../services/coinService';
+import type { Coin } from '../../types/coin';
+
+const CHIPS = ['All', 'Silver', 'Gold', 'Pre-1950', 'MS-60+', 'Americas'];
+
+function toneFor(coin: Coin): DiscTone {
+  const v = coin.purchasePrice || 0;
+  if (v > 200) return 'gold';
+  if (v > 30) return 'silver';
+  return 'copper';
 }
 
-// Enhanced coin card is now imported and used below
+function chipMatches(coin: Coin, chip: string): boolean {
+  switch (chip) {
+    case 'All':
+      return true;
+    case 'Silver':
+      return (coin.purchasePrice || 0) >= 30 && (coin.purchasePrice || 0) < 200;
+    case 'Gold':
+      return (coin.purchasePrice || 0) >= 200;
+    case 'Pre-1950':
+      return (coin.year || 0) < 1950;
+    case 'MS-60+': {
+      const g = (coin.grade || '').toUpperCase();
+      if (!g.startsWith('MS-')) return false;
+      const n = parseInt(g.slice(3), 10);
+      return Number.isFinite(n) && n >= 60;
+    }
+    case 'Americas': {
+      const c = (coin.country || '').toLowerCase();
+      return /(united states|canada|mexico|brazil|argentina|chile|peru|colombia|venezuela)/.test(c);
+    }
+    default:
+      return true;
+  }
+}
 
-export default function CollectionListScreen({ navigation }: CollectionListScreenProps) {
+export default function CollectionListScreen() {
   const insets = useSafeAreaInsets();
-  const deviceInfo = useDeviceInfo();
+  const navigation = useNavigation<any>();
   const [coins, setCoins] = useState<Coin[]>([]);
-  const [filteredCoins, setFilteredCoins] = useState<Coin[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
+  const [activeChip, setActiveChip] = useState('All');
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [collectionValue, setCollectionValue] = useState<number>(0);
-  const [pricingMap, setPricingMap] = useState<Map<string, CoinPricing>>(new Map());
 
-  // Image preloading for better performance
-  const imagePreloader = useCollectionImagePreloader(filteredCoins, !loading);
-  
-  // Memory management for large collections
-  const memoryService = MemoryService.getInstance();
-  const shouldOptimize = memoryService.shouldOptimizeForLargeCollection(filteredCoins.length);
-  const collectionRecommendations = memoryService.getCollectionSizeRecommendations(filteredCoins.length);
-
-  const filters = ['All', 'Recent', 'US Coins', 'High Value', 'Graded'];
-
-  const loadCoins = useCallback(async () => {
+  const load = useCallback(async () => {
     try {
-      const userCoins = await CoinService.getUserCoins();
-      setCoins(userCoins);
-      setFilteredCoins(userCoins);
-      
-      // Batch-fetch pricing for all coins and build a map for passing to cards
-      if (userCoins.length > 0) {
-        const insights = await CoinPricingService.getCollectionInsights(userCoins);
-        setCollectionValue(insights.totalValue);
-
-        // Build pricing map from cache (getCollectionInsights already populated it)
-        const map = new Map<string, CoinPricing>();
-        for (const c of userCoins) {
-          const p = await CoinPricingService.getCoinPricing(c); // hits cache, no API call
-          if (p) map.set(c.id, p);
-        }
-        setPricingMap(map);
-      }
-    } catch (error) {
-      Logger.error('Error loading coins', error);
-      Alert.alert('Error', 'Failed to load your collection');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      const data = await CoinService.getUserCoins();
+      setCoins(data);
+    } catch {
+      setCoins([]);
     }
   }, []);
 
   useEffect(() => {
-    loadCoins();
-  }, [loadCoins]);
+    load();
+  }, [load]);
 
-  useEffect(() => {
-    filterCoins();
-  }, [searchQuery, activeFilter, coins]);
-
-  const filterCoins = () => {
-    let filtered = [...coins];
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(coin =>
-        coin.denomination.toLowerCase().includes(query) ||
-        coin.year.toString().includes(query) ||
-        coin.country?.toLowerCase().includes(query) ||
-        coin.mintMark?.toLowerCase().includes(query) ||
-        coin.grade?.toLowerCase().includes(query)
-      );
-    }
-
-    // Apply category filter
-    switch (activeFilter) {
-      case 'Recent':
-        filtered = filtered.slice(0, 20); // Show last 20 added
-        break;
-      case 'US Coins':
-        filtered = filtered.filter(coin => 
-          coin.country?.toLowerCase().includes('united states') || 
-          coin.country?.toLowerCase().includes('usa')
-        );
-        break;
-      case 'High Value':
-        filtered = filtered.filter(coin => 
-          coin.purchasePrice && coin.purchasePrice > 100
-        );
-        break;
-      case 'Graded':
-        filtered = filtered.filter(coin => coin.grade);
-        break;
-    }
-
-    setFilteredCoins(filtered);
-  };
-
-  const onRefresh = () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    loadCoins();
-  };
+    await load();
+    setRefreshing(false);
+  }, [load]);
 
-  const handleCoinPress = (coin: Coin) => {
-    navigation.navigate('CoinDetail', { coin });
-  };
-
-  // Listen for when we return from CoinDetail to refresh the list
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      // Refresh coins when returning to this screen
-      if (!loading) {
-        loadCoins();
-      }
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return coins.filter((c) => {
+      if (!chipMatches(c, activeChip)) return false;
+      if (!q) return true;
+      return (
+        (c.specificCoinName || '').toLowerCase().includes(q) ||
+        (c.country || '').toLowerCase().includes(q) ||
+        String(c.year || '').includes(q) ||
+        (c.denomination || '').toLowerCase().includes(q)
+      );
     });
-
-    return unsubscribe;
-  }, [navigation, loading, loadCoins]);
-
-  const renderCoinCard = ({ item }: { item: Coin }) => (
-    <EnhancedCoinCard
-      coin={item}
-      onPress={() => handleCoinPress(item)}
-      compact={false}
-      pricing={pricingMap.get(item.id) ?? null}
-    />
-  );
-
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <Text style={styles.emptyStateIcon}>📭</Text>
-      <Text style={styles.emptyStateTitle}>No Coins Found</Text>
-      <Text style={styles.emptyStateText}>
-        {searchQuery || activeFilter !== 'All' 
-          ? 'Try adjusting your search or filters'
-          : 'Start building your collection by adding your first coin!'
-        }
-      </Text>
-    </View>
-  );
-
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <Text style={styles.title}>My Collection</Text>
-      <Text style={styles.subtitle}>
-        {filteredCoins.length} coin{filteredCoins.length !== 1 ? 's' : ''}
-      </Text>
-      {collectionValue > 0 && (
-        <CardBlur style={styles.valueCard}>
-          <Text style={styles.valueLabel}>Estimated Collection Value</Text>
-          <Text style={styles.valueAmount}>
-            ${collectionValue.toLocaleString(undefined, {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0
-            })}
-          </Text>
-          <Text style={styles.valueNote}>
-            Based on current market data
-          </Text>
-        </CardBlur>
-      )}
-      
-      {/* Image preloading progress */}
-      {imagePreloader.isPreloading && (
-        <CardBlur style={styles.progressCard}>
-          <View style={styles.progressRow}>
-            <ActivityIndicator size="small" color={Colors.primary.gold} />
-            <Text style={styles.progressText}>
-              Loading images ({imagePreloader.preloaded}/{imagePreloader.total})
-            </Text>
-          </View>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill,
-                { width: `${imagePreloader.progress * 100}%` }
-              ]} 
-            />
-          </View>
-        </CardBlur>
-      )}
-    </View>
-  );
-
-  const renderSearchAndFilters = () => (
-    <View style={styles.searchSection}>
-      {/* Search Bar */}
-      <CardBlur style={styles.searchContainer}>
-        <Input
-          placeholder="Search coins..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          style={styles.searchInput}
-        />
-      </CardBlur>
-
-      {/* Filter Chips */}
-      <FlatList
-        horizontal
-        data={filters}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filtersContainer}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.filterChip,
-              activeFilter === item && styles.filterChipActive
-            ]}
-            onPress={() => setActiveFilter(item)}
-          >
-            <Text style={[
-              styles.filterText,
-              activeFilter === item && styles.filterTextActive
-            ]}>
-              {item}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
-    </View>
-  );
-
-  if (loading) {
-    return (
-      <LinearGradient colors={Colors.background.primary} style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary.gold} />
-          <Text style={styles.loadingText}>Loading your collection...</Text>
-        </View>
-      </LinearGradient>
-    );
-  }
+  }, [coins, query, activeChip]);
 
   return (
-    <LinearGradient colors={Colors.background.primary} style={styles.container}>
-      <View style={[styles.headerContainer, { paddingTop: insets.top + 20 }]}>
-        {renderHeader()}
-        {renderSearchAndFilters()}
-      </View>
-      
-      {filteredCoins.length === 0 ? (
-        renderEmptyState()
-      ) : shouldOptimize ? (
-        <CoinCollectionList
-          coins={filteredCoins}
-          renderCoin={renderCoinCard}
-          numColumns={deviceInfo.responsive.gridColumns}
-          onRefresh={onRefresh}
-          refreshing={refreshing}
-        />
-      ) : (
-        <FlatList
-          data={filteredCoins}
-          renderItem={renderCoinCard}
-          numColumns={deviceInfo.responsive.gridColumns}
-          contentContainerStyle={[
-            styles.listContainer,
-            { paddingHorizontal: deviceInfo.responsive.containerPadding }
-          ]}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={Colors.primary.gold}
-              colors={[Colors.primary.gold]}
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 110 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.gold} />
+        }
+      >
+        <View style={styles.header}>
+          <Eyebrow>COLLECTION · {coins.length}</Eyebrow>
+          <Text style={styles.headerTitle}>Catalog</Text>
+        </View>
+
+        <View style={styles.searchWrap}>
+          <View style={styles.searchBar}>
+            <Icon name="search" size={15} color={palette.fg3} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search name, country, year…"
+              placeholderTextColor={palette.fg3}
+              style={styles.searchInput}
+              returnKeyType="search"
             />
-          }
-          showsVerticalScrollIndicator={false}
-          columnWrapperStyle={deviceInfo.responsive.gridColumns > 1 ? styles.row : undefined}
-          key={`${deviceInfo.responsive.gridColumns}-${deviceInfo.orientation}`}
-        />
-      )}
-    </LinearGradient>
+            <Icon name="filter" size={15} color={palette.fg3} />
+          </View>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+        >
+          {CHIPS.map((chip) => {
+            const active = activeChip === chip;
+            return (
+              <Pressable
+                key={chip}
+                onPress={() => setActiveChip(chip)}
+                style={[styles.chip, active && styles.chipActive]}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{chip}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        <View style={styles.grid}>
+          {filtered.map((c) => (
+            <Pressable
+              key={c.id}
+              onPress={() => navigation.navigate('CoinDetail', { coin: c })}
+              style={styles.gridCellWrap}
+            >
+              <Card style={styles.gridCard}>
+                <View style={styles.cardImage}>
+                  <CoinDisc
+                    size={84}
+                    label={String(c.year).slice(-2)}
+                    tone={toneFor(c)}
+                    imageSource={c.obverseImage ? { uri: c.obverseImage } : undefined}
+                  />
+                </View>
+                <View>
+                  <Text style={styles.cardName} numberOfLines={1}>
+                    {c.specificCoinName || c.denomination || 'Coin'}
+                  </Text>
+                  <Text style={styles.cardSub} numberOfLines={1}>
+                    {(c.country || '—').toUpperCase()} · {c.year}
+                  </Text>
+                </View>
+                <View style={styles.cardFooter}>
+                  <Text style={styles.cardValue}>${(c.purchasePrice || 0).toFixed(2)}</Text>
+                  <Text style={styles.cardGrade}>{c.grade || '—'}</Text>
+                </View>
+              </Card>
+            </Pressable>
+          ))}
+          {filtered.length === 0 && (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>
+                {coins.length === 0
+                  ? 'No coins yet. Tap Scan to add your first.'
+                  : 'No matches for the current filter.'}
+              </Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  root: { flex: 1, backgroundColor: palette.bg },
+  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 14 },
+  headerTitle: {
+    fontFamily: fontFamily.display,
+    fontSize: 30,
+    color: palette.fg,
+    letterSpacing: -0.6,
+    marginTop: 6,
   },
-  headerContainer: {
-    paddingHorizontal: Spacing.md,
-    zIndex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  loadingText: {
-    color: Colors.text.secondary,
-    fontSize: Typography.fontSize.md,
-    marginTop: Spacing.md,
-  },
-  listContainer: {
-    paddingHorizontal: Spacing.md,
-    paddingBottom: 120, // Space for tab bar
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
-  },
-  title: {
-    fontSize: Typography.fontSize['3xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.md,
-  },
-  valueCard: {
-    ...GlassmorphismStyles.card,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-    width: '100%',
-    marginTop: Spacing.sm,
-  },
-  valueLabel: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.xs,
-  },
-  valueAmount: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-    marginBottom: Spacing.xs,
-  },
-  valueNote: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.text.tertiary,
-    fontStyle: 'italic',
-  },
-  progressCard: {
-    ...GlassmorphismStyles.card,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    width: '100%',
-    marginTop: Spacing.sm,
-  },
-  progressRow: {
+
+  searchWrap: { paddingHorizontal: 20, paddingBottom: 12 },
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  progressText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    marginLeft: Spacing.sm,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: Colors.background.cardBorder,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.primary.gold,
-    borderRadius: 2,
-  },
-  searchSection: {
-    marginBottom: Spacing.lg,
-  },
-  searchContainer: {
-    ...GlassmorphismStyles.card,
-    marginBottom: Spacing.md,
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: palette.bg2,
+    borderWidth: 1,
+    borderColor: palette.line,
   },
   searchInput: {
-    margin: 0,
+    flex: 1,
+    color: palette.fg,
+    fontFamily: fontFamily.ui,
+    fontSize: 13,
+    paddingVertical: 0,
   },
-  filtersContainer: {
-    paddingHorizontal: Spacing.xs,
-  },
-  filterChip: {
-    backgroundColor: Colors.background.card,
+
+  chipsRow: { paddingHorizontal: 20, paddingBottom: 16, flexDirection: 'row', gap: 8 },
+  chip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: Colors.background.cardBorder,
-    borderRadius: 16,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    marginRight: Spacing.sm,
+    borderColor: palette.line,
   },
-  filterChipActive: {
-    backgroundColor: Colors.primary.gold,
-    borderColor: Colors.primary.gold,
+  chipActive: {
+    borderColor: palette.gold,
+    backgroundColor: palette.chipActiveBg,
   },
-  filterText: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.text.primary,
+  chipText: {
+    fontFamily: fontFamily.mono,
+    fontSize: 11,
+    color: palette.fg2,
+    letterSpacing: 0.66,
   },
-  filterTextActive: {
-    color: '#000',
+  chipTextActive: { color: palette.gold },
+
+  grid: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
   },
-  row: {
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xs,
-  },
-  emptyState: {
+  gridCellWrap: { width: '48%' },
+  gridCard: { padding: 12, gap: 10 },
+  cardImage: {
+    aspectRatio: 1,
+    borderRadius: radius.sm,
+    backgroundColor: palette.bg3,
     alignItems: 'center',
-    paddingVertical: Spacing['4xl'],
-    paddingHorizontal: Spacing.xl,
+    justifyContent: 'center',
   },
-  emptyStateIcon: {
-    fontSize: 64,
-    marginBottom: Spacing.lg,
+  cardName: { fontFamily: fontFamily.ui, fontSize: 13, color: palette.fg, lineHeight: 16 },
+  cardSub: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10,
+    color: palette.fg3,
+    marginTop: 2,
+    letterSpacing: 0.6,
   },
-  emptyStateTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardValue: { fontFamily: fontFamily.mono, fontSize: 12, color: palette.fg2 },
+  cardGrade: {
+    fontFamily: fontFamily.mono,
+    fontSize: 9.5,
+    color: palette.fg4,
+    letterSpacing: 0.95,
   },
-  emptyStateText: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
+
+  emptyState: { width: '100%', padding: 32, alignItems: 'center' },
+  emptyText: { fontFamily: fontFamily.ui, fontSize: 13, color: palette.fg3, textAlign: 'center' },
 });

@@ -16,10 +16,9 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   Dashboard: NavigatorScreenParams<DashboardStackParamList>;
+  Scan: NavigatorScreenParams<ScanStackParamList>;
   Collection: NavigatorScreenParams<CollectionStackParamList>;
-  AddCoin: undefined;
-  Analytics: undefined;
-  Profile: undefined;
+  Settings: undefined;
 };
 
 export type DashboardStackParamList = {
@@ -27,11 +26,15 @@ export type DashboardStackParamList = {
   Map: undefined;
 };
 
+export type ScanStackParamList = {
+  ScanCapture: undefined;
+  ScanPipeline: undefined;
+  ScanReview: undefined;
+};
+
 export type CollectionStackParamList = {
   CollectionList: undefined;
-  CoinDetail: { 
-    coin: any; // Coin type
-  };
+  CoinDetail: { coin: any };
   AddCoin: undefined;
   EditCoin: { coinId: string };
 };

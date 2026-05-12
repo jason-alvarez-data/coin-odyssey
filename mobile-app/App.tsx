@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import AppNavigator from './src/navigation/AppNavigator';
 import { ImageService } from './src/services/imageService';
@@ -10,8 +11,11 @@ import { ErrorBoundary } from './src/components/common';
 import { AppStartupTracker, RealPerformanceTracker } from './src/utils/realPerformanceTracker';
 import { MemoryMonitor } from './src/utils/memoryMonitor';
 import { registerScreenPreloads, PreloadingStrategy } from './src/utils/preloadingStrategy';
+import { useAppFonts, palette } from './src/theme';
 
 export default function App() {
+  const fontsLoaded = useAppFonts();
+
   useEffect(() => {
     // Mark app start
     AppStartupTracker.markMilestone('App component mounted');
@@ -79,6 +83,10 @@ export default function App() {
       MemoryMonitor.stopMonitoring();
     };
   }, []);
+
+  if (!fontsLoaded) {
+    return <View style={{ flex: 1, backgroundColor: palette.bg }} />;
+  }
 
   return (
     <ErrorBoundary

@@ -1,14 +1,13 @@
 // src/navigation/AppNavigator.tsx
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../hooks/useAuth';
 import AuthNavigator from './AuthNavigator';
 import MainTabNavigator from './MainTabNavigator';
 import { RootStackParamList } from '../types/navigation';
-import { Colors, Typography, Spacing } from '../styles';
+import { palette, fontFamily } from '../theme';
 import { Logger } from '../services/logger';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -25,21 +24,33 @@ export default function AppNavigator() {
   if (loading) {
     Logger.debug('AppNavigator: Still loading auth state');
     return (
-      <LinearGradient colors={Colors.background.primary} style={styles.loadingContainer}>
-        <Text style={styles.loadingEmoji}>🪙</Text>
+      <View style={styles.loadingContainer}>
         <Text style={styles.loadingTitle}>Coin Odyssey</Text>
-        <ActivityIndicator size="large" color={Colors.primary.gold} style={styles.loadingSpinner} />
-      </LinearGradient>
+        <ActivityIndicator size="large" color={palette.gold} style={styles.loadingSpinner} />
+      </View>
     );
   }
 
+  const navTheme = {
+    ...DefaultTheme,
+    dark: true,
+    colors: {
+      ...DefaultTheme.colors,
+      background: palette.bg,
+      card: palette.bg2,
+      text: palette.fg,
+      border: palette.line as string,
+      primary: palette.gold,
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
           gestureEnabled: true,
-          cardStyle: { backgroundColor: 'transparent' },
+          cardStyle: { backgroundColor: palette.bg },
         }}
       >
         {user ? (
@@ -57,18 +68,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingEmoji: {
-    fontSize: 64,
-    marginBottom: Spacing.md,
+    backgroundColor: palette.bg,
   },
   loadingTitle: {
-    fontSize: Typography.fontSize['3xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-    marginBottom: Spacing.xl,
+    fontFamily: fontFamily.display,
+    fontSize: 32,
+    color: palette.gold,
+    letterSpacing: -0.6,
+    marginBottom: 24,
   },
   loadingSpinner: {
-    marginTop: Spacing.lg,
+    marginTop: 8,
   },
 });

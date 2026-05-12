@@ -15,7 +15,7 @@ const Tab = createBottomTabNavigator();
 const TabBarIcon = ({ routeName, focused }: { routeName: string; focused: boolean }) => {
   const getIcon = (name: string) => {
     switch (name) {
-      case 'Dashboard': return '🏠';
+      case 'DashboardHome': return '🏠';
       case 'Collection': return '🪙';
       case 'AddCoin': return '➕';
       case 'Analytics': return '📊';
@@ -84,9 +84,9 @@ export default function SimpleTabNavigator() {
     <Tab.Navigator
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
-      initialRouteName="Dashboard"
+      initialRouteName="DashboardHome"
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
+      <Tab.Screen name="DashboardHome" component={DashboardScreen as any} options={{ tabBarLabel: 'Dashboard' }} />
       <Tab.Screen name="Collection" component={CollectionNavigator} />
       <Tab.Screen 
         name="AddCoin" 

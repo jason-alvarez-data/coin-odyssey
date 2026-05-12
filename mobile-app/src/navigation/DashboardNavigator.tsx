@@ -2,7 +2,7 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
-import MapScreen from '../screens/MapScreen';
+import MapScreen from '../screens/map/MapScreen';
 
 export type DashboardStackParamList = {
   DashboardHome: undefined;

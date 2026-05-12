@@ -1,1111 +1,447 @@
-// src/screens/dashboard/DashboardScreen.tsx
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Animated } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  RefreshControl,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Typography, Spacing, GlassmorphismStyles } from '../../styles';
-import { Card } from '../../components/common';
-import { Coin } from '../../types/coin';
+import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+
+import { palette, fontFamily, spacing, radius } from '../../theme';
+import {
+  CoinDisc,
+  DiscTone,
+  Icon,
+  MiniChart,
+  Stat,
+  Eyebrow,
+  Card,
+  WorldMap,
+} from '../../components/design';
+
 import { CoinService } from '../../services/coinService';
-import { DashboardStackScreenProps } from '../../types/navigation';
-import { GeographicService, GeographicData } from '../../services/geographicService';
-import { GoalsService } from '../../services/goalsService';
-import { CollectionGoal, GoalProgress, Achievement, RARITY_COLORS } from '@coin-collecting/shared';
-import { NotificationService } from '../../services/notificationService';
+import type { Coin } from '../../types/coin';
 import { useAuth } from '../../hooks/useAuth';
-import { AchievementService } from '../../services/achievementService';
-import { Logger } from '../../services/logger';
 
-type DashboardScreenProps = DashboardStackScreenProps<'DashboardHome'>;
-
-interface CollectionStats {
+interface Stats {
   totalCoins: number;
   totalValue: number;
   uniqueCountries: number;
-  yearSpan: string;
+  countryCodes: string[];
   recentCoins: Coin[];
+  monthlySeries: number[];
 }
 
-interface RecentGoalProgress {
-  goalId: string;
-  goalTitle: string;
-  previousProgress: number;
-  currentProgress: number;
-  newItems: Coin[];
-  timestamp: string;
+const FALLBACK_SERIES = [
+  18200, 18600, 19100, 19350, 19600, 20100, 20450, 20800, 21500, 22100, 22600, 23420,
+];
+
+const MONTH_TICKS = ["MAY '25", 'AUG', 'NOV', 'FEB', "MAY '26"];
+
+const COUNTRY_TO_CODE: Record<string, string> = {
+  'United States': 'US', USA: 'US', America: 'US',
+  Canada: 'CA',
+  Mexico: 'MX',
+  'United Kingdom': 'UK', UK: 'UK', Britain: 'UK', England: 'UK',
+  France: 'FR',
+  Germany: 'DE',
+  Italy: 'IT',
+  Spain: 'ES',
+  Brazil: 'BR',
+  Argentina: 'AR',
+  Russia: 'RU',
+  China: 'CN',
+  Japan: 'JP',
+  India: 'IN',
+  'South Africa': 'ZA',
+  Egypt: 'EG',
+  Australia: 'AU',
+  'New Zealand': 'NZ',
+  Greece: 'GR',
+  Türkiye: 'TR', Turkey: 'TR',
+  Kenya: 'KE',
+  Thailand: 'TH',
+  Indonesia: 'ID',
+  Peru: 'PE',
+  Chile: 'CL',
+  Poland: 'PL',
+  Sweden: 'SE',
+  Philippines: 'PH',
+  Vietnam: 'VN',
+  'South Korea': 'KR', Korea: 'KR',
+  Morocco: 'MA',
+  Nigeria: 'NG',
+  Switzerland: 'CH',
+  Netherlands: 'NL',
+};
+
+function toneFor(coin: Coin): DiscTone {
+  const v = coin.purchasePrice || 0;
+  if (v > 200) return 'gold';
+  if (v > 30) return 'silver';
+  return 'copper';
 }
 
-export default function DashboardScreen({ navigation }: DashboardScreenProps) {
+function formatRelative(iso?: string): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  const diff = Date.now() - date.getTime();
+  const day = 86400000;
+  const days = Math.floor(diff / day);
+  if (days < 1) return 'today';
+  if (days === 1) return '1d ago';
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
+}
+
+function buildMonthlySeries(coins: Coin[]): number[] {
+  if (coins.length === 0) return FALLBACK_SERIES;
+  const buckets = new Array(12).fill(0);
+  const now = new Date();
+  const cutoff = new Date(now.getFullYear(), now.getMonth() - 11, 1).getTime();
+
+  for (const c of coins) {
+    const t = new Date(c.createdAt || now).getTime();
+    if (t < cutoff) buckets.forEach((_, i) => (buckets[i] += c.purchasePrice || 0));
+    else {
+      const d = new Date(t);
+      const idx = (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth()) + 11;
+      for (let i = Math.max(0, idx); i < 12; i++) buckets[i] += c.purchasePrice || 0;
+    }
+  }
+  if (buckets.every((v) => v === 0)) return FALLBACK_SERIES;
+  return buckets;
+}
+
+function dollarsK(n: number): { whole: string; decimal: string } {
+  const fixed = n.toFixed(2);
+  const [whole, dec] = fixed.split('.');
+  const withCommas = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return { whole: `$${withCommas}`, decimal: `.${dec}` };
+}
+
+export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
   const { user } = useAuth();
-  const [stats, setStats] = useState<CollectionStats | null>(null);
-  const [geographicData, setGeographicData] = useState<GeographicData | null>(null);
-  const [goals, setGoals] = useState<CollectionGoal[]>([]);
-  const [recentProgress, setRecentProgress] = useState<RecentGoalProgress[]>([]);
-  const [recentAchievements, setRecentAchievements] = useState<Achievement[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  const [stats, setStats] = useState<Stats | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  
-  // Animation values for real-time updates
-  const progressAnimations = useRef(new Map<string, Animated.Value>()).current;
-  const fadeAnimation = useRef(new Animated.Value(1)).current;
 
-  // Staleness tracking to avoid over-fetching on tab focus
-  const lastFetchTime = useRef<number>(0);
-  const STALE_THRESHOLD = 30000; // 30 seconds
+  const load = useCallback(async () => {
+    const coins = await CoinService.getUserCoins();
+    const totalValue = coins.reduce((s, c) => s + (c.purchasePrice || 0), 0);
+    const countries = new Set<string>();
+    const codes = new Set<string>();
+    for (const c of coins) {
+      if (c.country) {
+        countries.add(c.country);
+        const code = COUNTRY_TO_CODE[c.country];
+        if (code) codes.add(code);
+      }
+    }
+    const recentCoins = [...coins]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      )
+      .slice(0, 4);
 
-  const calculateStats = useCallback((coins: Coin[]): CollectionStats => {
-    const totalCoins = coins.length;
-    const totalValue = coins.reduce((sum, coin) => sum + (coin.purchasePrice || 0), 0);
-    
-    // Get unique countries
-    const countries = new Set(coins.map(coin => coin.country).filter(Boolean));
-    const uniqueCountries = countries.size;
-    
-    // Calculate year span
-    const years = coins.map(coin => coin.year).filter(Boolean);
-    const yearSpan = years.length > 0 
-      ? `${Math.min(...years)} - ${Math.max(...years)}`
-      : 'No coins';
-    
-    // Get recent coins (last 5 added)
-    const recentCoins = coins
-      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
-      .slice(0, 5);
-
-    return {
-      totalCoins,
+    setStats({
+      totalCoins: coins.length,
       totalValue,
-      uniqueCountries,
-      yearSpan,
+      uniqueCountries: countries.size,
+      countryCodes: Array.from(codes),
       recentCoins,
-    };
+      monthlySeries: buildMonthlySeries(coins),
+    });
   }, []);
 
-  const loadDashboardData = useCallback(async () => {
-    try {
-      // Load all data in parallel for better performance
-      const [coins, geoData, userGoals, achievementStats] = await Promise.all([
-        CoinService.getUserCoins(),
-        GeographicService.getGeographicData(),
-        GoalsService.getUserGoals(),
-        user?.id ? AchievementService.getAchievementStats(user.id) : Promise.resolve({ recentUnlocked: [] }),
-      ]);
-
-      const calculatedStats = calculateStats(coins);
-      setStats(calculatedStats);
-      setGeographicData(geoData);
-      setGoals(userGoals);
-      setRecentAchievements(achievementStats.recentUnlocked || []);
-
-      // Update goals progress (don't await to avoid blocking UI)
-      GoalsService.updateAllGoalsProgress().catch(err => Logger.error('Failed to update goals progress', err));
-    } catch (error) {
-      Logger.error('Error loading dashboard data', error);
-      // Set empty stats on error
-      setStats({
-        totalCoins: 0,
-        totalValue: 0,
-        uniqueCountries: 0,
-        yearSpan: 'No coins',
-        recentCoins: [],
-      });
-      setGeographicData(null);
-      setGoals([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-      lastFetchTime.current = Date.now();
-    }
-  }, [calculateStats, user]);
-
-  // Handle real-time goal progress updates
-  const handleGoalProgressUpdate = useCallback((progress: GoalProgress) => {
-    setGoals(currentGoals => {
-      const updatedGoals = currentGoals.map(goal => {
-        if (goal.id === progress.goalId) {
-          const previousProgress = (goal.currentCount / goal.targetCount) * 100;
-          const currentProgress = progress.progressPercentage;
-          
-          // Add to recent progress if significant change
-          if (currentProgress > previousProgress) {
-            setRecentProgress(current => {
-              const newProgress: RecentGoalProgress = {
-                goalId: goal.id,
-                goalTitle: goal.title,
-                previousProgress,
-                currentProgress,
-                newItems: [], // Would be populated with actual new items
-                timestamp: new Date().toISOString(),
-              };
-              
-              // Keep only last 5 progress updates
-              const updated = [newProgress, ...current.slice(0, 4)];
-              
-              // Animate the progress update
-              const animValue = progressAnimations.get(goal.id) || new Animated.Value(previousProgress);
-              progressAnimations.set(goal.id, animValue);
-              
-              Animated.timing(animValue, {
-                toValue: currentProgress,
-                duration: 1000,
-                useNativeDriver: false,
-              }).start();
-              
-              // Flash the goal card to indicate update
-              Animated.sequence([
-                Animated.timing(fadeAnimation, {
-                  toValue: 0.7,
-                  duration: 200,
-                  useNativeDriver: true,
-                }),
-                Animated.timing(fadeAnimation, {
-                  toValue: 1,
-                  duration: 200,
-                  useNativeDriver: true,
-                }),
-              ]).start();
-              
-              return updated;
-            });
-          }
-          
-          return {
-            ...goal,
-            currentCount: progress.completedItems.length,
-            isCompleted: progress.progressPercentage >= 100,
-          };
-        }
-        return goal;
-      });
-      
-      return updatedGoals;
-    });
-  }, [progressAnimations, fadeAnimation]);
-
-  // Initialize real-time monitoring
   useEffect(() => {
-    if (user?.id) {
-      // Initialize notifications
-      NotificationService.initializeNotifications();
-      
-      // Start goal progress monitoring
-      GoalsService.startGoalProgressMonitoring(user.id);
-      GoalsService.setProgressListener(user.id, handleGoalProgressUpdate);
-      
-      // Cleanup on unmount
-      return () => {
-        GoalsService.stopGoalProgressMonitoring(user.id);
-      };
-    }
-  }, [user?.id, handleGoalProgressUpdate]);
+    load().catch(() => setStats(null));
+  }, [load]);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
-
-  // Listen for when we return from other screens to refresh (only if data is stale)
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      const isStale = Date.now() - lastFetchTime.current > STALE_THRESHOLD;
-      if (!loading && isStale) {
-        loadDashboardData();
-      }
-    });
-
-    return unsubscribe;
-  }, [navigation, loading, loadDashboardData]);
-
-  const onRefresh = () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    loadDashboardData();
-  };
+    await load().catch(() => undefined);
+    setRefreshing(false);
+  }, [load]);
 
-  const handleQuickAction = (action: string) => {
-    switch (action) {
-      case 'Add Coin':
-        // Navigate to Collection tab, then to AddCoin screen
-        navigation.getParent()?.navigate('Collection', { screen: 'AddCoin' });
-        break;
-      case 'View Collection':
-        // Navigate to Collection tab
-        navigation.getParent()?.navigate('Collection');
-        break;
-      case 'View Analytics':
-        // Navigate to Analytics tab
-        navigation.getParent()?.navigate('Analytics');
-        break;
-      case 'Explore Map':
-        // Navigate within the same stack to Map
-        navigation.navigate('Map');
-        break;
-    }
-  };
+  const username = user?.user_metadata?.firstName || user?.email?.split('@')[0] || 'Collector';
+  const initial = username[0]?.toUpperCase() || 'C';
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  if (loading && !stats) {
-    return (
-      <LinearGradient colors={Colors.background.primary} style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary.gold} />
-          <Text style={styles.loadingText}>Loading your collection...</Text>
-        </View>
-      </LinearGradient>
-    );
-  }
+  const tv = stats?.totalValue ?? 0;
+  const { whole, decimal } = dollarsK(tv);
 
   return (
-    <LinearGradient 
-      colors={Colors.background.primary}
-      style={styles.container}
-    >
-      <ScrollView 
-        style={[styles.scrollView, { paddingTop: insets.top }]}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 110 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary.gold}
-            colors={[Colors.primary.gold]}
+            tintColor={palette.gold}
           />
         }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.greeting}>Welcome back!</Text>
-          <Text style={styles.subtitle}>
-            {stats?.totalCoins 
-              ? `${stats.totalCoins} coin${stats.totalCoins !== 1 ? 's' : ''} in your collection`
-              : 'Start building your collection'
-            }
-          </Text>
+        {/* Top bar */}
+        <View style={styles.topBar}>
+          <View style={styles.topBarLeft}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initial}</Text>
+            </View>
+            <View style={{ marginLeft: 10 }}>
+              <Text style={styles.welcomeBack}>WELCOME BACK</Text>
+              <Text style={styles.username}>{username}</Text>
+            </View>
+          </View>
+          <Pressable style={styles.bell}>
+            <Icon name="bell" size={16} color={palette.fg2} />
+            <View style={styles.bellDot} />
+          </Pressable>
         </View>
 
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statsRow}>
-            {[
-              { 
-                value: stats?.totalCoins?.toLocaleString() || '0', 
-                label: 'Total Coins', 
-                icon: '🪙' 
-              },
-              { 
-                value: stats?.totalValue ? formatCurrency(stats.totalValue) : '$0', 
-                label: 'Collection Value', 
-                icon: '💰' 
-              },
-            ].map((stat) => (
-              <BlurView key={stat.label} intensity={60} style={styles.statCard}>
-                <Text style={styles.statIcon}>{stat.icon}</Text>
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-              </BlurView>
-            ))}
+        {/* Portfolio hero */}
+        <View style={styles.heroBlock}>
+          <Eyebrow>PORTFOLIO VALUE · USD</Eyebrow>
+          <View style={styles.heroValueRow}>
+            <Text style={styles.heroValueBig}>{whole}</Text>
+            <Text style={styles.heroValueDecimal}>{decimal}</Text>
           </View>
-          <View style={styles.statsRow}>
-            {[
-              { 
-                value: stats?.uniqueCountries?.toString() || '0', 
-                label: 'Countries', 
-                icon: '🌍' 
-              },
-              { 
-                value: stats?.yearSpan || 'No coins', 
-                label: 'Year Span', 
-                icon: '📅' 
-              },
-            ].map((stat) => (
-              <BlurView key={stat.label} intensity={60} style={styles.statCard}>
-                <Text style={styles.statIcon}>{stat.icon}</Text>
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-              </BlurView>
-            ))}
+          <View style={styles.deltaRow}>
+            <Text style={styles.deltaText}>▲ $820.40 · 3.6%</Text>
+            <View style={styles.dotSep} />
+            <Text style={styles.deltaPeriod}>30 DAYS</Text>
           </View>
         </View>
 
-        {/* Quick Actions - Streamlined */}
+        {/* Chart card */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.actionsRow}>
-            {[
-              { icon: '➕', label: 'Add Coin' },
-              { icon: '📊', label: 'View Analytics' },
-              { icon: '🌍', label: 'Explore Map' },
-            ].map((action) => (
-              <TouchableOpacity 
-                key={action.label}
-                style={styles.actionCardContainer}
-                onPress={() => handleQuickAction(action.label)}
-              >
-                <BlurView intensity={60} style={styles.actionCard}>
-                  <View style={styles.actionIcon}>
-                    <Text style={styles.actionEmoji}>{action.icon}</Text>
-                  </View>
-                  <Text style={styles.actionLabel}>{action.label}</Text>
-                </BlurView>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Real-time Progress Updates */}
-        {recentProgress.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>⚡ Recent Progress</Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.progressScrollContainer}
-            >
-              {recentProgress.map((progress, index) => (
-                <Animated.View
-                  key={`${progress.goalId}-${progress.timestamp}`}
-                  style={[
-                    styles.progressUpdateCard,
-                    {
-                      opacity: fadeAnimation.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.7, 1],
-                      }),
-                    },
-                  ]}
-                >
-                  <BlurView intensity={60} style={styles.progressUpdateInner}>
-                    <View style={styles.progressUpdateHeader}>
-                      <View style={styles.progressIcon}>
-                        <Text style={styles.progressEmoji}>📈</Text>
-                      </View>
-                      <Text style={styles.progressTitle} numberOfLines={1}>
-                        {progress.goalTitle}
-                      </Text>
-                    </View>
-                    
-                    <View style={styles.progressChange}>
-                      <Text style={styles.progressFromTo}>
-                        {Math.round(progress.previousProgress)}% → {Math.round(progress.currentProgress)}%
-                      </Text>
-                      <View style={styles.progressMiniBar}>
-                        <View 
-                          style={[
-                            styles.progressMiniFill, 
-                            { width: `${progress.currentProgress}%` }
-                          ]} 
-                        />
-                      </View>
-                    </View>
-                    
-                    <Text style={styles.progressTime}>
-                      {new Date(progress.timestamp).toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </Text>
-                  </BlurView>
-                </Animated.View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Recent Achievements */}
-        {recentAchievements.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🏆 Recent Achievements</Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.achievementsScrollContainer}
-            >
-              {recentAchievements.map((achievement) => (
-                <BlurView key={achievement.id} intensity={60} style={[
-                  styles.achievementCard,
-                  { borderColor: RARITY_COLORS[achievement.rarity] }
-                ]}>
-                  <View style={styles.achievementHeader}>
-                    <Text style={styles.achievementIcon}>{achievement.icon}</Text>
-                    <View style={[
-                      styles.rarityBadge,
-                      { backgroundColor: RARITY_COLORS[achievement.rarity] }
-                    ]}>
-                      <Text style={styles.rarityText}>{achievement.rarity.toUpperCase()}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.achievementTitle} numberOfLines={1}>
-                    {achievement.title}
-                  </Text>
-                  <Text style={styles.achievementDescription} numberOfLines={2}>
-                    {achievement.description}
-                  </Text>
-                  <View style={styles.achievementReward}>
-                    <Text style={styles.rewardIcon}>
-                      {achievement.reward.type === 'badge' ? '🏅' : 
-                       achievement.reward.type === 'title' ? '👑' : '⭐'}
-                    </Text>
-                    <Text style={styles.rewardText} numberOfLines={1}>
-                      {achievement.reward.value}
-                    </Text>
-                  </View>
-                </BlurView>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Collection Goals - Separate Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🎯 Collection Goals</Text>
-            <TouchableOpacity onPress={() => navigation.getParent()?.navigate('Profile')}>
-              <Text style={styles.sectionAction}>Manage Goals</Text>
-            </TouchableOpacity>
-          </View>
-          {goals.length === 0 ? (
-            <BlurView intensity={60} style={styles.emptyGoalsCard}>
-              <Text style={styles.emptyGoalsIcon}>🎯</Text>
-              <Text style={styles.emptyGoalsTitle}>Set Your First Goal</Text>
-              <Text style={styles.emptyGoalsText}>
-                Create collection goals to track your progress and stay motivated!
-              </Text>
-              <TouchableOpacity 
-                style={styles.createGoalButton}
-                onPress={() => navigation.getParent()?.navigate('Profile')}
-              >
-                <Text style={styles.createGoalButtonText}>Create Goal</Text>
-              </TouchableOpacity>
-            </BlurView>
-          ) : (
-            <View style={styles.goalsContainer}>
-              {goals.slice(0, 2).map((goal) => (
-                <BlurView key={goal.id} intensity={60} style={styles.goalCard}>
-                  <View style={styles.goalHeader}>
-                    <Text style={styles.goalTitle} numberOfLines={1}>
-                      {goal.title}
-                    </Text>
-                    <Text style={styles.goalProgress}>
-                      {goal.currentCount}/{goal.targetCount}
-                    </Text>
-                  </View>
-                  <View style={styles.goalProgressBar}>
-                    <View 
-                      style={[
-                        styles.goalProgressFill, 
-                        { width: `${Math.min((goal.currentCount / goal.targetCount) * 100, 100)}%` }
-                      ]} 
-                    />
-                  </View>
-                  <View style={styles.goalFooter}>
-                    <Text style={styles.goalCategory}>{(goal.category || '').replace('_', ' ')}</Text>
-                    <Text style={styles.goalPercentage}>
-                      {Math.round((goal.currentCount / goal.targetCount) * 100)}%
-                    </Text>
-                  </View>
-                </BlurView>
+          <Card style={{ padding: 16, paddingBottom: 10 }}>
+            <View style={styles.chartHeader}>
+              <Eyebrow>VALUE · LAST 12 MONTHS</Eyebrow>
+              <Text style={styles.usdLabel}>USD</Text>
+            </View>
+            <MiniChart data={stats?.monthlySeries || FALLBACK_SERIES} width={320} height={108} />
+            <View style={styles.monthTicks}>
+              {MONTH_TICKS.map((m) => (
+                <Text key={m} style={styles.tickText}>
+                  {m}
+                </Text>
               ))}
             </View>
-          )}
+          </Card>
         </View>
 
-        {/* Geographic Summary */}
-        {geographicData && geographicData.totalCountries > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Geographic Overview</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Map')}>
-                <Text style={styles.sectionAction}>View Map</Text>
-              </TouchableOpacity>
-            </View>
-            <BlurView intensity={60} style={styles.geoCard}>
-              <View style={styles.geoHeader}>
-                <Text style={styles.geoIcon}>🗺️</Text>
-                <View>
-                  <Text style={styles.geoTitle}>World Collection</Text>
-                  <Text style={styles.geoSubtitle}>
-                    {geographicData.totalCountries} countries • {geographicData.totalContinents} continents
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.geoCountries}>
-                {geographicData.continents.slice(0, 3).map((continent) => (
-                  <View key={continent.name} style={styles.geoCountryItem}>
-                    <Text style={styles.geoCountryFlag}>{continent.icon}</Text>
-                    <View>
-                      <Text style={styles.geoCountryName}>{continent.name}</Text>
-                      <Text style={styles.geoCountryCount}>{continent.coins} coins</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-              {geographicData.insights.collectionGoal && (
-                <View style={styles.geoGoal}>
-                  <Text style={styles.geoGoalText}>
-                    Collection Goal: {geographicData.insights.collectionGoal.current}/{geographicData.insights.collectionGoal.target} countries
-                  </Text>
-                  <View style={styles.geoGoalBar}>
-                    <View 
-                      style={[
-                        styles.geoGoalFill, 
-                        { width: `${geographicData.insights.collectionGoal.percentage}%` }
-                      ]} 
-                    />
-                  </View>
-                </View>
-              )}
-            </BlurView>
+        {/* Stat tiles */}
+        <View style={[styles.section, styles.statsRow]}>
+          <View style={{ flex: 1 }}>
+            <Stat eyebrow="COINS" value={String(stats?.totalCoins ?? 0)} />
           </View>
-        )}
-
-        {/* Recent Activity */}
-        {stats?.recentCoins && stats.recentCoins.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent Additions</Text>
-            <BlurView intensity={60} style={styles.activityCard}>
-              {stats.recentCoins.map((coin, index) => (
-                <TouchableOpacity
-                  key={coin.id}
-                  style={[
-                    styles.activityItem,
-                    index < stats.recentCoins.length - 1 && styles.activityItemBorder
-                  ]}
-                  onPress={() => navigation.getParent()?.navigate('Collection', {
-                    screen: 'CoinDetail',
-                    params: { coin }
-                  })}
-                >
-                  <View style={styles.activityIcon}>
-                    <Text style={styles.activityEmoji}>🪙</Text>
-                  </View>
-                  <View style={styles.activityInfo}>
-                    <Text style={styles.activityTitle}>
-                      {coin.year} {coin.denomination}
-                    </Text>
-                    <Text style={styles.activityDate}>
-                      Added {new Date(coin.createdAt).toLocaleDateString()}
-                    </Text>
-                  </View>
-                  {coin.purchasePrice && (
-                    <Text style={styles.activityValue}>
-                      {formatCurrency(coin.purchasePrice)}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </BlurView>
+          <View style={{ flex: 1 }}>
+            <Stat eyebrow="COUNTRIES" value={String(stats?.uniqueCountries ?? 0)} />
           </View>
-        )}
+        </View>
 
-        {/* Empty State */}
-        {stats?.totalCoins === 0 && (
-          <BlurView intensity={60} style={styles.emptyState}>
-            <Text style={styles.emptyStateIcon}>📭</Text>
-            <Text style={styles.emptyStateTitle}>Start Your Collection</Text>
-            <Text style={styles.emptyStateText}>
-              Add your first coin to begin tracking your collection!
-            </Text>
-            <TouchableOpacity 
-              style={styles.emptyStateButton}
-              onPress={() => navigation.getParent()?.navigate('Collection', { screen: 'AddCoin' })}
+        {/* Coverage map preview */}
+        <View style={styles.section}>
+          <Pressable onPress={() => navigation.navigate('Map')}>
+            <Card style={{ padding: 16, overflow: 'hidden' }}>
+              <View style={styles.coverageHeader}>
+                <Eyebrow>COVERAGE</Eyebrow>
+                <Text style={styles.coverageCount}>
+                  {stats?.uniqueCountries ?? 0} / 195
+                </Text>
+              </View>
+              <View style={styles.coverageMap}>
+                <WorldMap
+                  width={300}
+                  size="compact"
+                  collected={stats?.countryCodes || []}
+                />
+              </View>
+              <View style={styles.coverageFooter}>
+                <Text style={styles.legend}>
+                  <Text style={{ color: palette.gold }}>● </Text>
+                  COLLECTED ·{' '}
+                  <Text style={{ color: palette.fg4 }}>● </Text>
+                  UNCOLLECTED
+                </Text>
+                <Text style={styles.exploreArrow}>EXPLORE →</Text>
+              </View>
+            </Card>
+          </Pressable>
+        </View>
+
+        {/* Scan CTA */}
+        <View style={styles.section}>
+          <Pressable onPress={() => navigation.navigate('Scan')}>
+            <LinearGradient
+              colors={[palette.ctaTopWarm, palette.ctaBotWarm]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.ctaCard}
             >
-              <Text style={styles.emptyStateButtonText}>Add First Coin</Text>
-            </TouchableOpacity>
-          </BlurView>
-        )}
+              <View style={styles.ctaIcon}>
+                <Icon name="scan" size={26} stroke={1.8} color={palette.goldFg} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.ctaTitle}>Scan a coin</Text>
+                <Text style={styles.ctaSub}>Identify, grade, price &amp; catalog in seconds</Text>
+              </View>
+              <Icon name="arrow-right" size={18} color={palette.gold} />
+            </LinearGradient>
+          </Pressable>
+        </View>
+
+        {/* Recently added */}
+        <View style={[styles.section, styles.recentHeader]}>
+          <Eyebrow>RECENTLY ADDED</Eyebrow>
+          <Pressable onPress={() => navigation.navigate('Collection')}>
+            <Text style={styles.viewAll}>VIEW ALL →</Text>
+          </Pressable>
+        </View>
+        <View style={styles.section}>
+          <Card style={{ overflow: 'hidden' }}>
+            {(stats?.recentCoins || []).slice(0, 4).map((c, i) => (
+              <View
+                key={c.id}
+                style={[
+                  styles.row,
+                  i > 0 && { borderTopWidth: 1, borderTopColor: palette.line2 },
+                ]}
+              >
+                <CoinDisc
+                  size={42}
+                  label={String(c.year).slice(-2)}
+                  tone={toneFor(c)}
+                  imageSource={c.obverseImage ? { uri: c.obverseImage } : undefined}
+                />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <View style={styles.rowTitleLine}>
+                    <Text style={styles.rowName} numberOfLines={1}>
+                      {c.specificCoinName || c.denomination || 'Coin'}
+                    </Text>
+                    <Text style={styles.rowYear}>{c.year}</Text>
+                  </View>
+                  <Text style={styles.rowSub} numberOfLines={1}>
+                    {c.country} · {c.grade || '—'}
+                  </Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={styles.rowValue}>${(c.purchasePrice || 0).toFixed(2)}</Text>
+                  <Text style={styles.rowAdded}>{formatRelative(c.createdAt)}</Text>
+                </View>
+              </View>
+            ))}
+            {(!stats || stats.recentCoins.length === 0) && (
+              <View style={styles.emptyRow}>
+                <Text style={styles.emptyText}>No coins yet. Tap Scan to add your first.</Text>
+              </View>
+            )}
+          </Card>
+        </View>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: 120, // Account for tab bar
-  },
-  header: {
-    paddingVertical: Spacing['2xl'],
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.background.cardBorder,
-    marginBottom: Spacing.xl,
-  },
-  greeting: {
-    fontSize: Typography.fontSize['3xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-    marginBottom: Spacing.sm,
-  },
-  subtitle: {
-    fontSize: Typography.fontSize.lg,
-    color: Colors.text.secondary,
-  },
-  statsGrid: {
-    marginBottom: Spacing['2xl'],
-  },
-  statsRow: {
+  root: { flex: 1, backgroundColor: palette.bg },
+
+  topBar: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  statCard: {
-    ...GlassmorphismStyles.card,
-    flex: 1,
     alignItems: 'center',
-    paddingVertical: Spacing.xl,
-  },
-  statIcon: {
-    fontSize: 32,
-    marginBottom: Spacing.sm,
-  },
-  statValue: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-    marginBottom: Spacing.xs,
-  },
-  statLabel: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.text.secondary,
-    fontWeight: Typography.fontWeight.medium,
-    textAlign: 'center',
-  },
-  section: {
-    marginBottom: Spacing['2xl'],
-  },
-  sectionTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-    marginBottom: Spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  sectionAction: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.primary.gold,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  actionsGrid: {
-    // Container for action rows
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  actionCardContainer: {
-    flex: 1,
-  },
-  actionCard: {
-    ...GlassmorphismStyles.card,
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
-  },
-  actionIcon: {
-    width: 48,
-    height: 48,
-    backgroundColor: Colors.primary.gold,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  actionEmoji: {
-    fontSize: 24,
-  },
-  actionLabel: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    textAlign: 'center',
-  },
-  // Activity Feed Styles
-  activityCard: {
-    ...GlassmorphismStyles.card,
-    padding: 0,
-    overflow: 'hidden',
-  },
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  activityItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.background.cardBorder,
-  },
-  activityIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: Colors.primary.gold,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  activityEmoji: {
-    fontSize: 20,
-  },
-  activityInfo: {
-    flex: 1,
-  },
-  activityTitle: {
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.xs,
-  },
-  activityDate: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-  },
-  activityValue: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-  },
-  // Empty State Styles
-  emptyState: {
-    ...GlassmorphismStyles.card,
-    alignItems: 'center',
-    paddingVertical: Spacing['3xl'],
-    paddingHorizontal: Spacing.xl,
-  },
-  emptyStateIcon: {
-    fontSize: 64,
-    marginBottom: Spacing.lg,
-  },
-  emptyStateTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
-  },
-  emptyStateText: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: Spacing.xl,
-  },
-  emptyStateButton: {
-    backgroundColor: Colors.primary.gold,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: 12,
-  },
-  emptyStateButtonText: {
-    color: '#000',
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  // Loading Styles
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  loadingText: {
-    color: Colors.text.secondary,
-    fontSize: Typography.fontSize.md,
-    marginTop: Spacing.md,
-    textAlign: 'center',
-  },
-  // Collection Goals Styles
-  goalsContainer: {
-    gap: Spacing.md,
-  },
-  goalCard: {
-    ...GlassmorphismStyles.card,
-    padding: Spacing.lg,
-  },
-  goalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  goalTitle: {
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
-  goalProgress: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-  },
-  goalProgressBar: {
-    height: 6,
-    backgroundColor: Colors.background.cardBorder,
-    borderRadius: 3,
-    marginBottom: Spacing.md,
-    overflow: 'hidden',
-  },
-  goalProgressFill: {
-    height: '100%',
-    backgroundColor: Colors.primary.gold,
-    borderRadius: 3,
-  },
-  goalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  goalCategory: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.text.secondary,
-    textTransform: 'capitalize',
-  },
-  goalPercentage: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-  },
-  emptyGoalsCard: {
-    ...GlassmorphismStyles.card,
-    alignItems: 'center',
-    paddingVertical: Spacing['2xl'],
-    paddingHorizontal: Spacing.xl,
-  },
-  emptyGoalsIcon: {
-    fontSize: 48,
-    marginBottom: Spacing.lg,
-  },
-  emptyGoalsTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
-  },
-  emptyGoalsText: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: Spacing.xl,
-  },
-  createGoalButton: {
-    backgroundColor: Colors.primary.gold,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: 12,
-  },
-  createGoalButtonText: {
-    color: '#000',
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  // Geographic Summary Styles
-  geoCard: {
-    ...GlassmorphismStyles.card,
-    padding: Spacing.lg,
-  },
-  geoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  geoIcon: {
-    fontSize: 32,
-    marginRight: Spacing.md,
-  },
-  geoTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.xs,
-  },
-  geoSubtitle: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-  },
-  geoCountries: {
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-  geoCountryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.xs,
-  },
-  geoCountryFlag: {
-    fontSize: 20,
-    marginRight: Spacing.md,
-  },
-  geoCountryName: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.text.primary,
-    marginBottom: Spacing.xs,
-  },
-  geoCountryCount: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.text.secondary,
-  },
-  geoGoal: {
-    borderTopWidth: 1,
-    borderTopColor: Colors.background.cardBorder,
-    paddingTop: Spacing.md,
-  },
-  geoGoalText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.sm,
-  },
-  geoGoalBar: {
-    height: 4,
-    backgroundColor: Colors.background.cardBorder,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  geoGoalFill: {
-    height: '100%',
-    backgroundColor: Colors.primary.gold,
-    borderRadius: 2,
-  },
-  // Real-time Progress Widget Styles
-  progressScrollContainer: {
-    paddingRight: Spacing.xl,
-  },
-  progressUpdateCard: {
-    marginRight: Spacing.md,
-    width: 200,
-  },
-  progressUpdateInner: {
-    ...GlassmorphismStyles.card,
-    padding: Spacing.md,
-    borderColor: Colors.primary.gold,
-    borderWidth: 1,
-  },
-  progressUpdateHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  progressIcon: {
-    width: 24,
-    height: 24,
-    backgroundColor: Colors.primary.gold,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.sm,
-  },
-  progressEmoji: {
-    fontSize: 12,
-  },
-  progressTitle: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    flex: 1,
-  },
-  progressChange: {
-    marginBottom: Spacing.sm,
-  },
-  progressFromTo: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-    marginBottom: Spacing.xs,
-  },
-  progressMiniBar: {
-    height: 3,
-    backgroundColor: Colors.background.cardBorder,
-    borderRadius: 1.5,
-    overflow: 'hidden',
-  },
-  progressMiniFill: {
-    height: '100%',
-    backgroundColor: Colors.primary.gold,
-    borderRadius: 1.5,
-  },
-  progressTime: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.text.tertiary,
-    textAlign: 'right',
-  },
-  // Achievement Widget Styles
-  achievementsScrollContainer: {
-    paddingRight: Spacing.xl,
-  },
-  achievementCard: {
-    ...GlassmorphismStyles.card,
-    marginRight: Spacing.md,
-    width: 160,
-    padding: Spacing.md,
-    borderWidth: 2,
-  },
-  achievementHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.sm,
-  },
-  achievementIcon: {
-    fontSize: 32,
-  },
-  rarityBadge: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  rarityText: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.bold,
-    color: '#000',
-  },
-  achievementTitle: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.xs,
-  },
-  achievementDescription: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.sm,
-    lineHeight: 16,
-  },
-  achievementReward: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 'auto',
-  },
-  rewardIcon: {
-    fontSize: 16,
-    marginRight: Spacing.xs,
-  },
-  rewardText: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary.gold,
-    flex: 1,
-  },
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 22,
+  },
+  topBarLeft: { flexDirection: 'row', alignItems: 'center' },
+  avatar: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: palette.gold,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarText: { fontFamily: fontFamily.displayMedium, fontSize: 15, color: palette.goldFg },
+  welcomeBack: {
+    fontFamily: fontFamily.mono,
+    fontSize: 11,
+    color: palette.fg3,
+    letterSpacing: 0.5,
+  },
+  username: { fontFamily: fontFamily.ui, fontSize: 13, color: palette.fg, marginTop: 1 },
+  bell: {
+    width: 36, height: 36, borderRadius: 18,
+    borderWidth: 1, borderColor: palette.line,
+    backgroundColor: palette.bg2,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  bellDot: {
+    position: 'absolute', top: 8, right: 9,
+    width: 6, height: 6, borderRadius: 3, backgroundColor: palette.gold,
+  },
+
+  heroBlock: { paddingHorizontal: 20, paddingBottom: 18 },
+  heroValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 10 },
+  heroValueBig: {
+    fontFamily: fontFamily.display, fontSize: 52, color: palette.fg, letterSpacing: -1.04,
+  },
+  heroValueDecimal: {
+    fontFamily: fontFamily.display, fontSize: 22, color: palette.fg3, letterSpacing: -0.4,
+  },
+  deltaRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
+  deltaText: { fontFamily: fontFamily.mono, color: palette.cHigh, fontSize: 12 },
+  dotSep: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: palette.fg4 },
+  deltaPeriod: { fontFamily: fontFamily.mono, color: palette.fg3, fontSize: 12 },
+
+  section: { paddingHorizontal: 20, paddingBottom: 16 },
+
+  chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  usdLabel: { fontFamily: fontFamily.mono, fontSize: 10, color: palette.fg3 },
+  monthTicks: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+  tickText: { fontFamily: fontFamily.mono, fontSize: 9.5, color: palette.fg4, letterSpacing: 0.95 },
+
+  statsRow: { flexDirection: 'row', gap: 10 },
+
+  coverageHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  coverageCount: { fontFamily: fontFamily.mono, fontSize: 10, color: palette.fg3 },
+  coverageMap: { alignItems: 'center', marginVertical: 4, marginBottom: 8 },
+  coverageFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
+  legend: { fontFamily: fontFamily.mono, fontSize: 10.5, color: palette.fg3, letterSpacing: 0.63 },
+  exploreArrow: { fontFamily: fontFamily.mono, fontSize: 10, color: palette.gold, letterSpacing: 1 },
+
+  ctaCard: {
+    padding: 18, borderRadius: radius.base,
+    borderWidth: 1, borderColor: palette.ctaBorder,
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+  },
+  ctaIcon: {
+    width: 52, height: 52, borderRadius: 14,
+    backgroundColor: palette.gold,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  ctaTitle: { fontFamily: fontFamily.display, fontSize: 18, color: palette.fg, lineHeight: 22 },
+  ctaSub: { fontFamily: fontFamily.ui, fontSize: 12, color: palette.fg2, marginTop: 3 },
+
+  recentHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14 },
+  viewAll: { fontFamily: fontFamily.mono, fontSize: 10, color: palette.gold, letterSpacing: 1 },
+
+  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16 },
+  rowTitleLine: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  rowName: { fontFamily: fontFamily.ui, fontSize: 14, color: palette.fg, flexShrink: 1 },
+  rowYear: { fontFamily: fontFamily.mono, fontSize: 10.5, color: palette.fg4 },
+  rowSub: { fontFamily: fontFamily.ui, fontSize: 11.5, color: palette.fg3, marginTop: 2 },
+  rowValue: { fontFamily: fontFamily.mono, fontSize: 13, color: palette.fg },
+  rowAdded: { fontFamily: fontFamily.mono, fontSize: 10, color: palette.fg4 },
+
+  emptyRow: { padding: 24, alignItems: 'center' },
+  emptyText: { fontFamily: fontFamily.ui, fontSize: 13, color: palette.fg3 },
 });
