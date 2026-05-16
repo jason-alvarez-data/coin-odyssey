@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -26,6 +26,7 @@ import {
 import { CoinService } from '../../services/coinService';
 import type { Coin } from '../../types/coin';
 import { useAuth } from '../../hooks/useAuth';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface Stats {
   totalCoins: number;
@@ -36,11 +37,24 @@ interface Stats {
   monthlySeries: number[];
 }
 
-const FALLBACK_SERIES = [
-  18200, 18600, 19100, 19350, 19600, 20100, 20450, 20800, 21500, 22100, 22600, 23420,
-];
+const ZERO_SERIES = new Array(12).fill(0);
 
-const MONTH_TICKS = ["MAY '25", 'AUG', 'NOV', 'FEB', "MAY '26"];
+function computeMonthTicks(): string[] {
+  const now = new Date();
+  const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  // 5 ticks: oldest, 3-mo, 6-mo, 9-mo, current. 11 months back from current = oldest.
+  const offsets = [11, 8, 5, 2, 0];
+  return offsets.map((monthsBack) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
+    const label = monthNames[d.getMonth()];
+    // Only annotate year on the bookends (oldest + newest)
+    if (monthsBack === 11 || monthsBack === 0) {
+      const yr = String(d.getFullYear()).slice(-2);
+      return `${label} '${yr}`;
+    }
+    return label;
+  });
+}
 
 const COUNTRY_TO_CODE: Record<string, string> = {
   'United States': 'US', USA: 'US', America: 'US',
@@ -101,7 +115,7 @@ function formatRelative(iso?: string): string {
 }
 
 function buildMonthlySeries(coins: Coin[]): number[] {
-  if (coins.length === 0) return FALLBACK_SERIES;
+  if (coins.length === 0) return ZERO_SERIES;
   const buckets = new Array(12).fill(0);
   const now = new Date();
   const cutoff = new Date(now.getFullYear(), now.getMonth() - 11, 1).getTime();
@@ -115,24 +129,29 @@ function buildMonthlySeries(coins: Coin[]): number[] {
       for (let i = Math.max(0, idx); i < 12; i++) buckets[i] += c.purchasePrice || 0;
     }
   }
-  if (buckets.every((v) => v === 0)) return FALLBACK_SERIES;
   return buckets;
 }
 
-function dollarsK(n: number): { whole: string; decimal: string } {
-  const fixed = n.toFixed(2);
-  const [whole, dec] = fixed.split('.');
-  const withCommas = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return { whole: `$${withCommas}`, decimal: `.${dec}` };
+function computeDelta(series: number[]): { abs: number; pct: number } | null {
+  if (series.length < 2) return null;
+  const first = series[0];
+  const last = series[series.length - 1];
+  if (!Number.isFinite(first) || !Number.isFinite(last)) return null;
+  if (first === 0 && last === 0) return null;
+  const abs = last - first;
+  const pct = first === 0 ? 0 : (abs / first) * 100;
+  return { abs, pct };
 }
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { user } = useAuth();
+  const { format, currency, symbol } = useCurrency();
 
   const [stats, setStats] = useState<Stats | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const monthTicks = useMemo(() => computeMonthTicks(), []);
 
   const load = useCallback(async () => {
     const coins = await CoinService.getUserCoins();
@@ -177,7 +196,10 @@ export default function DashboardScreen() {
   const initial = username[0]?.toUpperCase() || 'C';
 
   const tv = stats?.totalValue ?? 0;
-  const { whole, decimal } = dollarsK(tv);
+  const totalValueFormatted = format(tv);
+  const series = stats?.monthlySeries ?? ZERO_SERIES;
+  const hasRealSeries = series.some((v) => v > 0);
+  const delta = hasRealSeries ? computeDelta(series) : null;
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -202,24 +224,23 @@ export default function DashboardScreen() {
               <Text style={styles.username}>{username}</Text>
             </View>
           </View>
-          <Pressable style={styles.bell}>
-            <Icon name="bell" size={16} color={palette.fg2} />
-            <View style={styles.bellDot} />
-          </Pressable>
         </View>
 
         {/* Portfolio hero */}
         <View style={styles.heroBlock}>
-          <Eyebrow>PORTFOLIO VALUE · USD</Eyebrow>
+          <Eyebrow>PORTFOLIO VALUE · {currency}</Eyebrow>
           <View style={styles.heroValueRow}>
-            <Text style={styles.heroValueBig}>{whole}</Text>
-            <Text style={styles.heroValueDecimal}>{decimal}</Text>
+            <Text style={styles.heroValueBig}>{totalValueFormatted}</Text>
           </View>
-          <View style={styles.deltaRow}>
-            <Text style={styles.deltaText}>▲ $820.40 · 3.6%</Text>
-            <View style={styles.dotSep} />
-            <Text style={styles.deltaPeriod}>30 DAYS</Text>
-          </View>
+          {delta && (
+            <View style={styles.deltaRow}>
+              <Text style={[styles.deltaText, delta.abs < 0 && { color: palette.cLow }]}>
+                {delta.abs >= 0 ? '▲' : '▼'} {format(Math.abs(delta.abs))} · {Math.abs(delta.pct).toFixed(1)}%
+              </Text>
+              <View style={styles.dotSep} />
+              <Text style={styles.deltaPeriod}>12 MONTHS</Text>
+            </View>
+          )}
         </View>
 
         {/* Chart card */}
@@ -227,16 +248,26 @@ export default function DashboardScreen() {
           <Card style={{ padding: 16, paddingBottom: 10 }}>
             <View style={styles.chartHeader}>
               <Eyebrow>VALUE · LAST 12 MONTHS</Eyebrow>
-              <Text style={styles.usdLabel}>USD</Text>
+              <Text style={styles.usdLabel}>{currency}</Text>
             </View>
-            <MiniChart data={stats?.monthlySeries || FALLBACK_SERIES} width={320} height={108} />
-            <View style={styles.monthTicks}>
-              {MONTH_TICKS.map((m) => (
-                <Text key={m} style={styles.tickText}>
-                  {m}
+            {hasRealSeries ? (
+              <>
+                <MiniChart data={series} width={320} height={108} />
+                <View style={styles.monthTicks}>
+                  {monthTicks.map((m, i) => (
+                    <Text key={`${m}-${i}`} style={styles.tickText}>
+                      {m}
+                    </Text>
+                  ))}
+                </View>
+              </>
+            ) : (
+              <View style={styles.chartEmpty}>
+                <Text style={styles.chartEmptyText}>
+                  Your value history will chart here as you add coins.
                 </Text>
-              ))}
-            </View>
+              </View>
+            )}
           </Card>
         </View>
 
@@ -336,7 +367,7 @@ export default function DashboardScreen() {
                   </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.rowValue}>${(c.purchasePrice || 0).toFixed(2)}</Text>
+                  <Text style={styles.rowValue}>{format(c.purchasePrice || 0)}</Text>
                   <Text style={styles.rowAdded}>{formatRelative(c.createdAt)}</Text>
                 </View>
               </View>
@@ -378,24 +409,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   username: { fontFamily: fontFamily.ui, fontSize: 13, color: palette.fg, marginTop: 1 },
-  bell: {
-    width: 36, height: 36, borderRadius: 18,
-    borderWidth: 1, borderColor: palette.line,
-    backgroundColor: palette.bg2,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  bellDot: {
-    position: 'absolute', top: 8, right: 9,
-    width: 6, height: 6, borderRadius: 3, backgroundColor: palette.gold,
-  },
 
   heroBlock: { paddingHorizontal: 20, paddingBottom: 18 },
   heroValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 10 },
   heroValueBig: {
-    fontFamily: fontFamily.display, fontSize: 52, color: palette.fg, letterSpacing: -1.04,
-  },
-  heroValueDecimal: {
-    fontFamily: fontFamily.display, fontSize: 22, color: palette.fg3, letterSpacing: -0.4,
+    fontFamily: fontFamily.display, fontSize: 44, color: palette.fg, letterSpacing: -0.88,
   },
   deltaRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
   deltaText: { fontFamily: fontFamily.mono, color: palette.cHigh, fontSize: 12 },
@@ -408,6 +426,21 @@ const styles = StyleSheet.create({
   usdLabel: { fontFamily: fontFamily.mono, fontSize: 10, color: palette.fg3 },
   monthTicks: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
   tickText: { fontFamily: fontFamily.mono, fontSize: 9.5, color: palette.fg4, letterSpacing: 0.95 },
+
+  chartEmpty: {
+    height: 108,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  chartEmptyText: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10.5,
+    color: palette.fg4,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+    lineHeight: 16,
+  },
 
   statsRow: { flexDirection: 'row', gap: 10 },
 

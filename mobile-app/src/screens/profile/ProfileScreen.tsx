@@ -6,13 +6,19 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { palette, fontFamily, radius } from '../../theme';
+import { palette, fontFamily } from '../../theme';
 import { Card, Icon, Eyebrow } from '../../components/design';
 import { useAuth } from '../../hooks/useAuth';
 import { CoinService } from '../../services/coinService';
+import { OfflineSyncService, SyncStatus } from '../../services/offlineSyncService';
+import { supabase } from '../../services/supabase';
+import { Logger } from '../../services/logger';
+import { useCurrency, CURRENCY_OPTIONS } from '../../contexts/CurrencyContext';
+import { CurrencyPicker } from '../../components/settings/CurrencyPicker';
 
 interface UserStats {
   totalCoins: number;
@@ -24,6 +30,7 @@ interface Row {
   value?: string;
   chev?: boolean;
   danger?: boolean;
+  muted?: boolean;
   onPress?: () => void;
 }
 
@@ -33,11 +40,37 @@ interface Section {
 }
 
 const APP_VERSION = '1.0.0 (412)';
+const PRIVACY_URL = 'https://coin-odyssey.app/privacy';
+const TERMS_URL = 'https://coin-odyssey.app/terms';
+
+function describeSyncStatus(s: SyncStatus): string {
+  if (!s.online) return 'Offline';
+  if (s.syncing) {
+    return s.pendingCount > 0
+      ? `Syncing ${s.pendingCount} item${s.pendingCount === 1 ? '' : 's'}…`
+      : 'Syncing…';
+  }
+  if (s.pendingCount > 0) {
+    return `${s.pendingCount} change${s.pendingCount === 1 ? '' : 's'} pending`;
+  }
+  if (!s.lastSyncedAt) return 'Up to date';
+  const diff = Date.now() - s.lastSyncedAt;
+  if (diff < 60_000) return 'Up to date · just now';
+  const m = Math.floor(diff / 60_000);
+  if (m < 60) return `Up to date · ${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `Up to date · ${h}h ago`;
+  return 'Up to date';
+}
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut } = useAuth();
+  const { currency, setCurrency } = useCurrency();
   const [stats, setStats] = useState<UserStats>({ totalCoins: 0, memberSince: '—' });
+  const [sync, setSync] = useState<SyncStatus>(OfflineSyncService.getStatus());
+  const [currencyOpen, setCurrencyOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -55,6 +88,13 @@ export default function ProfileScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => OfflineSyncService.subscribe(setSync), []);
+
+  const currencyOption = CURRENCY_OPTIONS.find((o) => o.code === currency);
+  const currencyLabel = currencyOption
+    ? `${currencyOption.code} · ${currencyOption.symbol}`
+    : currency;
 
   const fullName =
     (user?.user_metadata?.firstName as string | undefined) ||
@@ -76,29 +116,93 @@ export default function ProfileScreen() {
     ]);
   }, [signOut]);
 
+  const handleOpenUrl = useCallback((url: string) => {
+    Linking.canOpenURL(url)
+      .then((ok) => {
+        if (ok) return Linking.openURL(url);
+        Alert.alert('Cannot open link', url);
+      })
+      .catch((err) => {
+        Logger.error('Failed to open URL', err);
+        Alert.alert('Cannot open link', url);
+      });
+  }, []);
+
+  const handleDeleteAccount = useCallback(() => {
+    Alert.alert(
+      'Delete account',
+      'This permanently deletes your account, every coin, and every collection. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete forever',
+          style: 'destructive',
+          onPress: async () => {
+            if (deleting) return;
+            setDeleting(true);
+            try {
+              const { data, error } = await supabase.functions.invoke('delete-account', {
+                body: {},
+              });
+              if (error) throw error;
+              if (data && (data as any).success === false) {
+                throw new Error((data as any).error ?? 'Delete failed');
+              }
+              Logger.info('Account deleted — signing out');
+              await signOut().catch(() => undefined);
+            } catch (err) {
+              Logger.error('Delete account failed', err);
+              Alert.alert(
+                'Could not delete account',
+                err instanceof Error ? err.message : 'Please try again, or contact support.'
+              );
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [signOut, deleting]);
+
   const sections: Section[] = [
     {
       title: 'ACCOUNT',
       rows: [
         { label: 'Email', value: email },
-        { label: 'Subscription', value: 'Coin Odyssey+', chev: true },
-        { label: 'Sync status', value: 'Up to date · just now' },
+        { label: 'Sync status', value: describeSyncStatus(sync) },
       ],
     },
     {
       title: 'PREFERENCES',
       rows: [
-        { label: 'Theme', value: 'System' },
-        { label: 'Currency', value: 'USD' },
-        { label: 'Default grade scale', value: 'Sheldon (US)' },
+        { label: 'Theme', value: 'Dark · v1.1 light theme', muted: true },
+        {
+          label: 'Currency',
+          value: currencyLabel,
+          chev: true,
+          onPress: () => setCurrencyOpen(true),
+        },
+        { label: 'Default grade scale', value: 'Sheldon (US)', muted: true },
+      ],
+    },
+    {
+      title: 'LEGAL',
+      rows: [
+        { label: 'Privacy policy', chev: true, onPress: () => handleOpenUrl(PRIVACY_URL) },
+        { label: 'Terms of service', chev: true, onPress: () => handleOpenUrl(TERMS_URL) },
       ],
     },
     {
       title: 'DATA',
       rows: [
-        { label: 'Export catalog', chev: true },
         { label: 'Sign out', chev: true, onPress: handleSignOut },
-        { label: 'Delete account', chev: true, danger: true },
+        {
+          label: deleting ? 'Deleting…' : 'Delete account',
+          chev: true,
+          danger: true,
+          onPress: deleting ? undefined : handleDeleteAccount,
+        },
       ],
     },
   ];
@@ -123,7 +227,6 @@ export default function ProfileScreen() {
                 MEMBER SINCE {stats.memberSince} · {stats.totalCoins} COIN{stats.totalCoins === 1 ? '' : 'S'}
               </Text>
             </View>
-            <Icon name="chevron-right" size={16} color={palette.fg3} />
           </Card>
         </View>
 
@@ -135,13 +238,26 @@ export default function ProfileScreen() {
                 <Pressable
                   key={r.label}
                   onPress={r.onPress}
+                  disabled={!r.onPress}
                   style={[
                     styles.row,
                     i > 0 && { borderTopWidth: 1, borderTopColor: palette.line2 },
                   ]}
                 >
-                  <Text style={[styles.rowLabel, r.danger && { color: palette.cLow }]}>{r.label}</Text>
-                  {r.value ? <Text style={styles.rowValue}>{r.value}</Text> : null}
+                  <Text
+                    style={[
+                      styles.rowLabel,
+                      r.danger && { color: palette.cLow },
+                      r.muted && !r.onPress && { color: palette.fg2 },
+                    ]}
+                  >
+                    {r.label}
+                  </Text>
+                  {r.value ? (
+                    <Text style={[styles.rowValue, r.muted && { color: palette.fg4 }]}>
+                      {r.value}
+                    </Text>
+                  ) : null}
                   {r.chev ? (
                     <Icon name="chevron-right" size={14} color={palette.fg3} />
                   ) : null}
@@ -155,6 +271,13 @@ export default function ProfileScreen() {
           <Text style={styles.versionText}>COIN ODYSSEY · v{APP_VERSION}</Text>
         </View>
       </ScrollView>
+
+      <CurrencyPicker
+        visible={currencyOpen}
+        current={currency}
+        onSelect={(c) => setCurrency(c)}
+        onClose={() => setCurrencyOpen(false)}
+      />
     </View>
   );
 }

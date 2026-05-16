@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
 import { ImageService } from './src/services/imageService';
 import { PerformanceService } from './src/services/performanceService';
@@ -12,6 +13,8 @@ import { AppStartupTracker, RealPerformanceTracker } from './src/utils/realPerfo
 import { MemoryMonitor } from './src/utils/memoryMonitor';
 import { registerScreenPreloads, PreloadingStrategy } from './src/utils/preloadingStrategy';
 import { useAppFonts, palette } from './src/theme';
+import { OfflineSyncService } from './src/services/offlineSyncService';
+import { CurrencyProvider } from './src/contexts/CurrencyContext';
 
 export default function App() {
   const fontsLoaded = useAppFonts();
@@ -71,6 +74,10 @@ export default function App() {
         // Start strategic preloading after startup
         PreloadingStrategy.preloadAfterStartup();
         AppStartupTracker.markMilestone('Preloading started');
+
+        // Start offline sync watcher (NetInfo + auto-flush on reconnect)
+        await OfflineSyncService.start();
+        AppStartupTracker.markMilestone('Offline sync service started');
       } catch (error) {
         Logger.error('Failed to initialize services', error);
       }
@@ -81,20 +88,27 @@ export default function App() {
     // Cleanup on unmount
     return () => {
       MemoryMonitor.stopMonitoring();
+      OfflineSyncService.stop();
     };
   }, []);
 
   if (!fontsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: palette.bg }} />;
+    return (
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.bg }} />
+    );
   }
 
   return (
-    <ErrorBoundary
-      fallbackTitle="App Error"
-      fallbackMessage="The app encountered an unexpected error. Please restart the app."
-    >
-      <AppNavigator />
-      <StatusBar style="light" />
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary
+        fallbackTitle="App Error"
+        fallbackMessage="The app encountered an unexpected error. Please restart the app."
+      >
+        <CurrencyProvider>
+          <AppNavigator />
+        </CurrencyProvider>
+        <StatusBar style="light" />
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }
