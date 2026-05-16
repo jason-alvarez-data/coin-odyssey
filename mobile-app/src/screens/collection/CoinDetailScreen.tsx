@@ -1,230 +1,102 @@
-// src/screens/collection/CoinDetailScreen.tsx
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  Image, 
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  Pressable,
   Alert,
-  KeyboardAvoidingView,
-  Platform
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Typography, Spacing, GlassmorphismStyles } from '../../styles';
-import { Input, Button } from '../../components/common';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+
+import { palette, fontFamily, radius } from '../../theme';
+import {
+  Card,
+  Eyebrow,
+  Button,
+  Icon,
+  ImageLightbox,
+} from '../../components/design';
 import { Coin } from '../../types/coin';
 import { CoinService } from '../../services/coinService';
-import { getSeriesById, getSpecificCoinById } from '@coin-collecting/shared';
 import { Logger } from '../../services/logger';
+import { CollectionStackParamList } from '../../types/navigation';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
-interface CoinDetailScreenProps {
-  route: {
-    params: {
-      coin: Coin;
-    };
-  };
-  navigation: any;
+type DetailRouteProp = RouteProp<CollectionStackParamList, 'CoinDetail'>;
+
+interface Row {
+  label: string;
+  value: string | null | undefined;
 }
 
-export default function CoinDetailScreen({ route, navigation }: CoinDetailScreenProps) {
+export default function CoinDetailScreen() {
   const insets = useSafeAreaInsets();
-  const { coin: initialCoin } = route.params;
-  
-  const [coin, setCoin] = useState<Coin>(initialCoin);
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading, setSaving] = useState(false);
-  
-  // Form state for editing
-  const [formData, setFormData] = useState({
-    name: coin.name || '',
-    title: coin.title || '',
-    year: coin.year.toString(),
-    denomination: coin.denomination,
-    country: coin.country || '',
-    mintMark: coin.mintMark || '',
-    grade: coin.grade || '',
-    faceValue: coin.faceValue?.toString() || '',
-    purchasePrice: coin.purchasePrice?.toString() || '',
-    purchaseDate: coin.purchaseDate || '',
-    notes: coin.notes || '',
-    // Series information
-    series: coin.series || '',
-    seriesId: coin.seriesId || '',
-    specificCoinId: coin.specificCoinId || '',
-    specificCoinName: coin.specificCoinName || '',
-    designer: coin.designer || '',
-    theme: coin.theme || '',
-    honoree: coin.honoree || '',
-    releaseDate: coin.releaseDate || '',
-    certificationNumber: coin.certificationNumber || '',
-    gradingService: coin.gradingService || '',
-  });
+  const navigation = useNavigation<any>();
+  const route = useRoute<DetailRouteProp>();
+  const coin: Coin = route.params.coin;
+  const { format } = useCurrency();
 
-  const [images, setImages] = useState({
-    obverse: coin.obverseImage,
-    reverse: coin.reverseImage,
-  });
+  const formatCurrency = (n?: number | null): string | null =>
+    n == null ? null : format(n);
 
-  useEffect(() => {
-    navigation.setOptions({
-      title: '', // Remove the title since we show coin name in the content
-      headerShown: true,
-      headerStyle: {
-        backgroundColor: 'rgba(15, 15, 35, 0.95)',
-        shadowOpacity: 0,
-        elevation: 0,
-      },
-      headerTintColor: Colors.primary.gold,
-      headerBackTitleVisible: false,
-    });
-  }, [coin, navigation]);
+  const [lightbox, setLightbox] = useState<{ uri: string; label: string } | null>(null);
 
-  const updateFormData = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const titleLine = `${coin.year} ${coin.denomination}`;
+  const subtitleLine = [coin.country, coin.grade, coin.mintMark && `Mint ${coin.mintMark}`]
+    .filter(Boolean)
+    .join(' · ')
+    .toUpperCase() || null;
+
+  const basics: Row[] = [
+    { label: 'YEAR', value: coin.year ? String(coin.year) : null },
+    { label: 'DENOMINATION', value: coin.denomination },
+    { label: 'COUNTRY', value: coin.country },
+    { label: 'MINT MARK', value: coin.mintMark },
+  ];
+
+  const details: Row[] = [
+    { label: 'GRADE', value: coin.grade },
+    { label: 'SERIES', value: coin.series },
+    { label: 'SPECIFIC COIN', value: coin.specificCoinName },
+    { label: 'DESIGNER', value: coin.designer },
+    { label: 'THEME', value: coin.theme },
+    { label: 'HONOREE', value: coin.honoree },
+    {
+      label: 'RELEASE DATE',
+      value: coin.releaseDate
+        ? new Date(coin.releaseDate).toLocaleDateString()
+        : null,
+    },
+    { label: 'CERT NUMBER', value: coin.certificationNumber },
+    { label: 'GRADING SERVICE', value: coin.gradingService },
+  ];
+
+  const acquisition: Row[] = [
+    { label: 'FACE VALUE', value: formatCurrency(coin.faceValue) },
+    { label: 'PURCHASE PRICE', value: formatCurrency(coin.purchasePrice) },
+    {
+      label: 'PURCHASE DATE',
+      value: coin.purchaseDate
+        ? new Date(coin.purchaseDate).toLocaleDateString()
+        : null,
+    },
+    {
+      label: 'MARKET VALUE',
+      value: formatCurrency(coin.currentMarketValue),
+    },
+  ];
+
+  const onEdit = () => {
+    navigation.navigate('EditCoin', { coinId: coin.id });
   };
 
-  const requestCameraPermission = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(
-        'Camera Permission',
-        'Camera access is required to take photos of your coins.',
-        [{ text: 'OK' }]
-      );
-      return false;
-    }
-    return true;
-  };
-
-  const takePicture = async (side: 'obverse' | 'reverse') => {
-    const hasPermission = await requestCameraPermission();
-    if (!hasPermission) return;
-
+  const onDelete = () => {
     Alert.alert(
-      'Update Photo',
-      `Take a new photo of the ${side} side?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Take Photo',
-          onPress: async () => {
-            const result = await ImagePicker.launchCameraAsync({
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.8,
-              mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            });
-
-            if (!result.canceled && result.assets[0]) {
-              setImages(prev => ({
-                ...prev,
-                [side]: result.assets[0].uri
-              }));
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  const handleSave = async () => {
-    if (!formData.year.trim() || isNaN(Number(formData.year))) {
-      Alert.alert('Validation Error', 'Please enter a valid year');
-      return;
-    }
-    if (!formData.denomination.trim()) {
-      Alert.alert('Validation Error', 'Denomination is required');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const updates = {
-        name: formData.name,
-        title: formData.title || undefined,
-        year: parseInt(formData.year),
-        denomination: formData.denomination,
-        country: formData.country || undefined,
-        mintMark: formData.mintMark || undefined,
-        grade: formData.grade || undefined,
-        faceValue: formData.faceValue ? parseFloat(formData.faceValue) : undefined,
-        purchasePrice: formData.purchasePrice ? parseFloat(formData.purchasePrice) : undefined,
-        purchaseDate: formData.purchaseDate || undefined,
-        notes: formData.notes || undefined,
-        obverseImage: images.obverse !== coin.obverseImage ? (images.obverse ?? undefined) : undefined,
-        reverseImage: images.reverse !== coin.reverseImage ? (images.reverse ?? undefined) : undefined,
-        // Series information
-        series: formData.series || undefined,
-        seriesId: formData.seriesId || undefined,
-        specificCoinId: formData.specificCoinId || undefined,
-        specificCoinName: formData.specificCoinName || undefined,
-        designer: formData.designer || undefined,
-        theme: formData.theme || undefined,
-        honoree: formData.honoree || undefined,
-        releaseDate: formData.releaseDate || undefined,
-        certificationNumber: formData.certificationNumber || undefined,
-        gradingService: formData.gradingService || undefined,
-      };
-
-      const updatedCoin = await CoinService.updateCoin(coin.id, updates);
-      setCoin(updatedCoin);
-      setImages({
-        obverse: updatedCoin.obverseImage,
-        reverse: updatedCoin.reverseImage,
-      });
-      
-      setIsEditing(false);
-      
-      Alert.alert('Success!', 'Coin updated successfully');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update coin. Please try again.');
-      Logger.error('Update coin error', error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCancel = () => {
-    // Reset form data to original values (including series fields)
-    setFormData({
-      name: coin.name || '',
-      title: coin.title || '',
-      year: coin.year.toString(),
-      denomination: coin.denomination,
-      country: coin.country || '',
-      mintMark: coin.mintMark || '',
-      grade: coin.grade || '',
-      faceValue: coin.faceValue?.toString() || '',
-      purchasePrice: coin.purchasePrice?.toString() || '',
-      purchaseDate: coin.purchaseDate || '',
-      notes: coin.notes || '',
-      series: coin.series || '',
-      seriesId: coin.seriesId || '',
-      specificCoinId: coin.specificCoinId || '',
-      specificCoinName: coin.specificCoinName || '',
-      designer: coin.designer || '',
-      theme: coin.theme || '',
-      honoree: coin.honoree || '',
-      releaseDate: coin.releaseDate || '',
-      certificationNumber: coin.certificationNumber || '',
-      gradingService: coin.gradingService || '',
-    });
-    setImages({
-      obverse: coin.obverseImage,
-      reverse: coin.reverseImage,
-    });
-    setIsEditing(false);
-  };
-
-  const handleDelete = () => {
-    Alert.alert(
-      'Delete Coin',
-      `Are you sure you want to delete this ${coin.year} ${coin.denomination}?`,
+      'Delete coin',
+      `Permanently remove ${titleLine}? This cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -233,673 +105,278 @@ export default function CoinDetailScreen({ route, navigation }: CoinDetailScreen
           onPress: async () => {
             try {
               await CoinService.deleteCoin(coin.id);
-              Alert.alert('Deleted', 'Coin has been removed from your collection');
               navigation.goBack();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete coin');
+            } catch (err) {
+              Logger.error('Delete coin failed', err);
+              Alert.alert('Could not delete', 'Please try again.');
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
 
   return (
-    <LinearGradient colors={Colors.background.primary} style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingTop: insets.top + 60 }
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>
-              {coin.year} {coin.denomination}
-            </Text>
-            {coin.country && (
-              <Text style={styles.headerSubtitle}>{coin.country}</Text>
-            )}
-          </View>
-
-          {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            {!isEditing ? (
-              <>
-                <Button
-                  title="Edit Coin"
-                  onPress={() => setIsEditing(true)}
-                  style={styles.editButton}
-                />
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={handleDelete}
-                >
-                  <Text style={styles.deleteButtonText}>Delete</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <Button
-                  title={loading ? "Saving..." : "Save Changes"}
-                  onPress={handleSave}
-                  disabled={loading}
-                  style={styles.saveButton}
-                />
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={handleCancel}
-                  disabled={loading}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-
-          {/* Photo Section */}
-          <BlurView intensity={60} style={styles.photoSection}>
-            <Text style={styles.sectionTitle}>📸 Coin Photos</Text>
-            <View style={styles.photoGrid}>
-              <TouchableOpacity 
-                style={styles.photoCard}
-                onPress={() => isEditing && takePicture('obverse')}
-                disabled={!isEditing}
-              >
-                {images.obverse ? (
-                  <Image source={{ uri: images.obverse }} style={styles.coinImage} />
-                ) : (
-                  <View style={styles.imagePlaceholder}>
-                    <Text style={styles.photoPlaceholderText}>📷</Text>
-                    <Text style={styles.photoLabel}>Obverse</Text>
-                  </View>
-                )}
-                {isEditing && (
-                  <View style={styles.editOverlay}>
-                    <Text style={styles.editOverlayText}>Tap to {images.obverse ? 'Replace' : 'Add'}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.photoCard}
-                onPress={() => isEditing && takePicture('reverse')}
-                disabled={!isEditing}
-              >
-                {images.reverse ? (
-                  <Image source={{ uri: images.reverse }} style={styles.coinImage} />
-                ) : (
-                  <View style={styles.imagePlaceholder}>
-                    <Text style={styles.photoPlaceholderText}>📷</Text>
-                    <Text style={styles.photoLabel}>Reverse</Text>
-                  </View>
-                )}
-                {isEditing && (
-                  <View style={styles.editOverlay}>
-                    <Text style={styles.editOverlayText}>Tap to {images.reverse ? 'Replace' : 'Add'}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
+        {/* Top bar */}
+        <View style={styles.topBar}>
+          <Pressable hitSlop={12} onPress={() => navigation.goBack()}>
+            <View style={{ transform: [{ rotate: '180deg' }] }}>
+              <Icon name="chevron-right" size={22} color={palette.fg} stroke={2} />
             </View>
-          </BlurView>
+          </Pressable>
+          <Eyebrow>COIN</Eyebrow>
+          <View style={{ width: 22 }} />
+        </View>
 
-          {/* Basic Information */}
-          <BlurView intensity={60} style={styles.formSection}>
-            <Text style={styles.sectionTitle}>📋 Basic Information</Text>
-            
-            {isEditing ? (
-              <>
-                <Input
-                  label="Coin Name"
-                  value={formData.name}
-                  onChangeText={(value) => updateFormData('name', value)}
-                  style={styles.input}
-                />
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>{titleLine}</Text>
+          {subtitleLine ? <Text style={styles.subtitle}>{subtitleLine}</Text> : null}
+          {coin.name && coin.name !== titleLine ? (
+            <Text style={styles.nameLine}>{coin.name}</Text>
+          ) : null}
+        </View>
 
-                <Input
-                  label="Title/Description"
-                  value={formData.title}
-                  onChangeText={(value) => updateFormData('title', value)}
-                  style={styles.input}
-                />
-
-                <View style={styles.gridRow}>
-                  <View style={styles.gridInput}>
-                    <Input
-                      label="Year *"
-                      value={formData.year}
-                      onChangeText={(value) => updateFormData('year', value)}
-                      keyboardType="numeric"
-                    />
+        {/* Image gallery */}
+        <View style={styles.imagePair}>
+          {([
+            { key: 'obv', uri: coin.obverseImage, label: 'OBV' },
+            { key: 'rev', uri: coin.reverseImage, label: 'REV' },
+          ] as const).map(({ key, uri, label }) => (
+            <Pressable
+              key={key}
+              disabled={!uri}
+              onPress={() => uri && setLightbox({ uri, label })}
+              style={[
+                styles.imageSlot,
+                uri ? { borderStyle: 'solid' } : { borderStyle: 'dashed' },
+              ]}
+            >
+              {uri ? (
+                <>
+                  <Image source={{ uri }} style={styles.imageFill} />
+                  <View style={styles.imageBadge}>
+                    <Text style={styles.imageBadgeText}>{label}</Text>
                   </View>
-                  <View style={styles.gridInput}>
-                    <Input
-                      label="Denomination *"
-                      value={formData.denomination}
-                      onChangeText={(value) => updateFormData('denomination', value)}
-                    />
+                  <View style={styles.zoomBadge}>
+                    <Icon name="plus" size={11} color={palette.goldFg} stroke={2.6} />
                   </View>
+                </>
+              ) : (
+                <View style={{ alignItems: 'center', gap: 6 }}>
+                  <Icon name="info" size={14} color={palette.fg4} />
+                  <Text style={styles.imageEmpty}>{label} NOT PROVIDED</Text>
                 </View>
+              )}
+            </Pressable>
+          ))}
+        </View>
 
-                <View style={styles.gridRow}>
-                  <View style={styles.gridInput}>
-                    <Input
-                      label="Country"
-                      value={formData.country}
-                      onChangeText={(value) => updateFormData('country', value)}
-                    />
-                  </View>
-                  <View style={styles.gridInput}>
-                    <Input
-                      label="Mint Mark"
-                      value={formData.mintMark}
-                      onChangeText={(value) => updateFormData('mintMark', value)}
-                    />
-                  </View>
-                </View>
-              </>
-            ) : (
-              <View style={styles.infoGrid}>
-                <InfoItem label="Year" value={coin.year.toString()} />
-                <InfoItem label="Denomination" value={coin.denomination} />
-                <InfoItem label="Country" value={coin.country || 'Not specified'} />
-                <InfoItem label="Mint Mark" value={coin.mintMark || 'None'} />
-              </View>
-            )}
-          </BlurView>
+        <Section title="BASICS" rows={basics} />
+        <Section title="DETAILS" rows={details} />
+        <Section title="ACQUISITION" rows={acquisition} />
 
-          {/* Grading & Value */}
-          <BlurView intensity={60} style={styles.formSection}>
-            <Text style={styles.sectionTitle}>💎 Grading & Value</Text>
-            
-            {isEditing ? (
-              <>
-                <Input
-                  label="Grade"
-                  value={formData.grade}
-                  onChangeText={(value) => updateFormData('grade', value)}
-                  style={styles.input}
-                />
+        {coin.notes ? (
+          <View style={styles.section}>
+            <Eyebrow style={styles.sectionTitle}>NOTES</Eyebrow>
+            <Card style={{ padding: 14 }}>
+              <Text style={styles.notesText}>{coin.notes}</Text>
+            </Card>
+          </View>
+        ) : null}
 
-                <View style={styles.gridRow}>
-                  <View style={styles.gridInput}>
-                    <Input
-                      label="Face Value"
-                      value={formData.faceValue}
-                      onChangeText={(value) => updateFormData('faceValue', value)}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                  <View style={styles.gridInput}>
-                    <Input
-                      label="Purchase Price"
-                      value={formData.purchasePrice}
-                      onChangeText={(value) => updateFormData('purchasePrice', value)}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                </View>
+        {/* Actions */}
+        <View style={styles.actions}>
+          <Pressable onPress={onDelete} hitSlop={6} style={styles.deleteLink}>
+            <Icon name="x" size={13} color={palette.cLow} stroke={2.4} />
+            <Text style={styles.deleteText}>Delete coin</Text>
+          </Pressable>
+          <Button
+            label="Edit details"
+            variant="gold"
+            onPress={onEdit}
+            flex={1.5}
+            leading={
+              <Icon name="edit" size={14} color={palette.goldFg} stroke={2.4} />
+            }
+          />
+        </View>
+      </ScrollView>
 
-                <Input
-                  label="Purchase Date"
-                  value={formData.purchaseDate}
-                  onChangeText={(value) => updateFormData('purchaseDate', value)}
-                  style={styles.input}
-                />
-              </>
-            ) : (
-              <View style={styles.infoGrid}>
-                <InfoItem label="Grade" value={coin.grade || 'Not graded'} />
-                <InfoItem label="Face Value" value={coin.faceValue ? `$${coin.faceValue}` : 'Not specified'} />
-                <InfoItem label="Purchase Price" value={coin.purchasePrice ? `$${coin.purchasePrice.toLocaleString()}` : 'Not specified'} />
-                <InfoItem label="Purchase Date" value={coin.purchaseDate || 'Not specified'} />
-              </View>
-            )}
-          </BlurView>
-
-          {/* Series Information */}
-          {(coin.series || coin.seriesId || coin.specificCoinName) && (
-            <BlurView intensity={60} style={styles.formSection}>
-              <Text style={styles.sectionTitle}>🎯 Series Information</Text>
-              
-              <View style={styles.infoGrid}>
-                {coin.series && (
-                  <InfoItem label="Series" value={coin.series} />
-                )}
-                
-                {coin.specificCoinName && (
-                  <InfoItem label="Specific Coin" value={coin.specificCoinName} />
-                )}
-                
-                {coin.honoree && (
-                  <InfoItem label="Honoree" value={coin.honoree} />
-                )}
-                
-                {coin.designer && (
-                  <InfoItem label="Designer" value={coin.designer} />
-                )}
-                
-                {coin.theme && (
-                  <InfoItem label="Theme" value={coin.theme} />
-                )}
-                
-                {coin.releaseDate && (
-                  <InfoItem 
-                    label="Release Date" 
-                    value={new Date(coin.releaseDate).toLocaleDateString()} 
-                  />
-                )}
-                
-                {coin.certificationNumber && (
-                  <InfoItem label="Certification #" value={coin.certificationNumber} />
-                )}
-                
-                {coin.gradingService && (
-                  <InfoItem label="Grading Service" value={coin.gradingService} />
-                )}
-              </View>
-              
-              {/* Enhanced series details from database */}
-              {coin.seriesId && (() => {
-                const seriesInfo = getSeriesById(coin.seriesId);
-                const specificCoinInfo = coin.specificCoinId ? getSpecificCoinById(coin.seriesId, coin.specificCoinId) : null;
-                
-                return seriesInfo && (
-                  <View style={styles.seriesDetailsCard}>
-                    <Text style={styles.seriesDetailsTitle}>📚 Series Details</Text>
-                    <Text style={styles.seriesDescription}>{seriesInfo.description}</Text>
-                    
-                    <View style={styles.seriesMetadata}>
-                      <View style={styles.seriesMetadataItem}>
-                        <Text style={styles.seriesMetadataLabel}>Years:</Text>
-                        <Text style={styles.seriesMetadataValue}>
-                          {seriesInfo.startYear}-{seriesInfo.endYear}
-                        </Text>
-                      </View>
-                      
-                      <View style={styles.seriesMetadataItem}>
-                        <Text style={styles.seriesMetadataLabel}>Total Coins:</Text>
-                        <Text style={styles.seriesMetadataValue}>
-                          {seriesInfo.specificCoins.length}
-                        </Text>
-                      </View>
-                      
-                      <View style={styles.seriesMetadataItem}>
-                        <Text style={styles.seriesMetadataLabel}>Category:</Text>
-                        <Text style={styles.seriesMetadataValue}>
-                          {seriesInfo.category.replace('_', ' ')}
-                        </Text>
-                      </View>
-                    </View>
-                    
-                    {specificCoinInfo?.rarity && (
-                      <View style={[styles.rarityBadge, { 
-                        backgroundColor: getRarityColor(specificCoinInfo.rarity) 
-                      }]}>
-                        <Text style={styles.rarityText}>
-                          {specificCoinInfo.rarity.replace('_', ' ').toUpperCase()} RARITY
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                );
-              })()}
-            </BlurView>
-          )}
-
-          {/* Notes */}
-          <BlurView intensity={60} style={styles.formSection}>
-            <Text style={styles.sectionTitle}>📝 Notes</Text>
-            
-            {isEditing ? (
-              <Input
-                label="Additional Notes"
-                value={formData.notes}
-                onChangeText={(value) => updateFormData('notes', value)}
-                multiline
-                numberOfLines={4}
-                style={styles.input}
-              />
-            ) : (
-              <Text style={styles.notesText}>
-                {coin.notes || 'No additional notes'}
-              </Text>
-            )}
-          </BlurView>
-
-          {/* Series Information - Edit Mode */}
-          {isEditing && (
-            <BlurView intensity={60} style={styles.formSection}>
-              <Text style={styles.sectionTitle}>🎯 Series Information</Text>
-              
-              <Input
-                label="Series Name"
-                placeholder="e.g. American Women Quarters"
-                value={formData.series}
-                onChangeText={(value) => updateFormData('series', value)}
-                style={styles.input}
-              />
-
-              <Input
-                label="Specific Coin Name"
-                placeholder="e.g. Maya Angelou Quarter"
-                value={formData.specificCoinName}
-                onChangeText={(value) => updateFormData('specificCoinName', value)}
-                style={styles.input}
-              />
-
-              <View style={styles.gridRow}>
-                <View style={styles.gridInput}>
-                  <Input
-                    label="Designer"
-                    placeholder="Designer name"
-                    value={formData.designer}
-                    onChangeText={(value) => updateFormData('designer', value)}
-                  />
-                </View>
-
-                <View style={styles.gridInput}>
-                  <Input
-                    label="Theme"
-                    placeholder="Coin theme"
-                    value={formData.theme}
-                    onChangeText={(value) => updateFormData('theme', value)}
-                  />
-                </View>
-              </View>
-
-              <Input
-                label="Honoree"
-                placeholder="Person being honored"
-                value={formData.honoree}
-                onChangeText={(value) => updateFormData('honoree', value)}
-                style={styles.input}
-              />
-
-              <View style={styles.gridRow}>
-                <View style={styles.gridInput}>
-                  <Input
-                    label="Release Date"
-                    placeholder="YYYY-MM-DD"
-                    value={formData.releaseDate}
-                    onChangeText={(value) => updateFormData('releaseDate', value)}
-                  />
-                </View>
-
-                <View style={styles.gridInput}>
-                  <Input
-                    label="Grading Service"
-                    placeholder="e.g. PCGS, NGC"
-                    value={formData.gradingService}
-                    onChangeText={(value) => updateFormData('gradingService', value)}
-                  />
-                </View>
-              </View>
-
-              <Input
-                label="Certification Number"
-                placeholder="Grading certification number"
-                value={formData.certificationNumber}
-                onChangeText={(value) => updateFormData('certificationNumber', value)}
-                style={styles.input}
-              />
-            </BlurView>
-          )}
-
-          <View style={styles.bottomSpacing} />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+      <ImageLightbox
+        visible={!!lightbox}
+        uri={lightbox?.uri ?? null}
+        label={lightbox?.label}
+        onClose={() => setLightbox(null)}
+      />
+    </View>
   );
 }
 
-const InfoItem = ({ label, value }: { label: string; value: string }) => (
-  <View style={styles.infoItem}>
-    <Text style={styles.infoLabel}>{label}</Text>
-    <Text style={styles.infoValue}>{value}</Text>
-  </View>
-);
-
-const getRarityColor = (rarity: string): string => {
-  const rarityColors = {
-    common: '#9CA3AF',      // Gray
-    uncommon: '#10B981',    // Green
-    rare: '#3B82F6',       // Blue
-    scarce: '#8B5CF6',     // Purple
-    very_rare: '#F59E0B',   // Gold
-  };
-  return rarityColors[rarity as keyof typeof rarityColors] || '#9CA3AF';
-};
+function Section({ title, rows }: { title: string; rows: Row[] }) {
+  const populated = rows.filter((r) => r.value && String(r.value).trim() !== '');
+  if (populated.length === 0) return null;
+  return (
+    <View style={styles.section}>
+      <Eyebrow style={styles.sectionTitle}>{title}</Eyebrow>
+      <Card style={{ overflow: 'hidden' }}>
+        {populated.map((r, i) => (
+          <View
+            key={r.label}
+            style={[
+              styles.row,
+              i > 0 && { borderTopWidth: 1, borderTopColor: palette.line },
+            ]}
+          >
+            <Text style={styles.rowLabel}>{r.label}</Text>
+            <Text style={styles.rowValue} numberOfLines={2}>
+              {r.value}
+            </Text>
+          </View>
+        ))}
+      </Card>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing.lg,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
-  },
-  headerTitle: {
-    fontSize: Typography.fontSize['3xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-    marginBottom: Spacing.xs,
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: Typography.fontSize.lg,
-    color: Colors.text.secondary,
-  },
-  actionButtons: {
+  root: { flex: 1, backgroundColor: palette.bg },
+
+  topBar: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.xl,
-    gap: Spacing.md,
+    paddingHorizontal: 20,
+    paddingTop: 6,
+    paddingBottom: 4,
   },
-  editButton: {
-    flex: 1,
+
+  header: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 18 },
+  title: {
+    fontFamily: fontFamily.display,
+    fontSize: 28,
+    color: palette.fg,
+    letterSpacing: -0.6,
   },
-  deleteButton: {
-    flex: 0.4,
-    backgroundColor: Colors.text.error,
-    borderRadius: 12,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
+  subtitle: {
+    fontFamily: fontFamily.mono,
+    fontSize: 11,
+    color: palette.fg3,
+    marginTop: 8,
+    letterSpacing: 0.5,
   },
-  deleteButtonText: {
-    color: 'white',
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.semibold,
+  nameLine: {
+    fontFamily: fontFamily.ui,
+    fontSize: 14,
+    color: palette.fg2,
+    marginTop: 6,
   },
-  saveButton: {
-    flex: 1,
-  },
-  cancelButton: {
-    flex: 0.4,
-    backgroundColor: Colors.background.card,
-    borderWidth: 1,
-    borderColor: Colors.background.cardBorder,
-    borderRadius: 12,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButtonText: {
-    color: Colors.text.primary,
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  photoSection: {
-    ...GlassmorphismStyles.card,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
-  },
-  formSection: {
-    ...GlassmorphismStyles.card,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.md,
-  },
-  photoGrid: {
+
+  imagePair: {
+    paddingHorizontal: 20,
+    paddingBottom: 18,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.md,
+    gap: 10,
   },
-  photoCard: {
+  imageSlot: {
     flex: 1,
     aspectRatio: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: Colors.background.card,
+    borderRadius: radius.base,
     borderWidth: 1,
-    borderColor: Colors.background.cardBorder,
-    position: 'relative',
+    borderColor: palette.line,
+    backgroundColor: palette.bg2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  coinImage: {
-    width: '100%',
-    height: '100%',
+  imageFill: { width: '100%', height: '100%' },
+  imageBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-  imagePlaceholder: {
-    flex: 1,
+  imageBadgeText: {
+    fontFamily: fontFamily.mono,
+    fontSize: 9,
+    color: palette.gold,
+    letterSpacing: 1.4,
+  },
+  zoomBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: palette.gold,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  photoPlaceholderText: {
-    fontSize: 32,
-    marginBottom: Spacing.xs,
+  imageEmpty: {
+    fontFamily: fontFamily.mono,
+    fontSize: 9.5,
+    color: palette.fg4,
+    letterSpacing: 1.2,
   },
-  photoLabel: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  editOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-  },
-  editOverlayText: {
-    color: Colors.primary.gold,
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  infoGrid: {
-    gap: Spacing.md,
-  },
-  infoItem: {
+
+  section: { paddingHorizontal: 20, paddingBottom: 16, gap: 10 },
+  sectionTitle: { marginLeft: 4 },
+
+  row: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
+    gap: 12,
   },
-  infoLabel: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    fontWeight: Typography.fontWeight.medium,
+  rowLabel: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    color: palette.fg3,
   },
-  infoValue: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.text.primary,
-    fontWeight: Typography.fontWeight.semibold,
-    flex: 1,
+  rowValue: {
+    fontFamily: fontFamily.ui,
+    fontSize: 14,
+    color: palette.fg,
+    flexShrink: 1,
     textAlign: 'right',
   },
+
   notesText: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.text.primary,
-    lineHeight: 22,
-  },
-  input: {
-    marginBottom: Spacing.md,
-  },
-  gridRow: {
-    flexDirection: 'row',
-    width: '100%',
-    gap: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  gridInput: {
-    flex: 1,
-  },
-  bottomSpacing: {
-    height: 120,
-  },
-  // Series Information Styles
-  seriesDetailsCard: {
-    marginTop: Spacing.lg,
-    padding: Spacing.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.primary.gold,
-  },
-  seriesDetailsTitle: {
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-    marginBottom: Spacing.sm,
-  },
-  seriesDescription: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
+    fontFamily: fontFamily.ui,
+    fontSize: 14,
+    color: palette.fg2,
     lineHeight: 20,
-    marginBottom: Spacing.md,
   },
-  seriesMetadata: {
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  seriesMetadataItem: {
+
+  actions: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 12,
   },
-  seriesMetadataLabel: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    fontWeight: Typography.fontWeight.medium,
+  deleteLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
   },
-  seriesMetadataValue: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.primary,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  rarityBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: 16,
-    marginTop: Spacing.sm,
-  },
-  rarityText: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.bold,
-    color: '#000',
-    letterSpacing: 0.5,
+  deleteText: {
+    fontFamily: fontFamily.ui,
+    fontSize: 13,
+    color: palette.cLow,
   },
 });

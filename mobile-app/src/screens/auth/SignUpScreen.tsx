@@ -1,220 +1,199 @@
-// src/screens/auth/SignUpScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import { Colors, Typography, Spacing } from '../../styles';
-import { Input, Button } from '../../components/common';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Alert,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { palette, fontFamily } from '../../theme';
+import { Button, Card, Field, Eyebrow } from '../../components/design';
 import { AuthService } from '../../services/auth';
 import { AuthStackScreenProps } from '../../types/navigation';
 import { Logger } from '../../services/logger';
 
 type Props = AuthStackScreenProps<'SignUp'>;
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+interface Errors {
+  email?: string;
+  password?: string;
+  confirm?: string;
+}
+
 export default function SignUpScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
 
-  const validateForm = () => {
-    if (!email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return false;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return false;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
-      return false;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return false;
-    }
-
-    return true;
+  const validate = (): boolean => {
+    const next: Errors = {};
+    if (!EMAIL_RE.test(email.trim())) next.email = 'Enter a valid email';
+    if (password.length < 6) next.password = 'At least 6 characters';
+    if (password !== confirm) next.confirm = 'Doesn\'t match';
+    setErrors(next);
+    return Object.keys(next).length === 0;
   };
 
   const handleSignUp = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validate()) return;
     setLoading(true);
     try {
-      const { data, error } = await AuthService.signUp(email, password);
-      
+      const { data, error } = await AuthService.signUp(email.trim(), password);
       if (error) {
-        Alert.alert('Sign Up Failed', error.message);
+        Alert.alert('Sign up failed', error.message);
       } else if (data.user) {
         Alert.alert(
-          'Success!', 
-          'Your account has been created. Please check your email to verify your account.',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.navigate('SignIn')
-            }
-          ]
+          'Check your inbox',
+          'We sent a verification email. Confirm your address to sign in.',
+          [{ text: 'OK', onPress: () => navigation.navigate('SignIn') }]
         );
       }
-    } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred');
-      Logger.error('Sign up error', error);
+    } catch (err) {
+      Logger.error('Sign up error', err);
+      Alert.alert('Sign up failed', 'Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <LinearGradient 
-      colors={Colors.background.primary}
-      style={styles.container}
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 },
+        ]}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.content}>
-            {/* Logo and Title Section */}
-            <View style={styles.header}>
-              <Text style={styles.coinEmoji}>🪙</Text>
-              <Text style={styles.appName}>Coin Odyssey</Text>
-              <Text style={styles.subtitle}>Join the collector's journey</Text>
-            </View>
+        <View style={styles.brand}>
+          <View style={styles.brandDot} />
+          <Text style={styles.brandText}>COIN ODYSSEY</Text>
+        </View>
 
-            {/* Sign Up Form */}
-            <BlurView intensity={60} style={styles.formContainer}>
-              <View style={styles.form}>
-                <Text style={styles.formTitle}>Create Account</Text>
-                
-                <Input
-                  placeholder="Email"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
+        <View style={styles.header}>
+          <Eyebrow>NEW ACCOUNT</Eyebrow>
+          <Text style={styles.title}>Start a collection.</Text>
+          <Text style={styles.subtitle}>
+            One account syncs your coins across phone and web.
+          </Text>
+        </View>
 
-                  style={styles.input}
-                />
-                
-                <Input
-                  placeholder="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  style={styles.input}
-                />
+        <Card style={styles.card}>
+          <Field
+            label="EMAIL"
+            value={email}
+            onChangeText={(t) => {
+              setEmail(t);
+              if (errors.email) setErrors((e) => ({ ...e, email: undefined }));
+            }}
+            invalid={!!errors.email}
+            helper={errors.email}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            textContentType="emailAddress"
+            placeholder="you@example.com"
+          />
+          <Field
+            label="PASSWORD"
+            value={password}
+            onChangeText={(t) => {
+              setPassword(t);
+              if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
+            }}
+            invalid={!!errors.password}
+            helper={errors.password ?? 'At least 6 characters'}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete="password-new"
+            textContentType="newPassword"
+            placeholder="••••••••"
+          />
+          <Field
+            label="CONFIRM PASSWORD"
+            value={confirm}
+            onChangeText={(t) => {
+              setConfirm(t);
+              if (errors.confirm) setErrors((e) => ({ ...e, confirm: undefined }));
+            }}
+            invalid={!!errors.confirm}
+            helper={errors.confirm}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete="password-new"
+            textContentType="newPassword"
+            placeholder="••••••••"
+          />
+          <Button
+            label={loading ? 'Creating account…' : 'Create account'}
+            variant="gold"
+            onPress={handleSignUp}
+            disabled={loading}
+          />
+        </Card>
 
-                <Input
-                  placeholder="Confirm Password"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                  style={styles.input}
-                />
-
-                <Button
-                  title={loading ? "Creating Account..." : "Sign Up"}
-                  onPress={handleSignUp}
-                  disabled={loading}
-                  style={styles.signUpButton}
-                />
-
-                <View style={styles.signInContainer}>
-                  <Text style={styles.signInText}>Already have an account? </Text>
-                  <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
-                    <Text style={styles.signInLink}>Sign In</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </BlurView>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Already have an account?</Text>
+          <Pressable onPress={() => navigation.navigate('SignIn')} hitSlop={6}>
+            <Text style={styles.footerLink}>Sign in</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  root: { flex: 1, backgroundColor: palette.bg },
+  scroll: { paddingHorizontal: 24, gap: 24 },
+
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  brandDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: palette.gold },
+  brandText: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10.5,
+    letterSpacing: 2,
+    color: palette.fg2,
   },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing['4xl'],
-    paddingVertical: Spacing['6xl'],
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: Spacing['4xl'],
-  },
-  coinEmoji: {
-    fontSize: 64,
-    marginBottom: Spacing.md,
-  },
-  appName: {
-    fontSize: Typography.fontSize['3xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-    marginBottom: Spacing.xs,
+
+  header: { gap: 6 },
+  title: {
+    fontFamily: fontFamily.display,
+    fontSize: 32,
+    color: palette.fg,
+    letterSpacing: -0.7,
+    marginTop: 4,
   },
   subtitle: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.text.secondary,
-    textAlign: 'center',
+    fontFamily: fontFamily.ui,
+    fontSize: 14,
+    color: palette.fg3,
+    marginTop: 4,
+    lineHeight: 20,
   },
-  formContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  form: {
-    padding: Spacing['2xl'],
-  },
-  formTitle: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    textAlign: 'center',
-    marginBottom: Spacing['2xl'],
-  },
-  input: {
-    marginBottom: Spacing.lg,
-  },
-  signUpButton: {
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.xl,
-  },
-  signInContainer: {
+
+  card: { padding: 18, gap: 14 },
+
+  footer: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 8,
   },
-  signInText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-  },
-  signInLink: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.primary.gold,
-    fontWeight: Typography.fontWeight.bold,
-  },
+  footerText: { fontFamily: fontFamily.ui, fontSize: 13, color: palette.fg3 },
+  footerLink: { fontFamily: fontFamily.uiMedium, fontSize: 13, color: palette.gold },
 });

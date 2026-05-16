@@ -1,232 +1,191 @@
-// src/screens/auth/ForgotPasswordScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import { Colors, Typography, Spacing } from '../../styles';
-import { Input, Button } from '../../components/common';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Alert,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { palette, fontFamily } from '../../theme';
+import { Button, Card, Field, Eyebrow, Icon } from '../../components/design';
 import { AuthService } from '../../services/auth';
 import { AuthStackScreenProps } from '../../types/navigation';
 import { Logger } from '../../services/logger';
 
 type Props = AuthStackScreenProps<'ForgotPassword'>;
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function ForgotPasswordScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  const validateEmail = () => {
-    if (!email) {
-      Alert.alert('Error', 'Please enter your email address');
-      return false;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleResetPassword = async () => {
-    if (!validateEmail()) {
+  const handleReset = async () => {
+    if (!EMAIL_RE.test(email.trim())) {
+      setEmailError('Enter a valid email');
       return;
     }
-
+    setEmailError(undefined);
     setLoading(true);
     try {
-      const { data, error } = await AuthService.resetPassword(email);
-      
+      const { error } = await AuthService.resetPassword(email.trim());
       if (error) {
-        Alert.alert('Reset Failed', error.message);
+        Alert.alert('Reset failed', error.message);
       } else {
-        setEmailSent(true);
-        Alert.alert(
-          'Reset Email Sent!', 
-          'Please check your email for password reset instructions.',
-        );
+        setSent(true);
       }
-    } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred');
-      Logger.error('Password reset error', error);
+    } catch (err) {
+      Logger.error('Password reset error', err);
+      Alert.alert('Reset failed', 'Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <LinearGradient 
-      colors={Colors.background.primary}
-      style={styles.container}
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 },
+        ]}
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.content}>
-          {/* Logo and Title Section */}
-          <View style={styles.header}>
-            <Text style={styles.coinEmoji}>🪙</Text>
-            <Text style={styles.appName}>Coin Odyssey</Text>
-            <Text style={styles.subtitle}>Reset your password</Text>
-          </View>
-
-          {/* Reset Password Form */}
-          <BlurView intensity={60} style={styles.formContainer}>
-            <View style={styles.form}>
-              <Text style={styles.formTitle}>Forgot Password</Text>
-              
-              {!emailSent ? (
-                <>
-                  <Text style={styles.instructions}>
-                    Enter your email address and we'll send you instructions to reset your password.
-                  </Text>
-
-                  <Input
-                    placeholder="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-
-                    style={styles.input}
-                  />
-
-                  <Button
-                    title={loading ? "Sending..." : "Send Reset Email"}
-                    onPress={handleResetPassword}
-                    disabled={loading}
-                    style={styles.resetButton}
-                  />
-                </>
-              ) : (
-                <View style={styles.successContainer}>
-                  <Text style={styles.successEmoji}>📧</Text>
-                  <Text style={styles.successTitle}>Email Sent!</Text>
-                  <Text style={styles.successText}>
-                    We've sent password reset instructions to {email}
-                  </Text>
-                  <Button
-                    title="Send Again"
-                    onPress={() => {
-                      setEmailSent(false);
-                      handleResetPassword();
-                    }}
-                    style={styles.resendButton}
-                  />
-                </View>
-              )}
-
-              {/* Navigation Links */}
-              <View style={styles.linkContainer}>
-                <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
-                  <Text style={styles.linkText}>← Back to Sign In</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </BlurView>
+        <View style={styles.brand}>
+          <View style={styles.brandDot} />
+          <Text style={styles.brandText}>COIN ODYSSEY</Text>
         </View>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+
+        <View style={styles.header}>
+          <Eyebrow>PASSWORD HELP</Eyebrow>
+          <Text style={styles.title}>{sent ? 'Check your inbox.' : 'Reset your password.'}</Text>
+          <Text style={styles.subtitle}>
+            {sent
+              ? `We sent reset instructions to ${email.trim()}.`
+              : 'Enter your email and we\'ll send a reset link.'}
+          </Text>
+        </View>
+
+        {sent ? (
+          <Card style={styles.successCard}>
+            <View style={styles.successIconWrap}>
+              <Icon name="check" size={22} color={palette.goldFg} stroke={2.6} />
+            </View>
+            <Text style={styles.successTitle}>Email sent</Text>
+            <Text style={styles.successBody}>
+              The link will expire in about an hour. Didn’t see it? Check your spam folder.
+            </Text>
+            <Button
+              label="Send again"
+              variant="ghost"
+              onPress={() => {
+                setSent(false);
+                handleReset();
+              }}
+            />
+          </Card>
+        ) : (
+          <Card style={styles.card}>
+            <Field
+              label="EMAIL"
+              value={email}
+              onChangeText={(t) => {
+                setEmail(t);
+                if (emailError) setEmailError(undefined);
+              }}
+              invalid={!!emailError}
+              helper={emailError}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              textContentType="emailAddress"
+              placeholder="you@example.com"
+            />
+            <Button
+              label={loading ? 'Sending…' : 'Send reset link'}
+              variant="gold"
+              onPress={handleReset}
+              disabled={loading}
+            />
+          </Card>
+        )}
+
+        <View style={styles.footer}>
+          <Pressable onPress={() => navigation.navigate('SignIn')} hitSlop={6}>
+            <Text style={styles.footerLink}>← Back to sign in</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  root: { flex: 1, backgroundColor: palette.bg },
+  scroll: { paddingHorizontal: 24, gap: 24 },
+
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  brandDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: palette.gold },
+  brandText: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10.5,
+    letterSpacing: 2,
+    color: palette.fg2,
   },
-  keyboardView: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing['4xl'],
-    paddingVertical: Spacing['6xl'],
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: Spacing['4xl'],
-  },
-  coinEmoji: {
-    fontSize: 64,
-    marginBottom: Spacing.md,
-  },
-  appName: {
-    fontSize: Typography.fontSize['3xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-    marginBottom: Spacing.xs,
+
+  header: { gap: 6 },
+  title: {
+    fontFamily: fontFamily.display,
+    fontSize: 32,
+    color: palette.fg,
+    letterSpacing: -0.7,
+    marginTop: 4,
   },
   subtitle: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-  },
-  formContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  form: {
-    padding: Spacing['2xl'],
-  },
-  formTitle: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-  instructions: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    marginBottom: Spacing['2xl'],
+    fontFamily: fontFamily.ui,
+    fontSize: 14,
+    color: palette.fg3,
+    marginTop: 4,
     lineHeight: 20,
   },
-  input: {
-    marginBottom: Spacing.lg,
-  },
-  resetButton: {
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.xl,
-  },
-  successContainer: {
+
+  card: { padding: 18, gap: 14 },
+
+  successCard: { padding: 22, alignItems: 'center', gap: 12 },
+  successIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: palette.gold,
     alignItems: 'center',
-    paddingVertical: Spacing.lg,
-  },
-  successEmoji: {
-    fontSize: 48,
-    marginBottom: Spacing.lg,
+    justifyContent: 'center',
   },
   successTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-    marginBottom: Spacing.md,
+    fontFamily: fontFamily.display,
+    fontSize: 20,
+    color: palette.fg,
+    letterSpacing: -0.4,
   },
-  successText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
+  successBody: {
+    fontFamily: fontFamily.ui,
+    fontSize: 13,
+    color: palette.fg3,
     textAlign: 'center',
-    marginBottom: Spacing['2xl'],
-    lineHeight: 20,
+    lineHeight: 19,
+    paddingHorizontal: 8,
   },
-  resendButton: {
-    marginBottom: Spacing.lg,
-  },
-  linkContainer: {
-    alignItems: 'center',
-  },
-  linkText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.primary.gold,
-    fontWeight: Typography.fontWeight.medium,
-  },
+
+  footer: { alignItems: 'center', marginTop: 8 },
+  footerLink: { fontFamily: fontFamily.uiMedium, fontSize: 13, color: palette.gold },
 });

@@ -23,6 +23,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.coinodyssey.mobile",
       "buildNumber": "1.0.0",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to camera to photograph coins for your collection.",
         "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select coin images.",
@@ -61,9 +62,10 @@
     },
     "plugins": [
       "expo-camera",
-      "expo-image-picker", 
+      "expo-image-picker",
       "expo-secure-store",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true

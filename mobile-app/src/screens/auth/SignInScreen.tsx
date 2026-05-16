@@ -1,10 +1,19 @@
-// src/screens/auth/SignInScreen.tsx
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import { Colors, Typography, Spacing } from '../../styles';
-import { Card, Input, Button } from '../../components/common';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Alert,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as AppleAuthentication from 'expo-apple-authentication';
+
+import { palette, fontFamily } from '../../theme';
+import { Button, Card, Field, Eyebrow } from '../../components/design';
 import { AuthService } from '../../services/auth';
 import { AuthStackScreenProps } from '../../types/navigation';
 import { Logger } from '../../services/logger';
@@ -12,179 +21,232 @@ import { Logger } from '../../services/logger';
 type Props = AuthStackScreenProps<'SignIn'>;
 
 export default function SignInScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+
+  useEffect(() => {
+    AuthService.isAppleAuthAvailable().then(setAppleAvailable);
+  }, []);
+
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    try {
+      const { error } = await AuthService.signInWithApple();
+      if (error) {
+        Alert.alert('Apple sign in failed', error.message);
+      }
+    } catch (err: any) {
+      // ERR_REQUEST_CANCELED is the expected cancel path — stay quiet.
+      if (err?.code !== 'ERR_REQUEST_CANCELED' && err?.code !== 'ERR_CANCELED') {
+        Logger.error('Apple sign in error', err);
+        Alert.alert('Apple sign in failed', err?.message ?? 'Please try again.');
+      }
+    } finally {
+      setAppleLoading(false);
+    }
+  };
 
   const handleSignIn = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!email.trim() || !password) {
+      Alert.alert('Missing details', 'Enter your email and password.');
       return;
     }
-
     setLoading(true);
     try {
-      const { data, error } = await AuthService.signIn(email, password);
-      
+      const { data, error } = await AuthService.signIn(email.trim(), password);
       if (error) {
-        Alert.alert('Sign In Failed', error.message);
+        Alert.alert('Sign in failed', error.message);
       } else if (data.user) {
         Logger.info('Sign in successful');
       }
-    } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred');
-      Logger.error('Sign in error', error);
+    } catch (err) {
+      Logger.error('Sign in error', err);
+      Alert.alert('Sign in failed', 'Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <LinearGradient 
-      colors={Colors.background.primary}
-      style={styles.container}
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 },
+        ]}
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.content}>
-          {/* Logo and Title Section */}
-          <View style={styles.header}>
-            <Text style={styles.coinEmoji}>🪙</Text>
-            <Text style={styles.appName}>Coin Odyssey</Text>
-            <Text style={styles.subtitle}>Welcome back to your collection</Text>
-          </View>
-
-          {/* Sign In Form */}
-          <BlurView intensity={60} style={styles.formContainer}>
-            <View style={styles.form}>
-              <Text style={styles.formTitle}>Sign In</Text>
-              
-              <Input
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-
-                style={styles.input}
-              />
-              
-              <Input
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-
-                style={styles.input}
-              />
-
-              <Button
-                title={loading ? "Signing In..." : "Sign In"}
-                onPress={handleSignIn}
-                disabled={loading}
-                style={styles.signInButton}
-              />
-
-              {/* Navigation Links */}
-              <View style={styles.linkContainer}>
-                <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-                  <Text style={styles.linkText}>Forgot Password?</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.signUpContainer}>
-                <Text style={styles.signUpText}>Don't have an account? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-                  <Text style={styles.signUpLink}>Sign Up</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </BlurView>
+        <View style={styles.brand}>
+          <View style={styles.brandDot} />
+          <Text style={styles.brandText}>COIN ODYSSEY</Text>
         </View>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+
+        <View style={styles.header}>
+          <Eyebrow>WELCOME BACK</Eyebrow>
+          <Text style={styles.title}>Sign in</Text>
+          <Text style={styles.subtitle}>Pick up where you left off.</Text>
+        </View>
+
+        <Card style={styles.card}>
+          <Field
+            label="EMAIL"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            textContentType="emailAddress"
+            placeholder="you@example.com"
+          />
+          <Field
+            label="PASSWORD"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete="password"
+            textContentType="password"
+            placeholder="••••••••"
+          />
+          <Pressable
+            onPress={() => navigation.navigate('ForgotPassword')}
+            hitSlop={6}
+            style={styles.forgotRow}
+          >
+            <Text style={styles.linkInline}>Forgot password?</Text>
+          </Pressable>
+          <Button
+            label={loading ? 'Signing in…' : 'Sign in'}
+            variant="gold"
+            onPress={handleSignIn}
+            disabled={loading}
+          />
+        </Card>
+
+        {appleAvailable && (
+          <View style={styles.altAuthBlock}>
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.dividerLine} />
+            </View>
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+              cornerRadius={999}
+              style={styles.appleButton}
+              onPress={() => {
+                if (!appleLoading) handleAppleSignIn();
+              }}
+            />
+          </View>
+        )}
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>New here?</Text>
+          <Pressable onPress={() => navigation.navigate('SignUp')} hitSlop={6}>
+            <Text style={styles.footerLink}>Create an account</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing['4xl'],
-    paddingVertical: Spacing['6xl'],
-  },
-  header: {
+  root: { flex: 1, backgroundColor: palette.bg },
+  scroll: { paddingHorizontal: 24, gap: 24 },
+
+  brand: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing['4xl'],
+    gap: 8,
   },
-  coinEmoji: {
-    fontSize: 64,
-    marginBottom: Spacing.md,
+  brandDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: palette.gold,
   },
-  appName: {
-    fontSize: Typography.fontSize['3xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.gold,
-    marginBottom: Spacing.xs,
+  brandText: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10.5,
+    letterSpacing: 2,
+    color: palette.fg2,
+  },
+
+  header: { gap: 6 },
+  title: {
+    fontFamily: fontFamily.display,
+    fontSize: 36,
+    color: palette.fg,
+    letterSpacing: -0.8,
+    marginTop: 4,
   },
   subtitle: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.text.secondary,
-    textAlign: 'center',
+    fontFamily: fontFamily.ui,
+    fontSize: 14,
+    color: palette.fg3,
+    marginTop: 4,
   },
-  formContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    overflow: 'hidden',
+
+  card: {
+    padding: 18,
+    gap: 14,
   },
-  form: {
-    padding: Spacing['2xl'],
+
+  forgotRow: {
+    alignSelf: 'flex-end',
+    paddingVertical: 2,
   },
-  formTitle: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    textAlign: 'center',
-    marginBottom: Spacing['2xl'],
+  linkInline: {
+    fontFamily: fontFamily.ui,
+    fontSize: 12.5,
+    color: palette.gold,
   },
-  input: {
-    marginBottom: Spacing.lg,
+
+  altAuthBlock: {
+    gap: 14,
   },
-  signInButton: {
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.xl,
-  },
-  linkContainer: {
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  linkText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.primary.gold,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  signUpContainer: {
+  dividerRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
+    gap: 10,
   },
-  signUpText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
+  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: palette.line },
+  dividerText: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10,
+    color: palette.fg4,
+    letterSpacing: 1.4,
   },
-  signUpLink: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.primary.gold,
-    fontWeight: Typography.fontWeight.bold,
+  appleButton: {
+    width: '100%',
+    height: 46,
+  },
+
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  footerText: {
+    fontFamily: fontFamily.ui,
+    fontSize: 13,
+    color: palette.fg3,
+  },
+  footerLink: {
+    fontFamily: fontFamily.uiMedium,
+    fontSize: 13,
+    color: palette.gold,
   },
 });
