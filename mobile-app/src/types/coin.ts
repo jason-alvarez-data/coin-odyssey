@@ -11,6 +11,8 @@ export interface Coin extends BaseCoin {
   releaseDate: string | null;
   certificationNumber: string | null;
   gradingService: string | null;
+  /** True when this coin has been queued in offline storage and is waiting to sync. */
+  offlinePending?: boolean;
 }
 
 // Re-export everything else from shared

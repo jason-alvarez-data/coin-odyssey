@@ -1,71 +1,82 @@
 // src/services/storage.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Coin } from '../types/coin';
-import { supabase } from './supabase';
-import { CoinService } from './coinService';
 import { Logger } from './logger';
 
+/**
+ * The raw payload we replay through CoinService.createCoin once online.
+ * Mirrors CreateCoinData but only the subset we actually queue.
+ */
+export interface PendingCreateCoinData {
+  name: string;
+  year: number;
+  denomination: string;
+  country?: string;
+  mintMark?: string;
+  grade?: string;
+  series?: string;
+  designer?: string;
+  faceValue?: number;
+  purchasePrice?: number;
+  purchaseDate?: string;
+  notes?: string;
+  obverseImage?: string;
+  reverseImage?: string;
+}
+
+export interface PendingCoin {
+  uuid: string;
+  queuedAt: number; // ms epoch
+  retryCount: number;
+  lastError?: string;
+  data: PendingCreateCoinData;
+}
+
+const STORAGE_KEY = 'offline_pending_coins_v2';
+
+function uuid(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export class OfflineStorage {
-  private static readonly OFFLINE_COINS_KEY = 'offline_coins';
-  private static readonly OFFLINE_CHANGES_KEY = 'offline_changes';
-
-  static async saveCoin(coin: Omit<Coin, 'id'>) {
-    const offlineCoins = await this.getOfflineCoins();
-    const coinWithOfflineFlag = { 
-      ...coin, 
-      id: `offline_${Date.now()}`,
-      offline: true, 
-      timestamp: Date.now() 
+  static async queuePendingCoin(data: PendingCreateCoinData): Promise<PendingCoin> {
+    const list = await this.getPendingCoins();
+    const entry: PendingCoin = {
+      uuid: uuid(),
+      queuedAt: Date.now(),
+      retryCount: 0,
+      data,
     };
-    
-    offlineCoins.push(coinWithOfflineFlag);
-    await AsyncStorage.setItem(this.OFFLINE_COINS_KEY, JSON.stringify(offlineCoins));
-    return coinWithOfflineFlag.id;
+    list.push(entry);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    Logger.info('Queued pending coin', { uuid: entry.uuid, queueSize: list.length });
+    return entry;
   }
 
-  static async getOfflineCoins(): Promise<(Coin & { offline?: boolean; timestamp?: number })[]> {
-    const coinsJson = await AsyncStorage.getItem(this.OFFLINE_COINS_KEY);
-    return coinsJson ? JSON.parse(coinsJson) : [];
-  }
-
-  static async syncOfflineData() {
-    const offlineCoins = await this.getOfflineCoins();
-    const syncedIds: string[] = [];
-    
-    for (const coin of offlineCoins) {
-      try {
-        const { id, offline, timestamp, ...coinData } = coin;
-        const dbData = CoinService.mapCoinToSupabase(coinData as Partial<Coin>);
-        const { data, error } = await supabase.from('coins').insert(dbData);
-        
-        if (!error) {
-          syncedIds.push(id);
-        }
-      } catch (error) {
-        Logger.error('Sync error for coin: ' + coin.id, error);
-      }
+  static async getPendingCoins(): Promise<PendingCoin[]> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as PendingCoin[]) : [];
+    } catch (err) {
+      Logger.error('Failed to read pending coins', err);
+      return [];
     }
-
-    // Remove synced coins from offline storage
-    const remainingCoins = offlineCoins.filter(coin => !syncedIds.includes(coin.id));
-    await AsyncStorage.setItem(this.OFFLINE_COINS_KEY, JSON.stringify(remainingCoins));
-    
-    return { synced: syncedIds.length, remaining: remainingCoins.length };
   }
 
-  static async clearOfflineData() {
-    await AsyncStorage.removeItem(this.OFFLINE_COINS_KEY);
-    await AsyncStorage.removeItem(this.OFFLINE_CHANGES_KEY);
+  static async removePendingCoin(uuid: string): Promise<void> {
+    const list = await this.getPendingCoins();
+    const next = list.filter((p) => p.uuid !== uuid);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
 
-  static async getPendingChanges() {
-    const changesJson = await AsyncStorage.getItem(this.OFFLINE_CHANGES_KEY);
-    return changesJson ? JSON.parse(changesJson) : [];
+  static async markPendingFailure(uuid: string, error: string): Promise<void> {
+    const list = await this.getPendingCoins();
+    const next = list.map((p) =>
+      p.uuid === uuid ? { ...p, retryCount: p.retryCount + 1, lastError: error } : p
+    );
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
 
-  static async markChangeAsSynced(changeId: string) {
-    const changes = await this.getPendingChanges();
-    const updatedChanges = changes.filter((change: any) => change.id !== changeId);
-    await AsyncStorage.setItem(this.OFFLINE_CHANGES_KEY, JSON.stringify(updatedChanges));
+  static async clearAllPending(): Promise<void> {
+    await AsyncStorage.removeItem(STORAGE_KEY);
   }
 }

@@ -3,6 +3,8 @@ import { supabase } from './supabase';
 import { Coin } from '../types/coin';
 import { Logger } from './logger';
 import { ErrorService } from './errorService';
+import { OfflineStorage, PendingCoin, PendingCreateCoinData } from './storage';
+import { OfflineSyncService } from './offlineSyncService';
 
 interface CreateCoinData {
   name: string;
@@ -239,7 +241,67 @@ export class CoinService {
    *   purchasePrice: 45.00,
    * });
    */
+  /**
+   * Build a synthesized Coin object from a queued PendingCoin so callers can render
+   * it immediately while it waits to sync.
+   */
+  static pendingToCoin(entry: PendingCoin): Coin {
+    const d = entry.data;
+    return {
+      id: `offline-${entry.uuid}`,
+      name: d.name,
+      title: '',
+      year: d.year,
+      mintMark: d.mintMark ?? null,
+      grade: d.grade ?? null,
+      faceValue: d.faceValue ?? null,
+      purchasePrice: d.purchasePrice ?? null,
+      currentMarketValue: null,
+      lastValueUpdate: null,
+      pcgsId: null,
+      createdAt: new Date(entry.queuedAt).toISOString(),
+      updatedAt: new Date(entry.queuedAt).toISOString(),
+      userId: '',
+      collectionId: '',
+      denomination: d.denomination,
+      purchaseDate: d.purchaseDate ?? null,
+      personalValue: null,
+      lastAppraisalValue: null,
+      lastAppraisalDate: null,
+      mintage: null,
+      rarityScale: null,
+      historicalNotes: null,
+      varietyNotes: null,
+      notes: d.notes ?? null,
+      images: null,
+      obverseImage: d.obverseImage ?? null,
+      reverseImage: d.reverseImage ?? null,
+      country: d.country ?? null,
+      series: d.series ?? null,
+      seriesId: null,
+      specificCoinId: null,
+      specificCoinName: null,
+      designer: d.designer ?? null,
+      theme: null,
+      honoree: null,
+      releaseDate: null,
+      certificationNumber: null,
+      gradingService: null,
+      offlinePending: true,
+    };
+  }
+
   static async createCoin(coinData: CreateCoinData): Promise<Coin> {
+    // Pre-flight offline check. If we already know we're offline, queue without
+    // burning a doomed network round-trip.
+    const online = await OfflineSyncService.isOnline();
+    if (!online) {
+      Logger.info('Offline — queueing coin for later sync', { name: coinData.name });
+      const entry = await OfflineStorage.queuePendingCoin(coinData as PendingCreateCoinData);
+      await OfflineSyncService.refreshPendingCount();
+      return this.pendingToCoin(entry);
+    }
+
     try {
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -293,6 +355,20 @@ export class CoinService {
 
       return coin;
     } catch (error) {
+      // If this looks like a transient connectivity failure, queue it and return a
+      // synthesized coin. The user keeps their work; the queue will flush on reconnect.
+      const msg = error instanceof Error ? error.message.toLowerCase() : '';
+      const looksLikeNetwork =
+        msg.includes('network') ||
+        msg.includes('fetch') ||
+        msg.includes('connection') ||
+        msg.includes('timeout');
+      if (looksLikeNetwork) {
+        Logger.warn('Network failure during createCoin — queueing for later sync', { msg });
+        const entry = await OfflineStorage.queuePendingCoin(coinData as PendingCreateCoinData);
+        await OfflineSyncService.refreshPendingCount();
+        return this.pendingToCoin(entry);
+      }
       Logger.error('Failed to create coin', error);
       throw error;
     }
@@ -420,5 +496,52 @@ export class CoinService {
     if (error) {
       throw new Error(`Failed to delete coin: ${error.message}`);
     }
+  }
+
+  /**
+   * Subscribe to realtime changes on the coins table for a user.
+   * Returns an unsubscribe function. The listener receives the raw postgres_changes payload
+   * (event: INSERT/UPDATE/DELETE) plus a mapped Coin for convenience.
+   */
+  static subscribeToCoins(
+    userId: string,
+    listener: (payload: {
+      event: 'INSERT' | 'UPDATE' | 'DELETE';
+      coin: Coin | null;
+      oldCoin: Coin | null;
+    }) => void
+  ): () => void {
+    // Note: the coins table is scoped via collection_id -> collections.user_id, so we cannot
+    // use a postgres_changes filter on user_id here. RLS on the table restricts the rows the
+    // current user can see, which is what scopes realtime events for us.
+    const channel = supabase
+      .channel(`coins_${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'coins',
+        },
+        (payload) => {
+          try {
+            const eventType = payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE';
+            const coin = payload.new ? this.mapSupabaseToCoin(payload.new) : null;
+            const oldCoin = payload.old ? this.mapSupabaseToCoin(payload.old) : null;
+            listener({ event: eventType, coin, oldCoin });
+          } catch (err) {
+            Logger.error('Realtime payload mapping failed', err);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      try {
+        channel.unsubscribe();
+      } catch (err) {
+        Logger.error('Failed to unsubscribe coins channel', err);
+      }
+    };
   }
 }
