@@ -1,7 +1,19 @@
 import { supabase } from './supabase';
-import { CoinRecognitionResult, RecognitionAPIResponse } from '../types/recognition';
+import {
+  CoinRecognitionResult,
+  RecognitionAPIResponse,
+  RecognitionErrorCode,
+} from '../types/recognition';
 import { Logger } from './logger';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+
+export class RecognitionError extends Error {
+  code: RecognitionErrorCode;
+  constructor(message: string, code: RecognitionErrorCode) {
+    super(message);
+    this.code = code;
+  }
+}
 
 export class CoinRecognitionService {
   /**
@@ -55,13 +67,19 @@ export class CoinRecognitionService {
 
     if (error) {
       Logger.error('Coin recognition edge function error', error);
-      throw new Error('Recognition service unavailable. Please try again.');
+      throw new RecognitionError(
+        'Recognition service unavailable. Please try again.',
+        'service_unavailable'
+      );
     }
 
     const response = data as RecognitionAPIResponse;
 
     if (!response.success || !response.result) {
-      throw new Error(response.error ?? 'Recognition failed');
+      throw new RecognitionError(
+        response.error ?? 'Recognition failed',
+        response.code ?? 'unknown'
+      );
     }
 
     Logger.info('Coin recognized', {

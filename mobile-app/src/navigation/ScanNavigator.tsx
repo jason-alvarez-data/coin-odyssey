@@ -6,8 +6,8 @@ import ScanReviewScreen from '../screens/scan/ScanReviewScreen';
 
 export type ScanStackParamList = {
   ScanCapture: undefined;
-  ScanPipeline: undefined;
-  ScanReview: undefined;
+  ScanPipeline: { obverseUri: string; reverseUri: string };
+  ScanReview: { result: import('../services/scanPipeline').ScanResult };
 };
 
 const Stack = createStackNavigator<ScanStackParamList>();

@@ -28,16 +28,24 @@ The JSON object must have exactly these keys:
 - mintMark: string or null (single letter or symbol visible on coin, e.g. "D", "S", "W", "P")
 - composition: string or null (e.g. "Copper-Nickel Clad", "90% Silver", "Bronze", "Zinc Core")
 - confidence: one of exactly "high", "medium", "low", or "unrecognized"
+- grade: string or null — Sheldon-scale grade estimate based on visible wear, luster, strike, and surface marks. Use standard PCGS/NGC notation. Examples: "MS-65", "AU-58", "XF-45", "VF-30", "F-15", "VG-10", "G-6", "PR-65". Return null only if the coin is unrecognizable or the image is too poor to judge condition.
+- gradeConfidence: one of exactly "high", "medium", "low", or "unrecognized" — how confident you are in the grade estimate. Photo-based grading is inherently approximate; bias toward "medium" or "low" unless the image clearly shows surface detail.
 - notes: string or null (brief observation about condition, variety, or anything useful for cataloging)
 
-Confidence guidelines:
+Confidence guidelines (for identification):
 - "high": You can clearly identify denomination, year, and country with certainty
 - "medium": You can identify most fields but one or two are unclear or estimated
 - "low": The coin is worn, damaged, or partially visible; you can make educated guesses only
 - "unrecognized": The image quality is too poor, or the coin is too obscure to identify meaningfully
 
+Grade confidence guidelines:
+- "high": Surface detail, luster, and wear are clearly visible; you are confident in the grade within a couple of Sheldon points
+- "medium": Some details are clear; grade estimate is reasonable but could be off by 5–10 points
+- "low": Lighting, glare, or focus obscure the surfaces; the grade is a rough estimate
+- "unrecognized": You cannot judge the grade meaningfully
+
 Example of a valid response:
-{"denomination":"Quarter Dollar","year":1965,"country":"United States","currency":"USD","mintMark":null,"composition":"Copper-Nickel Clad","confidence":"high","notes":"Washington Quarter, clad composition introduced this year replacing silver"}`;
+{"denomination":"Quarter Dollar","year":1965,"country":"United States","currency":"USD","mintMark":null,"composition":"Copper-Nickel Clad","confidence":"high","grade":"AU-55","gradeConfidence":"medium","notes":"Washington Quarter, clad composition introduced this year replacing silver"}`;
 
 Deno.serve(async (req: Request) => {
   // CORS headers for mobile/web clients
@@ -132,7 +140,7 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 256,
+        max_tokens: 384,
         system: [
           {
             type: "text",
@@ -146,10 +154,26 @@ Deno.serve(async (req: Request) => {
 
     if (!anthropicResponse.ok) {
       const errorText = await anthropicResponse.text();
-      console.error("Anthropic API error:", errorText);
+      console.error("Anthropic API error:", anthropicResponse.status, errorText);
+
+      if (anthropicResponse.status === 429) {
+        return Response.json(
+          {
+            success: false,
+            code: "rate_limit",
+            error: "Recognition service is busy. Please try again in a few minutes.",
+          },
+          { status: 200, headers: { "Access-Control-Allow-Origin": "*" } }
+        );
+      }
+
       return Response.json(
-        { success: false, error: "Recognition service unavailable. Please try again." },
-        { status: 500 }
+        {
+          success: false,
+          code: "service_unavailable",
+          error: "Recognition service unavailable. Please try again.",
+        },
+        { status: 200, headers: { "Access-Control-Allow-Origin": "*" } }
       );
     }
 
@@ -178,6 +202,8 @@ Deno.serve(async (req: Request) => {
           mintMark: null,
           composition: null,
           confidence: "unrecognized",
+          grade: null,
+          gradeConfidence: "unrecognized",
           notes: null,
           error: "Failed to parse recognition response",
         },

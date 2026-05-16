@@ -28,14 +28,14 @@ export type DashboardStackParamList = {
 
 export type ScanStackParamList = {
   ScanCapture: undefined;
-  ScanPipeline: undefined;
-  ScanReview: undefined;
+  ScanPipeline: { obverseUri: string; reverseUri: string };
+  ScanReview: { result: import('../services/scanPipeline').ScanResult };
 };
 
 export type CollectionStackParamList = {
   CollectionList: undefined;
   CoinDetail: { coin: any };
-  AddCoin: undefined;
+  AddCoin: { initialImages?: { obverseUri?: string; reverseUri?: string } } | undefined;
   EditCoin: { coinId: string };
 };
 

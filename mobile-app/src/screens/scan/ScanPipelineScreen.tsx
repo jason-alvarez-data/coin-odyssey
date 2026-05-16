@@ -6,52 +6,100 @@ import {
   ScrollView,
   Animated,
   Easing,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 
-import { palette, fontFamily } from '../../theme';
-import { CoinDisc, Icon, Eyebrow } from '../../components/design';
+import { palette, fontFamily, radius } from '../../theme';
+import { CoinDisc, Icon, Eyebrow, Button } from '../../components/design';
+import { ScanStackParamList } from '../../types/navigation';
+import {
+  runScan,
+  StageId,
+  StageState,
+  StageUpdate,
+  PipelineError,
+} from '../../services/scanPipeline';
 
 interface StageDef {
   title: string;
   detail: string;
-  result: string;
 }
 
-const STAGES: StageDef[] = [
-  { title: 'Identifying coin',   detail: 'Vision · Claude Haiku',                 result: 'Mexico · 20 Centavos · 1943' },
-  { title: 'Estimating grade',   detail: 'Sheldon scale · wear, luster, strike',  result: 'VF-30 · medium confidence' },
-  { title: 'Looking up value',   detail: 'PCGS price guide',                       result: '$18.20 · updated 11 May 2026' },
-  { title: 'Cataloging entry',   detail: 'Saving to your collection',              result: 'Added to collection' },
+const STAGE_DEFS: StageDef[] = [
+  { title: 'Identifying coin', detail: 'Vision · Claude Haiku' },
+  { title: 'Estimating grade', detail: 'Sheldon scale · wear, luster, strike' },
+  { title: 'Looking up value', detail: 'PCGS price guide' },
+  { title: 'Cataloging entry', detail: 'Saving to your collection' },
 ];
 
-const STAGE_DURATIONS = [900, 1100, 1000, 900];
+interface StageView {
+  state: StageState;
+  resultText?: string;
+}
 
 export default function ScanPipelineScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
-  const [stage, setStage] = useState(0);
+  const route = useRoute<RouteProp<ScanStackParamList, 'ScanPipeline'>>();
+  const { obverseUri, reverseUri } = route.params;
+
+  const [stages, setStages] = useState<StageView[]>([
+    { state: 'pending' },
+    { state: 'pending' },
+    { state: 'pending' },
+    { state: 'pending' },
+  ]);
+  const [error, setError] = useState<PipelineError | null>(null);
+  const [done, setDone] = useState(false);
+
   const spin = useRef(new Animated.Value(0)).current;
+  const cancelled = useRef(false);
 
   useEffect(() => {
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    let t = 0;
-    STAGE_DURATIONS.forEach((d, i) => {
-      t += d;
-      timers.push(setTimeout(() => setStage(i + 1), t));
-    });
-    return () => timers.forEach(clearTimeout);
-  }, []);
+    cancelled.current = false;
+    setError(null);
+    setDone(false);
+    setStages([
+      { state: 'pending' },
+      { state: 'pending' },
+      { state: 'pending' },
+      { state: 'pending' },
+    ]);
 
-  useEffect(() => {
-    if (stage >= 4) {
-      const t = setTimeout(() => {
-        navigation.replace('ScanReview');
-      }, 700);
-      return () => clearTimeout(t);
-    }
-  }, [stage, navigation]);
+    const onProgress = (u: StageUpdate) => {
+      if (cancelled.current) return;
+      setStages((prev) => {
+        const next = [...prev];
+        next[u.stage - 1] = {
+          state: u.state,
+          resultText: u.resultText ?? next[u.stage - 1].resultText,
+        };
+        return next;
+      });
+    };
+
+    runScan({ obverseUri, reverseUri, onProgress })
+      .then((result) => {
+        if (cancelled.current) return;
+        setDone(true);
+        const t = setTimeout(() => {
+          if (!cancelled.current) navigation.replace('ScanReview', { result });
+        }, 600);
+        return () => clearTimeout(t);
+      })
+      .catch((err) => {
+        if (cancelled.current) return;
+        if (err instanceof PipelineError) setError(err);
+        else setError(new PipelineError('unknown', 1, err?.message ?? 'Scan failed.'));
+      });
+
+    return () => {
+      cancelled.current = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [obverseUri, reverseUri]);
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -68,14 +116,20 @@ export default function ScanPipelineScreen() {
 
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
+  const activeStageIdx = stages.findIndex((s) => s.state === 'active');
+  const allDone = stages.every((s) => s.state === 'done' || s.state === 'warn');
+  const title = error
+    ? 'Scan paused.'
+    : done || allDone
+    ? 'Done. Review below.'
+    : 'One moment…';
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
         <View style={styles.header}>
-          <Eyebrow>SCANNING</Eyebrow>
-          <Text style={styles.title}>
-            {stage < 4 ? 'One moment…' : 'Done. Review below.'}
-          </Text>
+          <Eyebrow>{error ? 'SCAN ERROR' : 'SCANNING'}</Eyebrow>
+          <Text style={styles.title}>{title}</Text>
         </View>
 
         {/* Spinning coin */}
@@ -84,11 +138,11 @@ export default function ScanPipelineScreen() {
             <Animated.View
               style={[
                 styles.coinSpinRing,
-                { transform: stage < 4 ? [{ rotate }] : [] },
+                { transform: activeStageIdx >= 0 ? [{ rotate }] : [] },
               ]}
             />
-            <CoinDisc size={140} label="OBV" tone="copper" />
-            {stage >= 1 && (
+            <CoinDisc size={140} label="OBV" tone="copper" imageSource={{ uri: obverseUri }} />
+            {(allDone || done) && !error && (
               <View style={styles.checkBadge}>
                 <Icon name="check" size={18} color={palette.goldFg} stroke={2.4} />
               </View>
@@ -98,33 +152,41 @@ export default function ScanPipelineScreen() {
 
         {/* Stage list */}
         <View style={styles.stageList}>
-          {STAGES.map((s, i) => {
-            const state: 'done' | 'active' | 'queued' =
-              i < stage ? 'done' : i === stage ? 'active' : 'queued';
+          {STAGE_DEFS.map((s, i) => {
+            const stage = stages[i];
             return (
               <View key={i}>
                 <View style={styles.stage}>
-                  <StageBullet state={state} />
+                  <StageBullet state={stage.state} />
                   <View style={styles.stageBody}>
                     <Text
                       style={[
                         styles.stageTitle,
-                        state === 'queued' && { color: palette.fg4 },
+                        stage.state === 'pending' && { color: palette.fg4 },
                       ]}
                     >
                       {s.title}
                     </Text>
-                    <Text style={styles.stageDetail}>
-                      {state === 'done' ? s.result : s.detail}
+                    <Text
+                      style={[
+                        styles.stageDetail,
+                        stage.state === 'warn' && { color: palette.cMed },
+                        stage.state === 'error' && { color: palette.cLow },
+                      ]}
+                    >
+                      {stage.state === 'done' || stage.state === 'warn' || stage.state === 'error'
+                        ? stage.resultText ?? s.detail
+                        : s.detail}
                     </Text>
                   </View>
-                  {state === 'active' && <ActiveSpinner />}
+                  {stage.state === 'active' && <ActiveSpinner />}
                 </View>
-                {i < STAGES.length - 1 && (
+                {i < STAGE_DEFS.length - 1 && (
                   <View
                     style={[
                       styles.stageConnector,
-                      i < stage && { backgroundColor: palette.gold },
+                      stage.state === 'done' && { backgroundColor: palette.gold },
+                      stage.state === 'warn' && { backgroundColor: palette.cMed },
                     ]}
                   />
                 )}
@@ -132,24 +194,98 @@ export default function ScanPipelineScreen() {
             );
           })}
         </View>
+
+        {error && (
+          <View style={styles.errorBlock}>
+            <View style={styles.errorCard}>
+              <Icon
+                name={error.type === 'unrecognized' ? 'info' : 'warning'}
+                size={16}
+                color={palette.cLow}
+              />
+              <Text style={styles.errorMessage}>{error.message}</Text>
+            </View>
+            <View style={styles.errorActions}>
+              {error.type === 'unrecognized' ? (
+                <>
+                  <Button
+                    label="Add manually"
+                    variant="gold"
+                    onPress={() =>
+                      navigation.getParent()?.navigate('Collection', {
+                        screen: 'AddCoin',
+                        params: { initialImages: { obverseUri, reverseUri } },
+                      })
+                    }
+                    flex={1.2}
+                  />
+                  <Button
+                    label="Retake"
+                    variant="ghost"
+                    onPress={() => navigation.popToTop()}
+                    flex={1}
+                  />
+                </>
+              ) : error.type === 'rate_limit' ? (
+                <Button
+                  label="Back"
+                  variant="ghost"
+                  onPress={() => navigation.popToTop()}
+                  flex={1}
+                />
+              ) : (
+                <>
+                  <Button
+                    label="Try again"
+                    variant="gold"
+                    onPress={() =>
+                      navigation.replace('ScanPipeline', { obverseUri, reverseUri })
+                    }
+                    flex={1}
+                  />
+                  <Button
+                    label="Back"
+                    variant="ghost"
+                    onPress={() => navigation.popToTop()}
+                    flex={1}
+                  />
+                </>
+              )}
+            </View>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
 }
 
-function StageBullet({ state }: { state: 'done' | 'active' | 'queued' }) {
+function StageBullet({ state }: { state: StageState }) {
+  const isDone = state === 'done';
+  const isWarn = state === 'warn';
+  const isError = state === 'error';
+  const isActive = state === 'active';
   return (
     <View
       style={[
         styles.bullet,
-        state === 'done' && { backgroundColor: palette.gold, borderColor: palette.gold },
-        state === 'active' && { borderColor: palette.gold },
+        isDone && { backgroundColor: palette.gold, borderColor: palette.gold },
+        isWarn && { backgroundColor: palette.cMed, borderColor: palette.cMed },
+        isError && { backgroundColor: palette.cLow, borderColor: palette.cLow },
+        isActive && { borderColor: palette.gold },
       ]}
     >
-      {state === 'done' && <Icon name="check" size={12} color={palette.goldFg} stroke={2.6} />}
-      {state === 'active' && <View style={[styles.bulletInnerDot, { backgroundColor: palette.gold }]} />}
-      {state === 'queued' && (
-        <View style={[styles.bulletInnerDot, { backgroundColor: palette.fg4, width: 4, height: 4, borderRadius: 2 }]} />
+      {(isDone || isWarn) && (
+        <Icon name="check" size={12} color={palette.goldFg} stroke={2.6} />
+      )}
+      {isError && <Icon name="x" size={12} color={palette.goldFg} stroke={2.6} />}
+      {isActive && <View style={[styles.bulletInnerDot, { backgroundColor: palette.gold }]} />}
+      {state === 'pending' && (
+        <View
+          style={[
+            styles.bulletInnerDot,
+            { backgroundColor: palette.fg4, width: 4, height: 4, borderRadius: 2 },
+          ]}
+        />
       )}
     </View>
   );
@@ -170,21 +306,20 @@ function ActiveSpinner() {
     return () => loop.stop();
   }, [spin]);
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
-  return (
-    <Animated.View
-      style={[
-        styles.activeSpinner,
-        { transform: [{ rotate }] },
-      ]}
-    />
-  );
+  return <Animated.View style={[styles.activeSpinner, { transform: [{ rotate }] }]} />;
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: palette.bg },
 
   header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28 },
-  title: { fontFamily: fontFamily.display, fontSize: 26, color: palette.fg, letterSpacing: -0.5, marginTop: 6 },
+  title: {
+    fontFamily: fontFamily.display,
+    fontSize: 26,
+    color: palette.fg,
+    letterSpacing: -0.5,
+    marginTop: 6,
+  },
 
   coinWrap: { paddingHorizontal: 20, paddingBottom: 28, alignItems: 'center' },
   coinPositioner: { width: 140, height: 140, alignItems: 'center', justifyContent: 'center' },
@@ -233,5 +368,32 @@ const styles = StyleSheet.create({
     width: 1, height: 18,
     backgroundColor: palette.line,
     marginLeft: 11,
+  },
+
+  errorBlock: {
+    paddingHorizontal: 20,
+    gap: 12,
+    marginTop: 8,
+  },
+  errorCard: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+    padding: 14,
+    borderRadius: radius.base,
+    borderWidth: 1,
+    borderColor: palette.cLow,
+    backgroundColor: palette.bg2,
+  },
+  errorMessage: {
+    flex: 1,
+    fontFamily: fontFamily.ui,
+    fontSize: 13,
+    color: palette.fg,
+    lineHeight: 18,
+  },
+  errorActions: {
+    flexDirection: 'row',
+    gap: 10,
   },
 });

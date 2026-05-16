@@ -1,23 +1,28 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 
 import { palette, fontFamily, radius } from '../../theme';
 import {
   Card,
-  CoinDisc,
   ConfBadge,
   ConfLevel,
   Icon,
   Eyebrow,
   Button,
 } from '../../components/design';
+import { ScanStackParamList } from '../../types/navigation';
+import { RecognitionConfidence } from '../../types/recognition';
+import { useCurrency } from '../../contexts/CurrencyContext';
+
+const DISCLAIMER_THRESHOLD_USD = 200;
 
 interface FieldDef {
   label: string;
@@ -28,50 +33,155 @@ interface FieldDef {
   placeholder?: boolean;
 }
 
-const FIELDS: FieldDef[] = [
-  { label: 'COUNTRY',         value: 'Mexico',           level: 'h', score: 0.96 },
-  { label: 'YEAR',            value: '1943',             level: 'h', score: 0.92 },
-  { label: 'DENOMINATION',    value: '20 Centavos',      level: 'h', score: 0.94 },
-  { label: 'MINT MARK',       value: 'Mo · Mexico City', level: 'm', score: 0.71 },
-  { label: 'SERIES',          value: 'Josefa',           level: 'm', score: 0.68 },
-  { label: 'COMPOSITION',     value: 'Bronze',           level: 'h', score: 0.88 },
-  { label: 'ESTIMATED GRADE', value: 'VF-30',            level: 'm', score: 0.64 },
-  {
-    label: 'MARKET VALUE',
-    value: '$18.20',
-    level: 'h',
-    score: 0.89,
-    sub: 'PCGS · updated 11 May 2026',
-  },
-  { label: 'DIAMETER', value: '—', level: 'n', score: 0, placeholder: true },
-  { label: 'MASS',     value: '—', level: 'n', score: 0, placeholder: true },
-];
+function confToLevel(c: RecognitionConfidence | 'high' | 'medium' | 'low' | undefined): ConfLevel {
+  switch (c) {
+    case 'high':
+      return 'h';
+    case 'medium':
+      return 'm';
+    case 'low':
+      return 'l';
+    default:
+      return 'n';
+  }
+}
+
+function confToScore(c: RecognitionConfidence | 'high' | 'medium' | 'low' | undefined): number {
+  switch (c) {
+    case 'high':
+      return 0.9;
+    case 'medium':
+      return 0.7;
+    case 'low':
+      return 0.4;
+    default:
+      return 0;
+  }
+}
+
+function buildField(
+  label: string,
+  raw: string | number | null | undefined,
+  conf: RecognitionConfidence | 'high' | 'medium' | 'low' | undefined,
+  sub?: string
+): FieldDef {
+  const has = raw !== null && raw !== undefined && String(raw).trim() !== '';
+  return {
+    label,
+    value: has ? String(raw) : '—',
+    level: has ? confToLevel(conf) : 'n',
+    score: has ? confToScore(conf) : 0,
+    sub: has ? sub : undefined,
+    placeholder: !has,
+  };
+}
 
 export default function ScanReviewScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
+  const route = useRoute<RouteProp<ScanStackParamList, 'ScanReview'>>();
+  const { result } = route.params;
+  const { recognition, pricing, estimatedValue, coin, obverseUri, reverseUri } = result;
+  const { format: formatCurrency } = useCurrency();
 
-  const onSave = () => {
-    navigation.getParent()?.navigate('Collection');
-  };
+  const titleLine = useMemo(() => {
+    const parts = [recognition.country, recognition.denomination].filter(Boolean);
+    return parts.join(' · ') || coin.name || 'Untitled coin';
+  }, [recognition, coin]);
+
+  const subtitleLine = useMemo(() => {
+    const parts = [
+      recognition.year ? String(recognition.year) : null,
+      recognition.composition,
+      recognition.grade,
+    ].filter(Boolean);
+    return parts.length ? parts.join(' · ').toUpperCase() : null;
+  }, [recognition]);
+
+  const eyebrowText = useMemo(() => {
+    const pct = Math.round(confToScore(recognition.confidence) * 100);
+    const prefix =
+      recognition.confidence === 'high'
+        ? '✓ IDENTIFIED'
+        : recognition.confidence === 'medium'
+        ? '~ IDENTIFIED'
+        : 'TENTATIVE';
+    return `${prefix} · ${pct}%`;
+  }, [recognition]);
+
+  const eyebrowColor =
+    recognition.confidence === 'high'
+      ? palette.cHigh
+      : recognition.confidence === 'medium'
+      ? palette.cMed
+      : palette.cLow;
+
+  const fields: FieldDef[] = useMemo(() => {
+    const base: FieldDef[] = [
+      buildField('COUNTRY', recognition.country, recognition.confidence),
+      buildField('YEAR', recognition.year, recognition.confidence),
+      buildField('DENOMINATION', recognition.denomination, recognition.confidence),
+      buildField('MINT MARK', recognition.mintMark, recognition.confidence),
+      buildField('COMPOSITION', recognition.composition, recognition.confidence),
+      buildField('ESTIMATED GRADE', recognition.grade, recognition.gradeConfidence),
+    ];
+
+    if (estimatedValue != null && pricing) {
+      const sub =
+        pricing.source === 'pcgs'
+          ? `PCGS · ${new Date(pricing.lastUpdated).toLocaleDateString()}`
+          : `${pricing.source} · estimate`;
+      base.push({
+        label: 'MARKET VALUE',
+        value: formatCurrency(estimatedValue),
+        level: confToLevel(pricing.confidence),
+        score: confToScore(pricing.confidence),
+        sub,
+      });
+    } else {
+      base.push({
+        label: 'MARKET VALUE',
+        value: '—',
+        level: 'n',
+        score: 0,
+        placeholder: true,
+      });
+    }
+
+    return base;
+  }, [recognition, pricing, estimatedValue]);
+
+  const showDisclaimer =
+    (estimatedValue ?? 0) >= DISCLAIMER_THRESHOLD_USD;
+
   const onEdit = () => {
-    navigation.goBack();
+    navigation.getParent()?.navigate('Collection', {
+      screen: 'EditCoin',
+      params: { coinId: coin.id },
+    });
+  };
+
+  const onDone = () => {
+    navigation.getParent()?.navigate('Collection');
   };
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
         <View style={styles.header}>
-          <Eyebrow color={palette.cHigh}>✓ IDENTIFIED · 96%</Eyebrow>
-          <Text style={styles.title}>Mexico · 20 Centavos</Text>
-          <Text style={styles.subtitle}>1943 · BRONZE · JOSEFA SERIES</Text>
+          <Eyebrow color={eyebrowColor}>{eyebrowText}</Eyebrow>
+          <Text style={styles.title}>{titleLine}</Text>
+          {subtitleLine && <Text style={styles.subtitle}>{subtitleLine}</Text>}
         </View>
 
-        {/* Coin pair */}
+        {/* Coin pair — real captured images */}
         <View style={styles.coinPair}>
-          {(['OBV', 'REV'] as const).map((side) => (
+          {([
+            { side: 'OBV', uri: obverseUri },
+            { side: 'REV', uri: reverseUri },
+          ] as const).map(({ side, uri }) => (
             <View key={side} style={styles.coinSlot}>
-              <CoinDisc size={96} label={side} tone="copper" />
+              <Image source={{ uri }} style={styles.coinImage} />
               <Text style={styles.coinSlotLabel}>{side}</Text>
             </View>
           ))}
@@ -87,7 +197,7 @@ export default function ScanReviewScreen() {
         {/* Field list */}
         <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
           <Card style={{ overflow: 'hidden' }}>
-            {FIELDS.map((f, i) => (
+            {fields.map((f, i) => (
               <View
                 key={f.label}
                 style={[
@@ -121,24 +231,36 @@ export default function ScanReviewScreen() {
           </Card>
         </View>
 
-        {/* Disclaimer */}
-        <View style={{ paddingHorizontal: 20, paddingBottom: 22 }}>
-          <View style={styles.disclaimer}>
-            <Icon name="warning" size={14} color={palette.cLow} />
-            <Text style={styles.disclaimerText}>
-              AI grade estimates are not authoritative. For coins valued over $200,
-              professional PCGS or NGC grading is recommended.
-            </Text>
+        {recognition.notes && (
+          <View style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
+            <Eyebrow style={{ marginBottom: 8 }}>NOTES</Eyebrow>
+            <Card style={{ padding: 14 }}>
+              <Text style={styles.notesText}>{recognition.notes}</Text>
+            </Card>
           </View>
-        </View>
+        )}
+
+        {/* Disclaimer — only for high-value coins */}
+        {showDisclaimer && (
+          <View style={{ paddingHorizontal: 20, paddingBottom: 22 }}>
+            <View style={styles.disclaimer}>
+              <Icon name="warning" size={14} color={palette.cLow} />
+              <Text style={styles.disclaimerText}>
+                Estimated value exceeds ${DISCLAIMER_THRESHOLD_USD}. AI grade estimates are not
+                authoritative — for sale, insurance, or auction, get a professional PCGS or NGC
+                grade.
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Actions */}
         <View style={styles.actions}>
           <Button label="Edit details" variant="ghost" onPress={onEdit} flex={1} />
           <Button
-            label="Save to collection"
+            label="Done"
             variant="gold"
-            onPress={onSave}
+            onPress={onDone}
             flex={1.4}
             leading={<Icon name="check" size={15} color={palette.goldFg} stroke={2.4} />}
           />
@@ -152,7 +274,13 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: palette.bg },
 
   header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
-  title: { fontFamily: fontFamily.display, fontSize: 26, color: palette.fg, letterSpacing: -0.5, marginTop: 6 },
+  title: {
+    fontFamily: fontFamily.display,
+    fontSize: 26,
+    color: palette.fg,
+    letterSpacing: -0.5,
+    marginTop: 6,
+  },
   subtitle: {
     fontFamily: fontFamily.mono,
     fontSize: 11,
@@ -171,14 +299,20 @@ const styles = StyleSheet.create({
     borderColor: palette.line,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  coinImage: { width: '100%', height: '100%' },
   coinSlotLabel: {
     position: 'absolute',
     top: 10, left: 10,
     fontFamily: fontFamily.mono,
     fontSize: 9,
-    color: palette.fg3,
+    color: palette.gold,
     letterSpacing: 1.4,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
 
   legend: {
@@ -200,6 +334,14 @@ const styles = StyleSheet.create({
   },
   fieldValue: { fontFamily: fontFamily.ui, fontSize: 15, color: palette.fg },
   fieldSub: { fontFamily: fontFamily.mono, fontSize: 10, color: palette.fg4, marginTop: 3 },
+
+  notesText: {
+    fontFamily: fontFamily.ui,
+    fontSize: 13,
+    color: palette.fg2,
+    lineHeight: 19,
+    fontStyle: 'italic',
+  },
 
   disclaimer: {
     padding: 12,
