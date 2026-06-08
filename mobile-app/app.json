@@ -36,9 +36,6 @@
         "NSCameraUsageDescription": "This app needs access to camera to photograph coins for your collection.",
         "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select coin images."
       },
-      "entitlements": {
-        "aps-environment": "production"
-      },
       "config": {
         "usesNonExemptEncryption": false
       }
@@ -55,10 +52,7 @@
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.VIBRATE",
-        "android.permission.WAKE_LOCK",
-        "com.google.android.c2dm.permission.RECEIVE"
+        "android.permission.VIBRATE"
       ]
     },
     "web": {
@@ -66,10 +60,21 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-camera",
-      "expo-image-picker",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "This app needs access to camera to photograph coins for your collection.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "This app needs access to photo library to select coin images.",
+          "microphonePermission": false
+        }
+      ],
       "expo-secure-store",
-      "expo-notifications",
       "expo-apple-authentication",
       [
         "@sentry/react-native/expo",

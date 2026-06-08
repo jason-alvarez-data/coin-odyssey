@@ -22,11 +22,6 @@
     },
     "production": {
       "autoIncrement": true,
-      "ios": {
-        "entitlements": {
-          "aps-environment": "production"
-        }
-      },
       "android": {
         "buildType": "aab"
       },
