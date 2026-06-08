@@ -22,7 +22,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0f0f23"
+      "backgroundColor": "#0f0b09"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -34,8 +34,7 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to camera to photograph coins for your collection.",
-        "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select coin images.",
-        "NSLocationWhenInUseUsageDescription": "This app needs location access to find coin shops and shows near you."
+        "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select coin images."
       },
       "entitlements": {
         "aps-environment": "production"
@@ -47,7 +46,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0f0f23"
+        "backgroundColor": "#ffc93c"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.coinodyssey.mobile",
@@ -56,8 +55,6 @@
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
         "android.permission.WAKE_LOCK",
