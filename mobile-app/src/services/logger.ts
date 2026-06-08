@@ -4,6 +4,8 @@
  * Provides different log levels and can be configured for different environments
  */
 
+import { captureException, captureMessage } from './crashReporting';
+
 export enum LogLevel {
   DEBUG = 0,
   INFO = 1,
@@ -128,6 +130,14 @@ class LoggerService {
         console.error(fullMessage, data !== undefined ? data : '');
         if (data instanceof Error) {
           console.error('Stack trace:', data.stack);
+        }
+        // Funnel errors to crash reporting (no-op unless a DSN is configured).
+        // A real Error gets captured with its stack; anything else becomes a
+        // message carrying the structured payload as context.
+        if (data instanceof Error) {
+          captureException(data, { logMessage: message });
+        } else {
+          captureMessage(message, 'error', data !== undefined ? { data } : undefined);
         }
         break;
     }

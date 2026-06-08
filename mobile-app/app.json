@@ -9,7 +9,15 @@
     "newArchEnabled": true,
     "scheme": "coin-odyssey",
     "description": "Professional coin collection management for numismatists. Track, organize, and analyze your coin collection with premium features.",
-    "keywords": ["coin", "collecting", "numismatics", "collection", "management", "tracker", "catalog"],
+    "keywords": [
+      "coin",
+      "collecting",
+      "numismatics",
+      "collection",
+      "management",
+      "tracker",
+      "catalog"
+    ],
     "privacy": "public",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -65,7 +73,14 @@
       "expo-image-picker",
       "expo-secure-store",
       "expo-notifications",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "REPLACE_WITH_SENTRY_ORG_SLUG",
+          "project": "coin-odyssey"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

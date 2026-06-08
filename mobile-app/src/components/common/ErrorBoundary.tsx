@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Colors, Typography, Spacing } from '../../styles';
 import { Logger } from '../../services/logger';
+import { addBreadcrumb } from '../../services/crashReporting';
 
 interface Props {
   children: React.ReactElement | React.ReactElement[];
@@ -39,12 +40,17 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log the error to our logging service
-    Logger.error('Error boundary caught an error', {
-      error: error.message,
-      stack: error.stack,
-      componentStack: errorInfo.componentStack,
+    // Attach the React component stack so the captured exception carries it as context.
+    addBreadcrumb({
+      category: 'react',
+      level: 'error',
+      message: 'Component stack at error boundary',
+      data: { componentStack: errorInfo.componentStack ?? undefined },
     });
+
+    // Log the real Error so crash reporting captures it with a usable stack trace
+    // (Logger.error funnels Error instances to Sentry.captureException).
+    Logger.error('Error boundary caught an error', error);
 
     // Update state with error details
     this.setState({

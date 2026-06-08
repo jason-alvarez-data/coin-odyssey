@@ -15,8 +15,13 @@ import { registerScreenPreloads, PreloadingStrategy } from './src/utils/preloadi
 import { useAppFonts, palette } from './src/theme';
 import { OfflineSyncService } from './src/services/offlineSyncService';
 import { CurrencyProvider } from './src/contexts/CurrencyContext';
+import { initCrashReporting, wrap } from './src/services/crashReporting';
 
-export default function App() {
+// Initialize crash reporting as early as possible, before the first render.
+// No-op unless EXPO_PUBLIC_SENTRY_DSN is configured.
+initCrashReporting();
+
+function App() {
   const fontsLoaded = useAppFonts();
 
   useEffect(() => {
@@ -112,3 +117,5 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
+
+export default wrap(App);

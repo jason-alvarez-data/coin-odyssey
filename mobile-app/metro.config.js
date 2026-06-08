@@ -1,10 +1,12 @@
-const { getDefaultConfig } = require('expo/metro-config');
+// Sentry's wrapper is a drop-in for expo's getDefaultConfig; it adds the
+// source-map customizations Sentry needs to symbolicate release builds.
+const { getSentryExpoConfig } = require('@sentry/react-native/metro');
 const path = require('path');
 
 const projectRoot = __dirname;
 const monorepoRoot = path.resolve(projectRoot, '..');
 
-const config = getDefaultConfig(projectRoot);
+const config = getSentryExpoConfig(projectRoot);
 
 // Watch the shared package for changes
 config.watchFolders = [monorepoRoot];
