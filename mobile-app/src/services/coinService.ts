@@ -18,6 +18,7 @@ interface CreateCoinData {
   purchasePrice?: number;
   purchaseDate?: string;
   notes?: string;
+  historicalNotes?: string;
   obverseImage?: string;
   reverseImage?: string;
   // Series information
@@ -104,6 +105,7 @@ export class CoinService {
     if (coin.currentMarketValue !== undefined) result.current_market_value = coin.currentMarketValue ?? null;
     if (coin.purchaseDate !== undefined) result.purchase_date = coin.purchaseDate || null;
     if (coin.notes !== undefined) result.notes = coin.notes || null;
+    if (coin.historicalNotes !== undefined) result.historical_notes = coin.historicalNotes || null;
     if (coin.country !== undefined) result.country = coin.country || null;
     if (coin.series !== undefined) result.series = coin.series || null;
     if (coin.seriesId !== undefined) result.series_id = coin.seriesId || null;
@@ -270,7 +272,7 @@ export class CoinService {
       lastAppraisalDate: null,
       mintage: null,
       rarityScale: null,
-      historicalNotes: null,
+      historicalNotes: d.historicalNotes ?? null,
       varietyNotes: null,
       notes: d.notes ?? null,
       images: null,

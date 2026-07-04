@@ -19,6 +19,7 @@ export interface PendingCreateCoinData {
   purchasePrice?: number;
   purchaseDate?: string;
   notes?: string;
+  historicalNotes?: string;
   obverseImage?: string;
   reverseImage?: string;
 }

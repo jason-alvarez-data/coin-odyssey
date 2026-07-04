@@ -83,10 +83,6 @@ export default function CoinDetailScreen() {
         ? new Date(coin.purchaseDate).toLocaleDateString()
         : null,
     },
-    {
-      label: 'MARKET VALUE',
-      value: formatCurrency(coin.currentMarketValue),
-    },
   ];
 
   const onEdit = () => {
@@ -180,6 +176,18 @@ export default function CoinDetailScreen() {
         <Section title="BASICS" rows={basics} />
         <Section title="DETAILS" rows={details} />
         <Section title="ACQUISITION" rows={acquisition} />
+
+        {coin.historicalNotes ? (
+          <View style={styles.section}>
+            <Eyebrow style={styles.sectionTitle}>ABOUT THIS COIN</Eyebrow>
+            <Card style={{ padding: 14 }}>
+              <Text style={styles.aboutText}>{coin.historicalNotes}</Text>
+              <Text style={styles.aboutSub}>
+                Written by AI from numismatic references — enjoy the story, verify the specifics.
+              </Text>
+            </Card>
+          </View>
+        ) : null}
 
         {coin.notes ? (
           <View style={styles.section}>
@@ -358,6 +366,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: palette.fg2,
     lineHeight: 20,
+  },
+
+  aboutText: {
+    fontFamily: fontFamily.ui,
+    fontSize: 14,
+    color: palette.fg,
+    lineHeight: 21,
+  },
+  aboutSub: {
+    fontFamily: fontFamily.mono,
+    fontSize: 9.5,
+    color: palette.fg4,
+    letterSpacing: 0.4,
+    marginTop: 10,
   },
 
   actions: {

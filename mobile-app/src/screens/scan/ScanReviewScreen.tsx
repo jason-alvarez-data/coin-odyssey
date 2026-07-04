@@ -20,9 +20,17 @@ import {
 } from '../../components/design';
 import { ScanStackParamList } from '../../types/navigation';
 import { RecognitionConfidence } from '../../types/recognition';
-import { useCurrency } from '../../contexts/CurrencyContext';
 
-const DISCLAIMER_THRESHOLD_USD = 200;
+function formatFaceValue(value: number, currency: string | null): string {
+  if (currency) {
+    try {
+      return value.toLocaleString('en-US', { style: 'currency', currency });
+    } catch {
+      // Unknown/invalid ISO code — fall through to plain formatting
+    }
+  }
+  return currency ? `${value} ${currency}` : String(value);
+}
 
 interface FieldDef {
   label: string;
@@ -81,8 +89,7 @@ export default function ScanReviewScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<ScanStackParamList, 'ScanReview'>>();
   const { result } = route.params;
-  const { recognition, pricing, estimatedValue, coin, obverseUri, reverseUri } = result;
-  const { format: formatCurrency } = useCurrency();
+  const { recognition, coin, obverseUri, reverseUri } = result;
 
   const titleLine = useMemo(() => {
     const parts = [recognition.country, recognition.denomination].filter(Boolean);
@@ -124,35 +131,17 @@ export default function ScanReviewScreen() {
       buildField('MINT MARK', recognition.mintMark, recognition.confidence),
       buildField('COMPOSITION', recognition.composition, recognition.confidence),
       buildField('ESTIMATED GRADE', recognition.grade, recognition.gradeConfidence),
+      buildField(
+        'FACE VALUE',
+        recognition.faceValue != null
+          ? formatFaceValue(recognition.faceValue, recognition.currency)
+          : null,
+        recognition.confidence
+      ),
     ];
 
-    if (estimatedValue != null && pricing) {
-      const sub =
-        pricing.source === 'pcgs'
-          ? `PCGS · ${new Date(pricing.lastUpdated).toLocaleDateString()}`
-          : `${pricing.source} · estimate`;
-      base.push({
-        label: 'MARKET VALUE',
-        value: formatCurrency(estimatedValue),
-        level: confToLevel(pricing.confidence),
-        score: confToScore(pricing.confidence),
-        sub,
-      });
-    } else {
-      base.push({
-        label: 'MARKET VALUE',
-        value: '—',
-        level: 'n',
-        score: 0,
-        placeholder: true,
-      });
-    }
-
     return base;
-  }, [recognition, pricing, estimatedValue]);
-
-  const showDisclaimer =
-    (estimatedValue ?? 0) >= DISCLAIMER_THRESHOLD_USD;
+  }, [recognition]);
 
   const onEdit = () => {
     navigation.getParent()?.navigate('Collection', {
@@ -231,26 +220,25 @@ export default function ScanReviewScreen() {
           </Card>
         </View>
 
-        {recognition.notes && (
+        {/* About this coin — the story behind what was just scanned */}
+        {recognition.history && (
           <View style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
-            <Eyebrow style={{ marginBottom: 8 }}>NOTES</Eyebrow>
+            <Eyebrow style={{ marginBottom: 8 }}>ABOUT THIS COIN</Eyebrow>
             <Card style={{ padding: 14 }}>
-              <Text style={styles.notesText}>{recognition.notes}</Text>
+              <Text style={styles.historyText}>{recognition.history}</Text>
+              <Text style={styles.historySub}>
+                Written by AI from numismatic references — enjoy the story, verify the specifics.
+              </Text>
             </Card>
           </View>
         )}
 
-        {/* Disclaimer — only for high-value coins */}
-        {showDisclaimer && (
-          <View style={{ paddingHorizontal: 20, paddingBottom: 22 }}>
-            <View style={styles.disclaimer}>
-              <Icon name="warning" size={14} color={palette.cLow} />
-              <Text style={styles.disclaimerText}>
-                Estimated value exceeds ${DISCLAIMER_THRESHOLD_USD}. AI grade estimates are not
-                authoritative — for sale, insurance, or auction, get a professional PCGS or NGC
-                grade.
-              </Text>
-            </View>
+        {recognition.notes && (
+          <View style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
+            <Eyebrow style={{ marginBottom: 8 }}>CONDITION NOTES</Eyebrow>
+            <Card style={{ padding: 14 }}>
+              <Text style={styles.notesText}>{recognition.notes}</Text>
+            </Card>
           </View>
         )}
 
@@ -343,22 +331,18 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-  disclaimer: {
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: palette.warnBorder,
-    backgroundColor: palette.warnBg,
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'flex-start',
-  },
-  disclaimerText: {
-    flex: 1,
+  historyText: {
     fontFamily: fontFamily.ui,
-    fontSize: 11.5,
-    color: palette.fg2,
-    lineHeight: 17,
+    fontSize: 13.5,
+    color: palette.fg,
+    lineHeight: 21,
+  },
+  historySub: {
+    fontFamily: fontFamily.mono,
+    fontSize: 9.5,
+    color: palette.fg4,
+    letterSpacing: 0.4,
+    marginTop: 10,
   },
 
   actions: { paddingHorizontal: 20, paddingBottom: 24, flexDirection: 'row', gap: 10 },

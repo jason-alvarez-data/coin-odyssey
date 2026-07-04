@@ -3,6 +3,13 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
+// Free monthly scan allowance per user. Override with the SCAN_MONTHLY_LIMIT
+// function secret; no redeploy needed to tune it.
+const SCAN_MONTHLY_LIMIT = (() => {
+  const parsed = parseInt(Deno.env.get("SCAN_MONTHLY_LIMIT") ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 50;
+})();
+
 const CACHED_SYSTEM_PROMPT = `You are an expert numismatist (coin specialist) with encyclopedic knowledge of world coins from all eras and countries. You have deep expertise in:
 
 - World coin denominations, series, and mintage history from all countries
@@ -25,12 +32,14 @@ The JSON object must have exactly these keys:
 - year: number or null (4-digit integer, e.g. 1965)
 - country: string or null (full country name in English, e.g. "United States", "Germany", "United Kingdom")
 - currency: string or null (ISO 4217 code where known, e.g. "USD", "EUR", "GBP", "CAD")
+- faceValue: number or null — the coin's face (circulation) value as a decimal in its own currency, e.g. 0.25 for a US quarter, 0.01 for a cent, 2 for a 2-euro coin. Null if the denomination is unknown or the coin was never circulating currency.
 - mintMark: string or null (single letter or symbol visible on coin, e.g. "D", "S", "W", "P")
 - composition: string or null (e.g. "Copper-Nickel Clad", "90% Silver", "Bronze", "Zinc Core")
 - confidence: one of exactly "high", "medium", "low", or "unrecognized"
 - grade: string or null — Sheldon-scale grade estimate based on visible wear, luster, strike, and surface marks. Use standard PCGS/NGC notation. Examples: "MS-65", "AU-58", "XF-45", "VF-30", "F-15", "VG-10", "G-6", "PR-65". Return null only if the coin is unrecognizable or the image is too poor to judge condition.
 - gradeConfidence: one of exactly "high", "medium", "low", or "unrecognized" — how confident you are in the grade estimate. Photo-based grading is inherently approximate; bias toward "medium" or "low" unless the image clearly shows surface detail.
 - notes: string or null (brief observation about condition, variety, or anything useful for cataloging)
+- history: string or null — 2 to 4 sentences of engaging background about this coin, written for someone new to collecting: the series and its design story, the designer, why the composition or year is interesting, and any notable varieties or facts a collector should know to look for. Ground every claim in established numismatic knowledge; never invent facts or values, and never state monetary worth. Null only if the coin cannot be identified.
 
 Confidence guidelines (for identification):
 - "high": You can clearly identify denomination, year, and country with certainty
@@ -45,7 +54,7 @@ Grade confidence guidelines:
 - "unrecognized": You cannot judge the grade meaningfully
 
 Example of a valid response:
-{"denomination":"Quarter Dollar","year":1965,"country":"United States","currency":"USD","mintMark":null,"composition":"Copper-Nickel Clad","confidence":"high","grade":"AU-55","gradeConfidence":"medium","notes":"Washington Quarter, clad composition introduced this year replacing silver"}`;
+{"denomination":"Quarter Dollar","year":1965,"country":"United States","currency":"USD","faceValue":0.25,"mintMark":null,"composition":"Copper-Nickel Clad","confidence":"high","grade":"AU-55","gradeConfidence":"medium","notes":"Light wear on high points; some luster remains in protected areas","history":"1965 marked a turning point for the Washington Quarter: rising silver prices forced the Mint to switch from 90% silver to the copper-nickel clad composition still used today. The portrait of George Washington, designed by John Flanagan, had been on the quarter since 1932. Coins from 1965–1967 also carry no mint mark, as the Mint suspended them to discourage collecting during a national coin shortage. Check the edge — a solid copper stripe confirms clad, while a silver edge could mean a rare transitional error struck on a silver planchet."}`;
 
 Deno.serve(async (req: Request) => {
   // CORS headers for mobile/web clients
@@ -80,12 +89,29 @@ Deno.serve(async (req: Request) => {
     return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  // Service-role client for quota bookkeeping: consume_scan/refund_scan are
+  // executable by service_role only, so users can't call them directly via
+  // PostgREST to reset their own counter.
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
   if (!ANTHROPIC_API_KEY) {
     return Response.json(
       { success: false, error: "Recognition service not configured" },
       { status: 500 }
     );
   }
+
+  // Refund one scan if we consumed quota but the AI call never succeeded.
+  let quotaConsumed = false;
+  const refundScan = async () => {
+    if (!quotaConsumed) return;
+    quotaConsumed = false;
+    const { error } = await admin.rpc("refund_scan", { p_user_id: user.id });
+    if (error) console.error("Scan refund failed:", error.message);
+  };
 
   try {
     const { obverseImage, reverseImage, mediaType } = await req.json();
@@ -95,6 +121,32 @@ Deno.serve(async (req: Request) => {
         { success: false, error: "At least one image is required" },
         { status: 400 }
       );
+    }
+
+    // Enforce the per-user monthly quota before spending an AI call.
+    const { data: quotaRows, error: quotaError } = await admin.rpc("consume_scan", {
+      p_user_id: user.id,
+      p_limit: SCAN_MONTHLY_LIMIT,
+    });
+    if (quotaError) {
+      // Quota bookkeeping failure shouldn't take the feature down — allow the
+      // scan but leave a trail in the logs.
+      console.error("Quota check failed (allowing scan):", quotaError.message);
+    } else {
+      const quota = Array.isArray(quotaRows) ? quotaRows[0] : quotaRows;
+      if (quota && quota.allowed === false) {
+        return Response.json(
+          {
+            success: false,
+            code: "quota_exceeded",
+            error:
+              `You've used all ${SCAN_MONTHLY_LIMIT} free scans for this month. ` +
+              "Your allowance resets on the 1st — you can still add coins manually anytime.",
+          },
+          { status: 200, headers: { "Access-Control-Allow-Origin": "*" } }
+        );
+      }
+      quotaConsumed = true;
     }
 
     const validTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -140,7 +192,7 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 384,
+        max_tokens: 768,
         system: [
           {
             type: "text",
@@ -155,6 +207,7 @@ Deno.serve(async (req: Request) => {
     if (!anthropicResponse.ok) {
       const errorText = await anthropicResponse.text();
       console.error("Anthropic API error:", anthropicResponse.status, errorText);
+      await refundScan();
 
       if (anthropicResponse.status === 429) {
         return Response.json(
@@ -199,12 +252,14 @@ Deno.serve(async (req: Request) => {
           year: null,
           country: null,
           currency: null,
+          faceValue: null,
           mintMark: null,
           composition: null,
           confidence: "unrecognized",
           grade: null,
           gradeConfidence: "unrecognized",
           notes: null,
+          history: null,
           error: "Failed to parse recognition response",
         },
       }, {
@@ -213,6 +268,7 @@ Deno.serve(async (req: Request) => {
     }
   } catch (error) {
     console.error("Coin recognition error:", error);
+    await refundScan();
     return Response.json(
       { success: false, error: "Recognition service unavailable. Please try again." },
       { status: 500, headers: { "Access-Control-Allow-Origin": "*" } }

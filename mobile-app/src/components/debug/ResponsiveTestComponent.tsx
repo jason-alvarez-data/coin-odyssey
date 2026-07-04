@@ -210,7 +210,6 @@ export const ResponsiveTestComponent = () => {
         <EnhancedCoinCard
           coin={mockCoin}
           onPress={() => console.log('Coin card pressed')}
-          showPricing={false}
         />
         {deviceInfo.responsive.gridColumns > 1 && (
           <EnhancedCoinCard
@@ -224,7 +223,6 @@ export const ResponsiveTestComponent = () => {
               grade: 'AU-58',
             }}
             onPress={() => console.log('Coin card 2 pressed')}
-            showPricing={false}
           />
         )}
       </View>

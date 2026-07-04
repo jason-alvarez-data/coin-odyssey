@@ -1,3 +1,4 @@
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import {
   CoinRecognitionResult,
@@ -67,6 +68,12 @@ export class CoinRecognitionService {
 
     if (error) {
       Logger.error('Coin recognition edge function error', error);
+      if (error instanceof FunctionsHttpError && error.context?.status === 401) {
+        throw new RecognitionError(
+          'Your session has expired. Please sign in again.',
+          'auth'
+        );
+      }
       throw new RecognitionError(
         'Recognition service unavailable. Please try again.',
         'service_unavailable'

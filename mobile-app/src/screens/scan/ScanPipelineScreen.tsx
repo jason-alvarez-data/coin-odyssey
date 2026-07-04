@@ -30,7 +30,7 @@ interface StageDef {
 const STAGE_DEFS: StageDef[] = [
   { title: 'Identifying coin', detail: 'Vision · Claude Haiku' },
   { title: 'Estimating grade', detail: 'Sheldon scale · wear, luster, strike' },
-  { title: 'Looking up value', detail: 'Market value estimate' },
+  { title: 'Gathering the story', detail: 'History · design · collecting notes' },
   { title: 'Cataloging entry', detail: 'Saving to your collection' },
 ];
 
@@ -199,14 +199,14 @@ export default function ScanPipelineScreen() {
           <View style={styles.errorBlock}>
             <View style={styles.errorCard}>
               <Icon
-                name={error.type === 'unrecognized' ? 'info' : 'warning'}
+                name={error.type === 'unrecognized' || error.type === 'quota' ? 'info' : 'warning'}
                 size={16}
                 color={palette.cLow}
               />
               <Text style={styles.errorMessage}>{error.message}</Text>
             </View>
             <View style={styles.errorActions}>
-              {error.type === 'unrecognized' ? (
+              {error.type === 'unrecognized' || error.type === 'quota' ? (
                 <>
                   <Button
                     label="Add manually"

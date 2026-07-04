@@ -1,5 +1,4 @@
 import { CoinRecognitionService, RecognitionError } from './coinRecognitionService';
-import { CoinPricingService, CoinPricing } from './coinPricingService';
 import { CoinService } from './coinService';
 import { CoinRecognitionResult } from '../types/recognition';
 import { Coin } from '../types/coin';
@@ -12,6 +11,7 @@ export type PipelineErrorType =
   | 'unrecognized'
   | 'auth'
   | 'rate_limit'
+  | 'quota'
   | 'save_failed'
   | 'unknown';
 
@@ -23,8 +23,6 @@ export interface StageUpdate {
 
 export interface ScanResult {
   recognition: CoinRecognitionResult;
-  pricing: CoinPricing | null;
-  estimatedValue: number | null;
   coin: Coin;
   obverseUri: string;
   reverseUri: string;
@@ -33,7 +31,7 @@ export interface ScanResult {
 export class PipelineError extends Error {
   type: PipelineErrorType;
   stage: StageId;
-  partial?: { recognition?: CoinRecognitionResult; pricing?: CoinPricing | null };
+  partial?: { recognition?: CoinRecognitionResult };
 
   constructor(
     type: PipelineErrorType,
@@ -59,26 +57,6 @@ function shortIdentityLine(r: CoinRecognitionResult): string {
   return parts.length ? parts.join(' · ') : 'Identification incomplete';
 }
 
-function pickEstimatedValue(p: CoinPricing | null): number | null {
-  if (!p) return null;
-  if (typeof p.currentValue === 'number') return p.currentValue;
-  if (p.priceRange) {
-    return (p.priceRange.low + p.priceRange.high) / 2;
-  }
-  return null;
-}
-
-function pricingLine(p: CoinPricing | null, value: number | null): string {
-  if (!p || value == null) return 'No market value available';
-  const formatted = value.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 2,
-  });
-  const source = p.source === 'pcgs' ? 'PCGS' : p.source === 'manual' ? 'estimated' : p.source.toUpperCase();
-  return `${formatted} · ${source}`;
-}
-
 function isNetworkError(err: unknown): boolean {
   const m = err instanceof Error ? err.message.toLowerCase() : '';
   return (
@@ -99,7 +77,7 @@ export async function runScan({
   reverseUri,
   onProgress,
 }: RunScanInput): Promise<ScanResult> {
-  // ---- Stage 1: Identify (and Stage 2 piggy-backs on this call) ----
+  // ---- Stage 1: Identify (stages 2 and 3 piggy-back on this call) ----
   onProgress({ stage: 1, state: 'active' });
 
   let recognition: CoinRecognitionResult;
@@ -111,6 +89,9 @@ export async function runScan({
     if (err instanceof RecognitionError) {
       if (err.code === 'rate_limit') {
         throw new PipelineError('rate_limit', 1, err.message);
+      }
+      if (err.code === 'quota_exceeded') {
+        throw new PipelineError('quota', 1, err.message);
       }
       if (err.code === 'auth') {
         throw new PipelineError('auth', 1, err.message);
@@ -157,36 +138,14 @@ export async function runScan({
     onProgress({ stage: 2, state: 'warn', resultText: 'Grade not estimated' });
   }
 
-  // ---- Stage 3: Price (PCGS) ----
+  // ---- Stage 3: Background (also from the same response) ----
   onProgress({ stage: 3, state: 'active' });
+  await new Promise((r) => setTimeout(r, 350));
 
-  // Build a partial coin to feed the pricing service
-  const lookupCoin = {
-    id: 'pending',
-    name: recognition.denomination ?? '',
-    title: '',
-    denomination: recognition.denomination ?? '',
-    year: recognition.year ?? 0,
-    mintMark: recognition.mintMark,
-    grade: recognition.grade,
-    country: recognition.country,
-  } as unknown as Coin;
-
-  let pricing: CoinPricing | null = null;
-  try {
-    pricing = await CoinPricingService.getCoinPricing(lookupCoin);
-  } catch (err) {
-    Logger.error('Pipeline stage 3 failed', err);
-    // Pricing failure is non-fatal — surface as warn and continue
-    onProgress({ stage: 3, state: 'warn', resultText: 'Pricing unavailable' });
-  }
-
-  const estimatedValue = pickEstimatedValue(pricing);
-  if (pricing) {
-    onProgress({ stage: 3, state: 'done', resultText: pricingLine(pricing, estimatedValue) });
-  } else if (estimatedValue == null) {
-    // already warned above if we got here via exception; otherwise emit warn
-    onProgress({ stage: 3, state: 'warn', resultText: 'No market value available' });
+  if (recognition.history) {
+    onProgress({ stage: 3, state: 'done', resultText: 'Story captured' });
+  } else {
+    onProgress({ stage: 3, state: 'warn', resultText: 'No background available' });
   }
 
   // ---- Stage 4: Catalog ----
@@ -205,6 +164,8 @@ export async function runScan({
       mintMark: recognition.mintMark ?? undefined,
       grade: recognition.grade ?? undefined,
       notes: recognition.notes ?? undefined,
+      faceValue: recognition.faceValue ?? undefined,
+      historicalNotes: recognition.history ?? undefined,
       obverseImage: obverseUri,
       reverseImage: reverseUri,
     });
@@ -212,21 +173,21 @@ export async function runScan({
     Logger.error('Pipeline stage 4 failed', err);
     onProgress({ stage: 4, state: 'error' });
     if (isAuthError(err)) {
-      throw new PipelineError('auth', 4, 'Sign in to save this coin.', { recognition, pricing });
+      throw new PipelineError('auth', 4, 'Sign in to save this coin.', { recognition });
     }
     if (isNetworkError(err)) {
       throw new PipelineError(
         'network',
         4,
         'Could not save — network unavailable. Your captures are preserved.',
-        { recognition, pricing }
+        { recognition }
       );
     }
     throw new PipelineError(
       'save_failed',
       4,
       err instanceof Error ? err.message : 'Save failed.',
-      { recognition, pricing }
+      { recognition }
     );
   }
 
@@ -234,8 +195,6 @@ export async function runScan({
 
   return {
     recognition,
-    pricing,
-    estimatedValue,
     coin,
     obverseUri,
     reverseUri,
