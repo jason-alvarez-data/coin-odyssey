@@ -1,165 +1,21 @@
 {
   "name": "coin-collecting-app",
   "version": "1.0.0",
-  "description": "Modern Numismat is a personal project born from my passion for numismatics (coin collecting). This desktop application provides collectors with a modern, intuitive interface for managing their coin collections, analyzing their portfolio, and tracking the value of their investments over time.",
-  "main": "main.js",
-  "scripts": {
-    "start": "electron .",
-    "build": "electron-builder -mwl",
-    "build:win": "electron-builder --windows --x64",
-    "build:mac": "electron-builder --mac --x64",
-    "build:linux": "electron-builder --linux --x64",
-    "pack": "electron-builder --dir",
-    "rebuild": "electron-rebuild",
-    "postinstall": "electron-builder install-app-deps",
-    "init-db": "node src/database/init-db.js",
-    "prebuild": "npm run init-db",
-    "process-svg": "ts-node scripts/processSvgPaths.ts"
-  },
+  "description": "Coin Odyssey — coin collection manager for numismatists. Expo/React Native mobile app with a Supabase backend.",
   "private": true,
   "workspaces": [
     "packages/*",
     "web-app",
     "mobile-app"
   ],
+  "scripts": {
+    "typecheck:mobile": "npm run typecheck --workspace=mobile-app",
+    "test:mobile": "npm test --workspace=mobile-app"
+  },
   "author": "Jason Alvarez",
   "license": "UNLICENSED",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/jason-alvarez-data/coin-odyssey/issues"
   },
-  "homepage": "https://github.com/jason-alvarez-data/coin-odyssey#readme",
-  "devDependencies": {
-    "@types/react": "18.2.79",
-    "@types/react-dom": "18.2.25",
-    "electron": "^28.1.0",
-    "electron-builder": "^24.9.1",
-    "electron-reloader": "^1.2.3",
-    "ts-node": "^10.9.0"
-  },
-  "optionalDependencies": {
-    "dmg-license": "^1.0.11"
-  },
-  "dependencies": {
-    "@kurkle/color": "^0.3.4",
-    "@supabase/supabase-js": "^2.49.8",
-    "better-sqlite3": "^9.6.0",
-    "chart.js": "^4.4.9",
-    "chartjs-adapter-date-fns": "^3.0.0",
-    "date-fns": "^4.1.0",
-    "electron-log": "^5.1.1",
-    "electron-squirrel-startup": "^1.0.1",
-    "electron-store": "^8.1.0",
-    "electron-updater": "^6.1.8",
-    "papaparse": "^5.5.2",
-    "uuid": "^9.0.1"
-  },
-  "engines": {
-    "node": ">=20.10.0 <=22.14.0"
-  },
-  "build": {
-    "appId": "com.modernnumismat.app",
-    "productName": "Modern Numismat",
-    "directories": {
-      "output": "dist",
-      "buildResources": "build"
-    },
-    "files": [
-      "**/*",
-      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
-      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-      "!**/node_modules/.bin",
-      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
-      "!.editorconfig",
-      "!**/._*",
-      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
-      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
-      "!**/{appveyor.yml,.travis.yml,circle.yml}",
-      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
-      "!coins.db",
-      "template.db"
-    ],
-    "asarUnpack": [
-      "**/node_modules/better-sqlite3/**",
-      "**/node_modules/node-gyp-build/**",
-      "template.db"
-    ],
-    "extraResources": [
-      {
-        "from": "template.db",
-        "to": "template.db",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "icon.ico",
-      "executableName": "Modern Numismat",
-      "requestedExecutionLevel": "asInvoker",
-      "artifactName": "${productName}-Setup-${version}.${ext}",
-      "publisherName": "Jason Alvarez",
-      "fileAssociations": [
-        {
-          "name": "Modern Numismat",
-          "description": "Modern Numismat Coin Collection App",
-          "icon": "icon.ico",
-          "ext": ".mncoin"
-        }
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "deleteAppDataOnUninstall": false,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Modern Numismat",
-      "installerIcon": "icon.ico",
-      "uninstallerIcon": "icon.ico",
-      "installerHeaderIcon": "icon.ico",
-      "menuCategory": "Modern Numismat",
-      "displayLanguageSelector": false
-    },
-    "linux": {
-      "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "src/assets/icons/png/CoinOdyssey_favicon_512x512.png",
-      "category": "Office",
-      "maintainer": "Jason Alvarez",
-      "vendor": "Modern Numismat"
-    },
-    "mac": {
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "src/assets/icons/mac/AnyConv.com__Coin Odyssey_favicon_16x16.icns",
-      "category": "public.app-category.finance",
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
-    },
-    "publish": null
-  }
+  "homepage": "https://github.com/jason-alvarez-data/coin-odyssey#readme"
 }
