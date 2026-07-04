@@ -8,6 +8,18 @@ global.console = {
   error: jest.fn(),
 };
 
+// @sentry/react-native touches RN native internals at import time that the
+// jest-expo environment does not provide; crashReporting.ts already guards
+// every call, so a shallow mock is sufficient.
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  captureMessage: jest.fn(),
+  addBreadcrumb: jest.fn(),
+  setUser: jest.fn(),
+  wrap: (component) => component,
+}));
+
 // Mock expo modules
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(),

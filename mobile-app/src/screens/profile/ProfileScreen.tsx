@@ -9,6 +9,7 @@ import {
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Application from 'expo-application';
 
 import { palette, fontFamily } from '../../theme';
 import { Card, Icon, Eyebrow } from '../../components/design';
@@ -39,7 +40,7 @@ interface Section {
   rows: Row[];
 }
 
-const APP_VERSION = '1.0.0 (412)';
+const APP_VERSION = `${Application.nativeApplicationVersion ?? '1.0.0'} (${Application.nativeBuildVersion ?? 'dev'})`;
 const PRIVACY_URL = 'https://coin-odyssey.app/privacy';
 const TERMS_URL = 'https://coin-odyssey.app/terms';
 

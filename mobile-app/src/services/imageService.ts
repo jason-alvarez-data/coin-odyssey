@@ -1,5 +1,6 @@
 // src/services/imageService.ts
 import * as FileSystem from 'expo-file-system/legacy';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { Image } from 'react-native';
 import { Logger } from './logger';
 
@@ -187,14 +188,16 @@ export class ImageService {
     cacheKey: string
   ): Promise<string | undefined> {
     try {
-      // For React Native, we'd typically use a library like react-native-image-resizer
-      // For now, we'll copy the original (in a real implementation, you'd resize it)
       const thumbnailFileName = `thumb_${cacheKey}.jpg`;
       const thumbnailPath = `${this.THUMBNAIL_DIR}${thumbnailFileName}`;
-      
-      // Copy file as placeholder (would be actual resizing in production)
-      await FileSystem.copyAsync({
-        from: sourcePath,
+
+      const resized = await manipulateAsync(
+        sourcePath,
+        [{ resize: { width: this.options.thumbnailSize.width } }],
+        { compress: this.options.compressionQuality, format: SaveFormat.JPEG }
+      );
+      await FileSystem.moveAsync({
+        from: resized.uri,
         to: thumbnailPath,
       });
 

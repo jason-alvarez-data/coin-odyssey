@@ -1,11 +1,13 @@
 // src/navigation/AppNavigator.tsx
-import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, Alert, Linking } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuth } from '../hooks/useAuth';
 import AuthNavigator from './AuthNavigator';
 import MainTabNavigator from './MainTabNavigator';
+import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
+import { AuthService } from '../services/auth';
 import { RootStackParamList } from '../types/navigation';
 import { palette, fontFamily } from '../theme';
 import { Logger } from '../services/logger';
@@ -14,6 +16,32 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
   const { user, loading } = useAuth();
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
+  const handledUrl = useRef<string | null>(null);
+
+  useEffect(() => {
+    const handleUrl = async (url: string | null) => {
+      if (!url || !AuthService.isPasswordRecoveryUrl(url)) return;
+      if (handledUrl.current === url) return;
+      handledUrl.current = url;
+
+      const result = await AuthService.completePasswordRecovery(url);
+      if (result.ok) {
+        setPasswordRecovery(true);
+      } else {
+        Alert.alert(
+          'Password reset',
+          result.message ?? 'This reset link is invalid or has expired. Request a new one.'
+        );
+      }
+    };
+
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      void handleUrl(url);
+    });
+    Linking.getInitialURL().then((url) => void handleUrl(url));
+    return () => subscription.remove();
+  }, []);
 
   Logger.debug('AppNavigator render', {
     hasUser: !!user,
@@ -53,7 +81,11 @@ export default function AppNavigator() {
           cardStyle: { backgroundColor: palette.bg },
         }}
       >
-        {user ? (
+        {user && passwordRecovery ? (
+          <Stack.Screen name="ResetPassword">
+            {() => <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />}
+          </Stack.Screen>
+        ) : user ? (
           <Stack.Screen name="Main" component={MainTabNavigator} />
         ) : (
           <Stack.Screen name="Auth" component={AuthNavigator} />

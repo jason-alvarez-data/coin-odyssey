@@ -7,6 +7,8 @@ describe('Logger Service', () => {
     jest.clearAllMocks();
     // Clear logger history
     Logger.clearHistory();
+    // Logger is a singleton — reset config leaked by earlier tests
+    Logger.configure({ minLevel: LogLevel.DEBUG, enableTimestamps: true });
   });
 
   describe('Log Levels', () => {

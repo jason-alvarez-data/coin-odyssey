@@ -62,8 +62,10 @@ describe('ErrorService', () => {
       const error = new Error('validation failed');
       const result = ErrorService.getUserFriendlyError(error);
 
+      // The service passes the original message through when present and
+      // only falls back to generic copy when the error has no message.
       expect(result.title).toBe('Invalid Input');
-      expect(result.message).toContain('check your input');
+      expect(result.message).toBe('validation failed');
     });
 
     it('should handle unknown errors with context', () => {

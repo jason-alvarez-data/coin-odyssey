@@ -1,0 +1,37 @@
+name: Mobile CI
+
+on:
+  push:
+    branches: [main, web-migration]
+    paths:
+      - 'mobile-app/**'
+      - 'packages/shared/**'
+      - '.github/workflows/mobile-ci.yml'
+  pull_request:
+    paths:
+      - 'mobile-app/**'
+      - 'packages/shared/**'
+      - '.github/workflows/mobile-ci.yml'
+
+jobs:
+  check:
+    name: Typecheck & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # Workspace install from the repo root; .npmrc sets legacy-peer-deps.
+      - name: Install dependencies
+        run: npm install
+
+      - name: Typecheck mobile app
+        run: npm run typecheck --workspace=mobile-app
+
+      - name: Run mobile tests
+        run: npm test --workspace=mobile-app -- --ci

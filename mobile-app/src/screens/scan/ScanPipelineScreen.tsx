@@ -30,7 +30,7 @@ interface StageDef {
 const STAGE_DEFS: StageDef[] = [
   { title: 'Identifying coin', detail: 'Vision · Claude Haiku' },
   { title: 'Estimating grade', detail: 'Sheldon scale · wear, luster, strike' },
-  { title: 'Looking up value', detail: 'PCGS price guide' },
+  { title: 'Looking up value', detail: 'Market value estimate' },
   { title: 'Cataloging entry', detail: 'Saving to your collection' },
 ];
 
